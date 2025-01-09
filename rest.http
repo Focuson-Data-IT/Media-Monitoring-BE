@@ -36,3 +36,6 @@ POST http://localhost:7770/api/addDataUser
 
 ### post processData
 POST http://localhost:7770/api/data/processData
+
+### GET processData
+GET http://localhost:7770/api/data/getData

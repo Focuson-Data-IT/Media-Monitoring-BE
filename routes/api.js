@@ -95,7 +95,7 @@ router.post('/updateDates', async (req, res) => {
 });
 
 // Endpoint untuk memasukan data dari listAkun ke dalam tabel dailyFairScores
-router.post('/addDataUser', async (req, res) => {
+router.post('/data/addDataUser', async (req, res) => {
     try {
         console.info('Starting to add user data to dailyFairScores...');
         await saveData.saveDataUser();
@@ -103,6 +103,29 @@ router.post('/addDataUser', async (req, res) => {
     } catch (error) {
         console.error("Error saving user data to dailyFairScores:", error.message);
         res.status(500).json({ success: false, message: 'Gagal menyimpan data user ke dailyFairScores.', error: error.message });
+    }
+});
+
+// Endpoint untuk memasukan data mentah, memproses dan memasukan data matang ke dalam tabel dailyFairScores
+router.post('/data/processData', async (req, res) => {
+    try {
+        console.info('Starting to process data...');
+        await fairScoreIg.processData(req, res);
+        res.json({ success: true, message: 'Data berhasil diproses dan disimpan ke dailyFairScores.' });
+    } catch (error) {
+        console.error('Error processing data:', error.message);
+        res.status(500).json({ success: false, message: 'Gagal menyimpan data user ke dailyFairScores.', error: error.message });
+    }
+});
+
+// Endpoint untuk mengambil data dari tabel dailyFairScores
+router.get('/data/getData', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM dailyFairScores');
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching data:', error.message);
+        res.status(500).json({ message: 'Gagal mengambil data.', error: error.message });
     }
 });
 
@@ -371,132 +394,6 @@ router.get('/execute/getLikes', async (req, res) => {
         console.error('Error executing getLikes:', error.message);
         res.status(500).send(`Error executing getLikes: ${error.message}`);
     }
-});
-
-let isProcessingFollowers = false;
-let isProcessingActivities = false;
-let isProcessingInteraction = false;
-let isProcessingResponsiveness = false;
-let isProcessingLikesUser = false;
-let isProcessingAllPosts = false;
-let isProcessingCalculateFairScore = false;
-let isProcessingFairScores = false;
-
-router.get('/data/followersIg', async (req, res) => {
-    if (isProcessingFollowers) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingFollowers = true;
-    try {
-        await fairControllerIg.getFollowersIg(req, res);
-    } finally {
-        isProcessingFollowers = false;
-    }
-});
-
-router.get('/data/activitiesIg', async (req, res) => {
-    if (isProcessingActivities) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingActivities = true;
-    try {
-        await fairControllerIg.getActivitiesIg(req, res);
-    } finally {
-        isProcessingActivities = false;
-    }
-});
-
-router.get('/data/interactionIg', async (req, res) => {
-    if (isProcessingInteraction) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingInteraction = true;
-    try {
-        await fairControllerIg.getInteractionIg(req, res);
-    } finally {
-        isProcessingInteraction = false;
-    }
-});
-
-router.get('/data/responsivenessIg', async (req, res) => {
-    if (isProcessingResponsiveness) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingResponsiveness = true;
-    try {
-        await fairControllerIg.getResponsivenessIg(req, res);
-    } finally {
-        isProcessingResponsiveness = false;
-    }
-});
-
-router.get('/data/likesUserIg', async (req, res) => {
-    if (isProcessingLikesUser) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingLikesUser = true;
-    try {
-        await fairControllerIg.getLikesUserIg(req, res);
-    } finally {
-        isProcessingLikesUser = false;
-    }
-});
-
-router.get('/data/allPostsIg', async (req, res) => {
-    if (isProcessingAllPosts) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingAllPosts = true;
-    try {
-        await fairControllerIg.getAllDataPostIg(req, res);
-    } finally {
-        isProcessingAllPosts = false;
-    }
-});
-
-router.post('/data/processData', async (req, res) => {
-    if (isProcessingCalculateFairScore) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingCalculateFairScore = true;
-    try {
-        await fairScoreIg.processData(req, res);
-    } finally {
-        isProcessingCalculateFairScore = false;
-    }
-});
-
-router.get('/data/fairScores', async (req, res) => {
-    if (isProcessingFairScores) {
-        return res.status(202).send("Data is being processed");
-    }
-
-    isProcessingFairScores = true;
-    try {
-        await fairScoreIg.getFairScores(req, res);
-    } finally {
-        isProcessingFairScores = false;
-    }
-});
-
-router.get('/data/status', (req, res) => {
-    res.json({
-        isProcessingFollowers,
-        isProcessingActivities,
-        isProcessingInteraction,
-        isProcessingResponsiveness,
-        isProcessingLikesUser,
-        isProcessingAllPosts,
-        isProcessingCalculateFairScore,
-        isProcessingFairScores
-    });
 });
 
 module.exports = router;
