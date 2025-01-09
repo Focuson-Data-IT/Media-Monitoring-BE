@@ -1,0 +1,38 @@
+### Get all products
+GET http://localhost:7770/api/data/calculateFairScore
+
+
+### Post addListAkun
+POST http://localhost:7770/api/addListAkun
+Content-Type: application/json
+
+{
+    "client_account": "Ismail",
+    "platform": "instagram",
+    "kategori": "Ismail",
+    "username": "sys_interrupted"
+}
+
+### Get ListAkun
+GET http://localhost:7770/api/ListAkun
+
+### Delete ListAkun
+DELETE http://localhost:7770/api/deleteListAkun/129
+
+### Edit ListAkun
+PUT http://localhost:7770/api/editListAkun/130
+Content-Type: application/json
+
+{
+    "client_account": "Anugrah",
+    "platform": "instagram",
+    "kategori": "Anugrah",
+    "username": "ismailisme"
+}
+
+### post addDataUser per hari
+POST http://localhost:7770/api/addDataUser
+
+
+### post processData
+POST http://localhost:7770/api/data/processData

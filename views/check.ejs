@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Processed Posts</title>
+</head>
+<body>
+    <h1>Processed Posts</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Unique ID Post</th>
+                <th>Username</th>
+                <th>Created At</th>
+                <th>Processed Comments</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% posts.forEach(post => { %>
+                <tr>
+                    <td><%= post.unique_id_post %></td>
+                    <td><%= post.username %></td>
+                    <td><%= post.created_at %></td>
+                    <td><%= post.comment_count %></td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+</body>
+</html>

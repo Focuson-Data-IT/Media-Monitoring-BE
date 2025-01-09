@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Data</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 50%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .export-button {
+            margin-bottom: 10px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Eksekusi API</h1>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/consolidated">Lihat Data Terkonsolidasi</a>
+    </nav>
+    
+    <!-- Table for Followers -->
+    <h2>Followers Data</h2>
+    <button class="export-button" onclick="exportTableToExcel('followers-table', 'FollowersData')">Export to Excel</button>
+    <table>
+        <thead>
+            <tr>
+                <th>Kategori</th>
+                <th>Username</th>
+                <th>Followers</th>
+            </tr>
+        </thead>
+        <tbody id="followers-table">
+            <!-- Followers data will be inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Table for Activities -->
+    <h2>Activities Data</h2>
+    <button class="export-button" onclick="exportTableToExcel('activities-table', 'ActivitiesData')">Export to Excel</button>
+    <table>
+        <thead>
+            <tr>
+                <th>Kategori</th>
+                <th>Username</th>
+                <th>Average Daily Activities</th>
+            </tr>
+        </thead>
+        <tbody id="activities-table">
+            <!-- Activities data will be inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Table for Interaction -->
+    <h2>Interaction Data</h2>
+    <button class="export-button" onclick="exportTableToExcel('interaction-table', 'InteractionData')">Export to Excel</button>
+    <table>
+        <thead>
+            <tr>
+                <th>Kategori</th>
+                <th>Username</th>
+                <th>Average Interaction (Likes)</th>
+            </tr>
+        </thead>
+        <tbody id="interaction-table">
+            <!-- Interaction data will be inserted here -->
+        </tbody>
+    </table>
+
+    <!-- Table for Responsiveness -->
+    <h1>Responsiveness Data</h1>
+    <button class="export-button" onclick="exportTableToExcel('responsiveness-table', 'ResponsivenessData')">Export to Excel</button>
+    <table id="responsiveness-table">
+        <thead>
+            <tr>
+                <th>Kategori</th>
+                <th>Username</th>                
+                <th>Total Comments</th>
+                <th>Total Comments by Username</th>                
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Responsiveness data will be inserted here -->
+        </tbody>
+        
+    </table>
+
+    <button class="export-button" onclick="exportAllTablesToPPTX()">Export to Power Point</button>
+
+    <script>
+        // Function to load data into a table and format it to 2 decimal places
+        async function loadData(endpoint, tableBodyId, decimalFields = []) {
+            const response = await fetch(endpoint);
+            const data = await response.json();
+            const tableBody = document.getElementById(tableBodyId);
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = Object.keys(row).map(key => {
+                    const value = decimalFields.includes(key) && row[key] !== null
+                        ? parseFloat(row[key]).toFixed(2)
+                        : row[key];
+                    return `<td>${value}</td>`;
+                }).join('');
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Load data for each table on page load
+        window.onload = async function() {
+            await loadData('/api/data/followersIg', 'followers-table');
+            await loadData('/api/data/activitiesIg', 'activities-table', ['activities']);
+            await loadData('/api/data/interactionIg', 'interaction-table', ['interaction']);
+            await loadData('/api/data/responsivenessIg', 'responsiveness-table', ['responsiveness']);
+        };
+
+        // Function to export table to Excel
+        function exportTableToExcel(tableId, filename) {
+            const table = document.getElementById(tableId);
+            const workbook = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+            XLSX.writeFile(workbook, `${filename}.xlsx`);
+        }
+
+        function exportAllTablesToPPTX() {
+            const pptx = new PptxGenJS();
+        
+            const tables = [
+                { title: "Followers Data", tableId: "followers-table" },
+                { title: "Activities Data", tableId: "activities-table" },
+                { title: "Interaction Data", tableId: "interaction-table" },
+                { title: "Responsiveness Data", tableId: "responsiveness-table" },
+            ];
+        
+            tables.forEach(({ title, tableId }) => {
+                const slide = pptx.addSlide();
+                slide.addText(title, { x: 0.5, y: 0.5, fontSize: 24, bold: true });
+        
+                const table = document.getElementById(tableId);
+                const rows = Array.from(table.rows);
+                const data = rows.map(row => Array.from(row.cells).map(cell => cell.innerText));
+        
+                slide.addTable(data, {
+                    x: 0.5,
+                    y: 1.5,
+                    w: 9,
+                    border: { pt: 1, color: "000000" },
+                    fill: "FFFFFF",
+                    fontSize: 12,
+                });
+            });
+        
+            pptx.writeFile("AllData.pptx");
+        }        
+    </script>
+</body>
+</html>
