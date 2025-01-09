@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const getDataIg = require('../controllers/getDataIg');
-const fairControllerIg = require('../controllers/fairControllerIg');
 const fairScoreIg = require('../controllers/fairScoreIg');
 const saveData = require('../controllers/saveData');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
