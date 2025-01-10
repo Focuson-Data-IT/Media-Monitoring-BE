@@ -6,43 +6,47 @@ const async = require('async');
 
 let requestCount = 0;
 const maxRequestsPerMinute = 240;
-const threadRequestLimit = 10; // Sesuaikan dengan jumlah maksimum per thread sebelum istirahat
-const threadRestTime = 300; // Waktu istirahat (dalam ms)
-const totalThreads = 20; // Jumlah thread paralel
+const threadRequestLimit = 10;
+const threadRestTime = 300; // Dalam ms
+const totalThreads = 20;
 const delay = 60000 / maxRequestsPerMinute;
 
 const trackRequests = async () => {
     requestCount++;
-    console.log(`Request count: ${requestCount}`);
+    console.log(`Global request count: ${requestCount}`);
     if (requestCount >= maxRequestsPerMinute) {
-        console.log(`Reached ${maxRequestsPerMinute} requests. Resting for ${delay / 1000} seconds...`);
+        console.log(`Reached ${maxRequestsPerMinute} requests. Resting globally for ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        requestCount = 0; // Reset request count
+        requestCount = 0;
     }
 };
 
 const processQueue = async (items, processFunction) => {
-    let threadRequestCount = 0; // Melacak jumlah permintaan per thread
+    let activeThreads = 0; // Untuk melacak jumlah thread aktif
 
     const queue = async.queue(async (item, callback) => {
         try {
-            // Eksekusi fungsi pemrosesan
+            activeThreads++;
+            let threadRequestCount = 0; // Reset untuk setiap thread
+
+            // Proses item
             await processFunction(item);
             threadRequestCount++;
 
-            // Lacak jumlah permintaan global
+            // Lacak permintaan global
             await trackRequests();
 
-            // Periksa apakah thread mencapai batas permintaan
+            // Jika thread mencapai batas, istirahatkan
             if (threadRequestCount >= threadRequestLimit) {
-                console.log(`Thread reached ${threadRequestLimit} requests. Resting for ${threadRestTime / 1000} seconds...`);
+                console.log(`Thread reached ${threadRequestLimit} requests. Resting thread for ${threadRestTime / 1000} seconds...`);
                 await new Promise(resolve => setTimeout(resolve, threadRestTime));
-                threadRequestCount = 0; // Reset hitungan permintaan per thread
+                threadRequestCount = 0; // Reset untuk thread
             }
         } catch (error) {
             console.error(`Error processing item: ${error.message}`);
         } finally {
-            // Tunggu sesuai delay sebelum memproses permintaan berikutnya
+            activeThreads--;
+            // Tunggu sebelum memproses permintaan berikutnya
             setTimeout(callback, delay);
         }
     }, totalThreads);
@@ -52,6 +56,8 @@ const processQueue = async (items, processFunction) => {
 
     // Tunggu hingga semua tugas selesai
     await queue.drain();
+
+    console.log('All items in the queue have been processed.');
 };
 
 // Eksekusi getData berdasarkan semua username di listAkun
@@ -59,7 +65,7 @@ router.get('/getData', async (req, res) => {
 
     // Fetch data for Instagram
     try {
-        const [rows] = await db.query('SELECT client_account, kategori, platform, username FROM listAkun WHERE platform = "instagram"');
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "instagram"');
 
         await processQueue(rows, async (row) => {
             try {
@@ -87,7 +93,7 @@ router.get('/getData', async (req, res) => {
 });
 
 // Eksekusi getPost berdasarkan semua username di listAkun
-router.post('/getPost', async (req, res) => {
+router.get('/getPost', async (req, res) => {
     // Fetch data for Instagram
     try {
         const [rows] = await db.query('SELECT * FROM users WHERE platform = "instagram"');
