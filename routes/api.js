@@ -219,9 +219,9 @@ router.get('/execute/getData', async (req, res) => {
 });
 
 // Eksekusi getPost berdasarkan semua username di listAkun
-router.get('/execute/getPost', async (req, res) => {
+router.post('/execute/getPost', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT client_account, kategori, platform, username FROM listAkun WHERE platform = "instagram"');
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "instagram"');
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -229,7 +229,9 @@ router.get('/execute/getPost', async (req, res) => {
                 row.username,
                 row.client_account,
                 row.kategori,
-                row.platform
+                row.platform,
+                row.followers,
+                row.following
             );
             console.log(`Posts for user ${row.username} have been fetched and saved.`);
         });
@@ -299,67 +301,6 @@ router.get('/execute/getComment', async (req, res) => {
     } catch (error) {
         console.error('Error executing getComment:', error.message);
         res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getComment.', error: error.message });
-    }
-});
-
-// Endpoint untuk eksekusi getChildComment
-router.get('/execute/getChildComment', async (req, res) => {
-    const { fromStart } = req.query; // Parameter untuk menentukan apakah proses dimulai dari awal
-    const processFromStart = fromStart === 'true';
-
-    try {
-        let queryChild = 'SELECT comment_unique_id FROM mainComments WHERE platform = "instagram"';
-        
-        // Jika proses tidak dimulai dari awal, hanya ambil data yang belum diproses
-        if (!processFromStart) {
-            queryChild = `
-                SELECT p.comment_unique_id 
-                FROM mainComments p
-                LEFT JOIN childComments mc ON p.comment_unique_id = mc.comment_unique_id
-                WHERE mc.comment_unique_id IS NULL AND p.platform = "instagram"
-            `;
-        }
-
-        // Ambil komentar anak
-        const [childs] = await db.query(queryChild);
-        console.log(`Found ${childs.length} child comments to process.`);
-
-        await processQueue(childs, async (child) => {
-            const comment_unique_id = child.comment_unique_id;
-            console.log(`Fetching child comments for comment: ${comment_unique_id}...`);
-
-            // Ambil user_id, username, unique_id_post, dan child_comment_count dari database
-            const userQuery = `
-                SELECT unique_id_post, user_id, username, comment_unique_id, child_comment_count, client_account, kategori, platform
-                FROM mainComments 
-                WHERE comment_unique_id = ? AND platform = "instagram"
-            `;
-            const [userChild] = await db.query(userQuery, [comment_unique_id]);
-
-            if (userChild.length === 0) {
-                console.log(`Comment ${comment_unique_id} not found in database.`);
-                return;
-            }
-
-            const { unique_id_post, user_id, username, client_account, child_comment_count, kategori, platform } = userChild[0];
-
-            // Proses komentar anak jika jumlah komentar lebih dari 0
-            if (child_comment_count > 0) {
-                try {
-                    await getDataIg.getDataChildComment(unique_id_post, user_id, username, comment_unique_id, client_account, kategori, platform);
-                    console.log(`Child comments for comment ${comment_unique_id} have been fetched and saved.`);
-                } catch (err) {
-                    console.error(`Error fetching child comments for comment ${comment_unique_id}:`, err.message);
-                }
-            } else {
-                console.log(`No child comments to fetch for comment ${comment_unique_id}.`);
-            }
-        });
-
-        res.send('Data getChildComment for all users have been fetched and saved.');
-    } catch (error) {
-        console.error('Error executing getChildComment:', error.message);
-        res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getChildComment.', error: error.message });
     }
 });
 
