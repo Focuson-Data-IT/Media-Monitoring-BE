@@ -2,10 +2,9 @@ const express = require('express');
 const router = express.Router();
 const saveData = require('../controllers/saveData');
 const fairScore = require('../controllers/fairScore');
-const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 
 // Endpoint untuk memasukan data dari listAkun ke dalam tabel dailyFairScores
-router.post('/data/addDataUser', async (req, res) => {
+router.post('/addDataUser', async (req, res) => {
     try {
         console.info('Starting to add user data to dailyFairScores...');
         await saveData.saveDataUser();
@@ -17,7 +16,7 @@ router.post('/data/addDataUser', async (req, res) => {
 });
 
 // Endpoint untuk memasukan data mentah, memproses dan memasukan data matang ke dalam tabel dailyFairScores
-router.post('/data/processData', async (req, res) => {
+router.post('/processData', async (req, res) => {
     try {
         console.info('Starting to process data...');
         await fairScore.processData(req, res);

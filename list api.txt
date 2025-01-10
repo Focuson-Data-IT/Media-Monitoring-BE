@@ -1,0 +1,45 @@
+
+#Api untuk mengambil data dari tabel dailyFairScores#
+
+GET /api/getFollowers ambil data followers
+GET /api/getActivities ambil data activities
+GET /api/getInteractions ambil data interactions
+GET /api/getResponsiveness ambil data responsiveness
+GET /api/getFairScores ambil data fair score
+GET /api/getAllData ambil semua data dari dailyFairScores
+
+
+#Api untuk menangani list akun target#
+
+GET /accounts/listAkun ambil data list akun
+POST /accounts/addListAkun menambahkan data kedalam list akun
+DELETE /accounts/deleteListAkun/:id menghapus data list akun
+PUT /accounts/editListAkun/:id mengedit data list akun
+
+
+#Api untuk tanggal#
+
+GET /data/getDates untuk mengambil data tanggal yang di setting untuk pengambilan data (mesin)
+POST /data/updateDates untuk mengambil data tanggalnya
+
+
+#Api untuk mesin Instagram#
+
+GET /instagram/getData mengambil data user target
+GET /instagram/getPost mengambil data postingan user target
+GET /instagram/getComment mengambil data komentar user target
+GET /instagram/getLikes mengambil data likes user target
+
+
+#Api untuk mesin Tiktok#
+
+GET /tiktok/getData mengambil data user target
+GET /tiktok/getPost mengambil data postingan user target
+GET /tiktok/getComment mengambil data komentar user target
+GET /tiktok/getLikes mengambil data likes user target
+
+
+#Api untuk perhitungan fair#
+
+POST /fair/addDataUser untuk bikin data awal untuk proses perhitungan fair nya
+POST /fair/processData untuk menghitung fair nya
