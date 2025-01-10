@@ -18,13 +18,13 @@ const apiRequestWithRetry = async (config, maxRetries = 5) => {
 };
 
 // Fungsi untuk mendapatkan data User dari API
-const getDataUser = async (username = null) => {
+const getDataUser = async (username = null, client_account = null, kategori = null, platform = null) => {
     try {
         const getUser = {
             method: 'GET',
             url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
             params: {
-                unique_id: '@' + username
+                unique_id: `@${username}`
             },
             headers: {
                 'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
@@ -41,7 +41,10 @@ const getDataUser = async (username = null) => {
         const userData = response.data.data;
 
         const user = {
-            username: userData.user.uniqueId,
+            username: username,
+            client_account: client_account,
+            kategori: kategori,
+            platform: platform,
             user_id: userData.user.id,
             secUid: userData.user.secUid, // New Data
             followers: userData.stats.followerCount || 0,
@@ -57,13 +60,13 @@ const getDataUser = async (username = null) => {
 };
 
 // Fungsi untuk mendapatkan data Post dari API
-const getDataPost = async (username = null) => {
+const getDataPost = async (username = null, client_account = null, kategori = null, platform = null, followers = null, following = null) => {
     try {
 
         // Ambil startDate dari server
         const response = await fetch(`http://localhost:${process.env.PORT}/api/getDates`);
         const data = await response.json();
-        
+
         const endDate = new Date(data.startDate).toISOString().split('T')[0];
 
         let cursor = null;
@@ -75,7 +78,7 @@ const getDataPost = async (username = null) => {
                 method: 'GET',
                 url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserVideos',
                 params: {
-                    unique_id: '@' + username,
+                    unique_id: `@${username}`,
                     count: 35,
                     ...(cursor && { cursor: cursor })
                 },
@@ -99,6 +102,9 @@ const getDataPost = async (username = null) => {
 
                 if (isPinned) {
                     const post = {
+                        client_account: client_account,
+                        kategori: kategori,
+                        platform: platform,
                         user_id: item.author.id,
                         unique_id_post: item.video_id,
                         aweme_id: item.aweme_id, // New item
@@ -116,7 +122,9 @@ const getDataPost = async (username = null) => {
                         // media_name: item.media_name, // Delete item
                         // product_type: item.product_type, // Delete item
                         // tagged_users: item.tagged_users?.map(tag => tag.user.username).join(', ') || '', // Delete item
-                        is_pinned: isPinned
+                        is_pinned: isPinned,
+                        followers: followers,
+                        following: following
                     };
 
                     await save.savePost(post);
@@ -128,6 +136,9 @@ const getDataPost = async (username = null) => {
                 }
 
                 const post = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
                     user_id: item.author.id,
                     unique_id_post: item.video_id,
                     aweme_id: item.aweme_id, // New item
@@ -145,7 +156,9 @@ const getDataPost = async (username = null) => {
                     // media_name: item.media_name, // Delete item
                     // product_type: item.product_type, // Delete item
                     // tagged_users: item.tagged_users?.map(tag => tag.user.username).join(', ') || '', // Delete item
-                    is_pinned: isPinned
+                    is_pinned: isPinned,
+                    followers: followers,
+                    following: following
                 };
 
                 await save.savePost(post);
@@ -161,7 +174,7 @@ const getDataPost = async (username = null) => {
 };
 
 // Fungsi untuk mendapatkan data Comment dari API
-const getDataComment = async (unique_id_post = null, user_id = null, username = null) => {
+const getDataComment = async (unique_id_post = null, user_id = null, username = null, client_account = null, kategori = null, platform = null) => {
     try {
         let cursor = 0;
         let hasMore = true;
@@ -192,6 +205,9 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 
             for (const item of userComment) {
                 const comment = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
                     user_id: user_id,
                     username: username,
                     unique_id_post: unique_id_post,
@@ -217,11 +233,11 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 };
 
 // Fungsi untuk mendapatkan data Child Comment dari API
-const getDataChildComment = async (user_id = null, username = null, unique_id_post = null, comment_unique_id = null) => {
+const getDataChildComment = async (user_id = null, username = null, unique_id_post = null, comment_unique_id = null, client_account = null, kategori = null, platform = null) => {
     try {
         let cursor = 0;
         let hasMore = true;
-        
+
         while (hasMore) {
             const getChildComment = {
                 method: 'GET',
@@ -230,7 +246,7 @@ const getDataChildComment = async (user_id = null, username = null, unique_id_po
                     comment_id: comment_unique_id,
                     video_id: unique_id_post,
                     count: 50,
-                    ...(cursor && { cursor: cursor }) 
+                    ...(cursor && { cursor: cursor })
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
@@ -249,6 +265,9 @@ const getDataChildComment = async (user_id = null, username = null, unique_id_po
 
             for (const item of userComment) {
                 const childComment = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
                     user_id: user_id,
                     username: username,
                     unique_id_post: unique_id_post,
@@ -260,7 +279,7 @@ const getDataChildComment = async (user_id = null, username = null, unique_id_po
                     child_comment_text: item.text,
                     child_comment_like_count: item.digg_count
                 };
-                
+
                 await save.saveChildComment(childComment);
             }
 

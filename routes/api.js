@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const getDataIg = require('../controllers/getDataIg');
-const fairScoreIg = require('../controllers/fairScoreIg');
+const getDataTiktok = require('../controllers/getDataTiktok');
 const saveData = require('../controllers/saveData');
+const fairScore = require('../controllers/fairScore');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
 
@@ -109,7 +110,7 @@ router.post('/data/addDataUser', async (req, res) => {
 router.post('/data/processData', async (req, res) => {
     try {
         console.info('Starting to process data...');
-        await fairScoreIg.processData(req, res);
+        await fairScore.processData(req, res);
         res.json({ success: true, message: 'Data berhasil diproses dan disimpan ke dailyFairScores.' });
     } catch (error) {
         console.error('Error processing data:', error.message);
@@ -127,8 +128,6 @@ router.get('/data/getData', async (req, res) => {
         res.status(500).json({ message: 'Gagal mengambil data.', error: error.message });
     }
 });
-
-// Instagram Api Methods ----------------------------------------------------------------
 
 // Route Eksekusi server
 // Endpoint untuk menampilkan semua list akun
@@ -187,9 +186,10 @@ router.put('/editListAkun/:id', async (req, res) => {
     }
 });
 
-
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/execute/getData', async (req, res) => {
+
+    // Fetch data for Instagram
     try {
         const [rows] = await db.query('SELECT client_account, kategori, platform, username FROM listAkun WHERE platform = "instagram"');
 
@@ -216,16 +216,69 @@ router.get('/execute/getData', async (req, res) => {
         console.error('Error executing getData:', error.message);
         res.status(500).send(`Error executing getData: ${error.message}`);
     }
+
+    // Fetch data for Tiktok
+    try {
+        const [rows] = await db.query('SELECT client_account, kategori, platform, username FROM listAkun WHERE platform = "tiktok"');
+
+        await processQueue(rows, async (row) => {
+            try {
+                console.info('Fetching data for user:' + row.username);
+        
+                // Panggil fungsi getDataUser
+                await getDataTiktok.getDataUser(
+                    row.username,
+                    row.client_account,
+                    row.kategori,
+                    row.platform
+                );
+        
+                console.log(`Data for user ${row.username} has been fetched and saved.`);
+            } catch (error) {
+                console.error(`Error fetching data for user ${row.username}:`, error.message);
+            }
+        });        
+
+        res.send('Data getData for all users have been fetched and saved.');
+    } catch (error) {
+        console.error('Error executing getData:', error.message);
+        res.status(500).send(`Error executing getData: ${error.message}`);
+    }
 });
 
 // Eksekusi getPost berdasarkan semua username di listAkun
 router.post('/execute/getPost', async (req, res) => {
+
+    // Fetch data for Instagram
     try {
         const [rows] = await db.query('SELECT * FROM users WHERE platform = "instagram"');
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
             await getDataIg.getDataPost(
+                row.username,
+                row.client_account,
+                row.kategori,
+                row.platform,
+                row.followers,
+                row.following
+            );
+            console.log(`Posts for user ${row.username} have been fetched and saved.`);
+        });
+
+        res.send('Data getPost for all users have been fetched and saved.');
+    } catch (error) {
+        console.error('Error executing getPost:', error.message);
+        res.status(500).send(`Error executing getPost: ${error.message}`);
+    }
+
+    // Fetch data for Tiktok
+    try {
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "tiktok"');
+
+        await processQueue(rows, async (row) => {
+            console.log(`Fetching posts for user: ${row.username}...`);
+            await getDataTiktok.getDataPost(
                 row.username,
                 row.client_account,
                 row.kategori,
@@ -248,6 +301,7 @@ router.get('/execute/getComment', async (req, res) => {
     const { fromStart } = req.query; // Parameter untuk menentukan apakah proses dimulai dari awal
     const processFromStart = fromStart === 'true';
 
+    // Fetch Comment for Instagram
     try {
         let query = 'SELECT unique_id_post FROM posts WHERE platform = "instagram"';
         
@@ -301,6 +355,118 @@ router.get('/execute/getComment', async (req, res) => {
     } catch (error) {
         console.error('Error executing getComment:', error.message);
         res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getComment.', error: error.message });
+    }
+
+    // Fetch Main Comment for Tiktok
+    try {
+        let query = 'SELECT unique_id_post FROM posts WHERE platform = "tiktok"';
+        
+        // Jika proses tidak dimulai dari awal, hanya ambil data yang belum diproses
+        if (!processFromStart) {
+            query = `
+                SELECT p.unique_id_post
+                FROM posts p
+                LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
+                WHERE mc.unique_id_post IS NULL AND p.platform = "tiktok"
+            `;
+        }
+
+        // Ambil data post
+        const [rows] = await db.query(query);
+        console.log(`Found ${rows.length} posts to process.`);
+
+        await processQueue(rows, async (row) => {
+            const unique_id_post = row.unique_id_post;
+            console.log(`Fetching comments for post: ${unique_id_post}...`);
+
+            // Ambil user_id, username, client_account, kategori, dan platform dari database berdasarkan unique_id_post
+            const userQuery = `
+                SELECT user_id, username, comments, client_account, kategori, platform
+                FROM posts 
+                WHERE unique_id_post = ? AND platform = "tiktok"
+            `;
+            const [userRows] = await db.query(userQuery, [unique_id_post]);
+
+            if (userRows.length === 0) {
+                console.log(`Post ${unique_id_post} not found in database.`);
+                return; // Lanjutkan ke post berikutnya jika tidak ditemukan
+            }
+
+            const { user_id, username, comments, client_account, kategori, platform } = userRows[0];
+
+            // Proses komentar jika jumlah komentar lebih dari 0
+            if (comments > 0) {
+                try {
+                    await getDataTiktok.getDataComment(unique_id_post, user_id, username, client_account, kategori, platform);
+                    console.log(`Comments for post ${unique_id_post} have been fetched and saved.`);
+                } catch (err) {
+                    console.error(`Error fetching comments for post ${unique_id_post}:`, err.message);
+                }
+            } else {
+                console.log(`No comments for post ${unique_id_post}.`);
+            }
+        });
+
+        res.send('Data getComment for all users have been fetched and saved.');
+    } catch (error) {
+        console.error('Error executing getComment:', error.message);
+        res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getComment.', error: error.message });
+    }
+
+    // Fetch Child Comment for Tiktok
+    try {
+        let queryChild = 'SELECT comment_unique_id FROM mainComments WHERE platform = "tiktok"';
+        
+        // Jika proses tidak dimulai dari awal, hanya ambil data yang belum diproses
+        if (!processFromStart) {
+            queryChild = `
+                SELECT p.comment_unique_id 
+                FROM mainComments p
+                LEFT JOIN childComments mc ON p.comment_unique_id = mc.comment_unique_id
+                WHERE mc.comment_unique_id IS NULL AND p.platform = "tiktok"
+            `;
+        }
+
+        // Ambil komentar anak
+        const [childs] = await db.query(queryChild);
+        console.log(`Found ${childs.length} child comments to process.`);
+
+        await processQueue(childs, async (child) => {
+            const comment_unique_id = child.comment_unique_id;
+            console.log(`Fetching child comments for comment: ${comment_unique_id}...`);
+
+            // Ambil user_id, username, unique_id_post, dan child_comment_count dari database
+            const userQuery = `
+                SELECT unique_id_post, user_id, username, comment_unique_id, child_comment_count, client_account, kategori, platform
+                FROM mainComments 
+                WHERE comment_unique_id = ? AND platform = "tiktok"
+            `;
+            const [userChild] = await db.query(userQuery, [comment_unique_id]);
+
+            if (userChild.length === 0) {
+                console.log(`Comment ${comment_unique_id} not found in database.`);
+                return;
+            }
+
+            const { unique_id_post, user_id, username, client_account, child_comment_count, kategori, platform } = userChild[0];
+
+            // Proses komentar anak jika jumlah komentar lebih dari 0
+            if (child_comment_count > 0) {
+                try {
+                    await getDataTiktok.getDataChildComment(unique_id_post, user_id, username, comment_unique_id, client_account, kategori, platform);
+                    console.log(`Child comments for comment ${comment_unique_id} have been fetched and saved.`);
+                } catch (err) {
+                    console.error(`Error fetching child comments for comment ${comment_unique_id}:`, err.message);
+                }
+            } else {
+                console.log(`No child comments to fetch for comment ${comment_unique_id}.`);
+            }
+        });
+
+        res.send('Data getChildComment for all users have been fetched and saved.');
+    } catch (error) {
+        console.error('Error executing getChildComment:', error.message);
+        res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getChildComment.', error: error.message });
     }
 });
 
