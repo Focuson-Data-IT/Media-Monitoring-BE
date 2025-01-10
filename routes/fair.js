@@ -28,15 +28,4 @@ router.post('/data/processData', async (req, res) => {
     }
 });
 
-// Endpoint untuk mengambil data dari tabel dailyFairScores
-router.get('/data/getData', async (req, res) => {
-    try {
-        const [rows] = await db.query('SELECT * FROM dailyFairScores');
-        res.json(rows);
-    } catch (error) {
-        console.error('Error fetching data:', error.message);
-        res.status(500).json({ message: 'Gagal mengambil data.', error: error.message });
-    }
-});
-
 module.exports = router;

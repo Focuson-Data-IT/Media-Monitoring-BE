@@ -39,3 +39,21 @@ POST http://localhost:7770/api/data/processData
 
 ### GET processData
 GET http://localhost:7770/api/data/getData
+
+### GET processData
+GET http://localhost:7770/api/getFollowers
+
+### GET processData
+GET http://localhost:7770/api/getActivities
+
+### GET processData
+GET http://localhost:7770/api/getInteractions
+
+### GET processData
+GET http://localhost:7770/api/getResponsiveness
+
+### GET processData
+GET http://localhost:7770/api/getFairScores
+
+### GET processData
+GET http://localhost:7770/api/getAllData
