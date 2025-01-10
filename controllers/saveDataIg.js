@@ -3,8 +3,8 @@ const connection = require('../models/db');
 // fungsi untuk menyimpan data user ke database
 const saveUser = async (user) => {
     const sql = `
-                    INSERT INTO users (client_account, kategori, platform, username, user_id, followers, following, mediaCount) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO users (client_account, kategori, platform, username, user_id, followers, following, mediaCount, profile_pic_url) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
                     client_account = VALUES(client_account),
                     kategori = VALUES(kategori),
@@ -12,11 +12,12 @@ const saveUser = async (user) => {
                     user_id = VALUES(user_id),
                     followers = VALUES(followers),
                     following = VALUES(following),
-                    mediaCount = VALUES(mediaCount)
+                    mediaCount = VALUES(mediaCount),
+                    profile_pic_url = VALUES(profile_pic_url)
                 `;
     connection.query(sql, [
         user.client_account, user.kategori, user.platform,
-        user.username, user.user_id, user.followers, user.following, user.mediaCount
+        user.username, user.user_id, user.followers, user.following, user.mediaCount, user.profile_pic_url
     ],
         (err, result) => {
             if (err) {

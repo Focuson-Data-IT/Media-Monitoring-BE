@@ -34,9 +34,9 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
     try {
         const getUser = {
             method: 'GET',
-            url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+            url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_profile_v2.php',
             params: {
-                username_or_id_or_url: username,
+                username_or_url: `https://www.instagram.com/${username}/`,
             },
             headers: {
                 'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
@@ -52,7 +52,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
             throw new Error('Response does not contain user data');
         }
 
-        const userData = response.data.data;
+        const userData = response.data;
 
         const user = {
             client_account: client_account,
@@ -60,9 +60,10 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
             platform: platform,
             username: username,
             user_id: userData.id,
-            followers: userData.follower_count || 0,
-            following: userData.following_count || 0,
-            mediaCount: userData.media_count || 0
+            followers: userData.edge_followed_by.count || 0,
+            following: userData.edge_follow.count || 0,
+            mediaCount: userData.edge_owner_to_timeline_media.count || 0,
+            profile_pic_url: userData.profile_pic_url,
         };
 
         await save.saveUser(user);
@@ -74,6 +75,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
 // Fungsi untuk mendapatkan data Post dari API
 const getDataPost = async (username = null, client_account = null, kategori = null, platform = null) => {
     try {
+        
         // Ambil startDate dari server
         const response = await fetch(`http://localhost:${process.env.PORT}/api/getDates`);
         const data = await response.json();
@@ -85,14 +87,14 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
 
         // Ambil data followers dan following dari database
         const userData = await fetchUserData(username);
-
+        
         while (morePosts) {
             const getPost = {
                 method: 'GET',
                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1.2/posts',
                 params: {
-                    username_or_id_or_url: username,
-                    ...(paginationToken && { pagination_token: paginationToken })
+                    username_or_id_or_url: `https://www.instagram.com/${username}/`,
+                    ...(paginationToken && { pagination_token: paginationToken }) // Tambahkan token jika ada
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
