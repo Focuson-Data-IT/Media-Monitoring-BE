@@ -64,7 +64,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
     try {
 
         // Ambil startDate dari server
-        const response = await fetch(`http://localhost:${process.env.PORT}/api/getDates`);
+        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
         const data = await response.json();
 
         const endDate = new Date(data.startDate).toISOString().split('T')[0];

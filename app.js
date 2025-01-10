@@ -2,10 +2,13 @@ const express = require('express');
 require('dotenv').config();
 
 const app = express();
-const apiRoutes = require('./routes/api');
 
-// Simpan log untuk SSE
-let clients = [];
+const api = require('./routes/api');
+const fair = require('./routes/fair');
+const accounts = require('./routes/accounts');
+const data = require('./routes/data');
+const instagram = require('./routes/instagram');
+const tiktok = require('./routes/tiktok');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(express.json());
@@ -20,7 +23,12 @@ function logMiddleware(req, res, next) {
 }
 
 // Routes
-app.use('/api', logMiddleware, apiRoutes); // API route dengan logMiddleware
+app.use('/api', logMiddleware, api);
+app.use('/fair', logMiddleware, fair);
+app.use('/accounts', logMiddleware, accounts);
+app.use('/data', logMiddleware, data);
+app.use('/instagram', logMiddleware, instagram);
+app.use('/tiktok', logMiddleware, tiktok);
 
 // Jalankan server
 const port = process.env.PORT || 3000;

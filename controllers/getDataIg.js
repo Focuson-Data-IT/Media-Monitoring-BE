@@ -76,7 +76,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
 const getDataPost = async (username = null, client_account = null, kategori = null, platform = null, followers = null, following = null) => {
     try {
         // Ambil startDate dari server
-        const response = await fetch(`http://localhost:${process.env.PORT}/api/getDates`);
+        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
         const data = await response.json();
         const endDate = new Date(data.startDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).split('T')[0];
 
