@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model childComments {
+  child_comment_id          Int       @id @default(autoincrement())
+  client_account            String?   @db.VarChar(255)
+  kategori                  String?   @db.VarChar(255)
+  platform                  String?   @db.VarChar(255)
+  unique_id_post            String?   @db.VarChar(500)
+  comment_unique_id         String?   @db.VarChar(255)
+  child_comment_unique_id   String?   @unique(map: "child_comment_unique_id") @db.VarChar(255)
+  created_at                DateTime? @db.DateTime(0)
+  child_commenter_username  String?   @db.VarChar(255)
+  child_commenter_userid    String?   @db.VarChar(255)
+  child_comment_text        String?   @db.LongText
+  child_comment_like_count  Int?      @default(0)
+  is_created_by_media_owner Boolean?
+}
+
+model dailyFairScores {
+  id                   Int       @id @default(autoincrement())
+  list_id              Int
+  client_account       String?   @db.VarChar(255)
+  kategori             String?   @db.VarChar(255)
+  platform             String?   @db.VarChar(255)
+  username             String?   @db.VarChar(255)
+  date                 DateTime? @db.Date
+  followers            Int?
+  followers_score      Float?    @db.Float
+  followers_bobot      Float?    @db.Float
+  activities           Float?    @db.Float
+  activities_score     Float?    @db.Float
+  activities_bobot     Float?    @db.Float
+  interactions         Float?    @db.Float
+  interactions_score   Float?    @db.Float
+  interactions_bobot   Float?    @db.Float
+  responsiveness       Float?    @db.Float
+  responsiveness_score Float?    @db.Float
+  responsiveness_bobot Float?    @db.Float
+  fair_score           Float?    @db.Float
+
+  @@unique([list_id, client_account, kategori, platform, username, date], map: "unique_combination")
+}
+
+model likes {
+  likes_id       Int       @id @default(autoincrement())
+  client_account String    @db.VarChar(255)
+  kategori       String    @db.VarChar(255)
+  platform       String    @db.VarChar(255)
+  post_code      String?   @db.VarChar(255)
+  user_id        String?   @db.VarChar(255)
+  username       String?   @db.VarChar(255)
+  fullname       String?   @db.VarChar(255)
+  created_at     DateTime? @db.DateTime(0)
+
+  @@unique([post_code(length: 100), user_id(length: 100), username(length: 100), fullname(length: 100)], map: "unique_like")
+}
+
+model listAkun {
+  list_id        Int    @id @default(autoincrement())
+  client_account String @db.VarChar(255)
+  platform       String @db.VarChar(255)
+  kategori       String @db.VarChar(255)
+  username       String @db.VarChar(255)
+}
+
+model listNews {
+  list_id        Int    @id @default(autoincrement())
+  client_account String @db.VarChar(255)
+  platform       String @db.VarChar(255)
+  kategori       String @db.VarChar(255)
+  query          String @db.VarChar(255)
+}
+
+model login {
+  login_id Int    @id @default(autoincrement())
+  email    String @db.VarChar(255)
+  password String @db.VarChar(255)
+  type     String @db.VarChar(255)
+}
+
+model mainComments {
+  main_comment_id     Int       @id @default(autoincrement())
+  client_account      String?   @db.VarChar(255)
+  kategori            String?   @db.VarChar(255)
+  platform            String?   @db.VarChar(255)
+  user_id             String?   @db.VarChar(255)
+  username            String?   @db.VarChar(255)
+  unique_id_post      String?   @db.VarChar(500)
+  comment_unique_id   String?   @unique(map: "comment_unique_id") @db.VarChar(255)
+  created_at          DateTime? @db.DateTime(0)
+  child_comment_count String?   @db.VarChar(255)
+  commenter_username  String?   @db.VarChar(255)
+  commenter_userid    String?   @db.VarChar(255)
+  comment_text        String?   @db.LongText
+  comment_like_count  Int?      @default(0)
+}
+
+model news {
+  news_id                Int       @id @default(autoincrement())
+  query                  String?   @db.VarChar(255)
+  title                  String?   @db.LongText
+  link                   String?   @db.VarChar(255)
+  snippet                String?   @db.VarChar(255)
+  photo_url              String?   @db.LongText
+  thumbnail_url          String?   @db.LongText
+  published_datetime_utc DateTime? @db.DateTime(0)
+  source_url             String?   @db.LongText
+  source_name            String?   @db.VarChar(255)
+  source_logo_url        String?   @db.LongText
+  source_favicon_url     String?   @db.LongText
+  source_publication_id  String?   @db.VarChar(255)
+  platform               String?   @db.VarChar(255)
+}
+
+model posts {
+  post_id        Int       @id @default(autoincrement())
+  client_account String?   @db.VarChar(255)
+  kategori       String?   @db.VarChar(255)
+  platform       String?   @db.VarChar(255)
+  user_id        String?   @db.VarChar(255)
+  unique_id_post String?   @unique(map: "unique_id_post") @db.VarChar(255)
+  post_code      String?   @default("''") @db.VarChar(255)
+  is_pinned      Boolean?
+  username       String?   @db.VarChar(255)
+  followers      Int?
+  following      Int?
+  created_at     DateTime? @db.DateTime(0)
+  thumbnail_url  String?   @db.LongText
+  caption        String?   @db.LongText
+  comments       Int?      @default(0)
+  likes          Int?      @default(0)
+  playCount      Int?
+  shareCount     Int?
+  downloadCount  Int?
+  collectCount   Int?
+  media_name     String?   @default("") @db.VarChar(255)
+  product_type   String?   @default("") @db.VarChar(255)
+  tagged_users   String?   @default("''") @db.LongText
+}
+
+model settings {
+  id        Int      @id @default(autoincrement())
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+}
+
+model users {
+  main_id         Int       @id @default(autoincrement())
+  client_account  String?   @db.VarChar(255)
+  kategori        String?   @db.VarChar(255)
+  platform        String?   @db.VarChar(255)
+  username        String?   @unique(map: "username") @db.VarChar(255)
+  user_id         String?   @unique(map: "user_id") @db.VarChar(255)
+  profile_pic_url String?   @db.LongText
+  followers       Int?      @default(0)
+  following       Int?      @default(0)
+  mediaCount      Int?      @default(0)
+  update_date     DateTime? @db.DateTime(0)
+}

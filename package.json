@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@prisma/client": "^6.2.1",
     "async": "^3.2.6",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
@@ -17,6 +18,7 @@
     "mysql2": "^3.11.3",
     "node-fetch": "^3.3.2",
     "nodemon": "^3.1.7",
+    "prisma": "^6.2.1",
     "requests": "^0.3.0"
   }
 }
