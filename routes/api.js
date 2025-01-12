@@ -24,7 +24,7 @@ router.get('/getActivities', async (req, res) => {
 
 router.get('/getInteractions', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT list_id, client_account, kategori, platform, username, date, interactions, interactions_score, interactions_bobot FROM dailyFairScores');
+        const [rows] = await db.query('SELECT list_id, client_account, kategori, platform, username, date, interaction, interaction_score, interaction_bobot FROM dailyFairScores');
         res.json(rows);
     } catch (error) {
         console.error('Error fetching dates:', error);
