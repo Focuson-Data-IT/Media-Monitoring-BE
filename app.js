@@ -1,4 +1,5 @@
 const express = require('express');
+var cors = require('cors')
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +12,7 @@ const instagram = require('./routes/instagram');
 const tiktok = require('./routes/tiktok');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
+app.use(cors())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
