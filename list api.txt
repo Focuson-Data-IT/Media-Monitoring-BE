@@ -43,3 +43,5 @@ GET /tiktok/getLikes mengambil data likes user target
 
 POST /fair/addDataUser untuk bikin data awal untuk proses perhitungan fair nya
 POST /fair/processData untuk menghitung fair nya
+
+ISMAIL
