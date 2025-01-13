@@ -188,11 +188,72 @@ router.get('/getResponsiveness', async (req, res) => {
 
 router.get('/getFairScores', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT list_id, client_account, kategori, platform, username, date, fair_score FROM dailyFairScores');
-        res.json(rows);
+        const query = `
+            SELECT
+                client_account,
+                username,
+                fair_score AS value,
+                date
+            FROM dailyFairScores
+            WHERE
+                client_account = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            
+        `;
+
+        const queryParams = [
+            req.query['customer_username'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
     } catch (error) {
         console.error('Error fetching dates:', error);
         res.status(500).send('Failed to fetch dates');
+    }
+});
+
+router.get('/getFairRanking', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                client_account,
+                username,
+                MAX(fair_score) AS max_value,
+                AVG(fair_score) AS avg_value
+            FROM dailyFairScores
+            WHERE
+                client_account = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY client_account, username
+            ORDER BY max_value DESC
+        `;
+
+        const queryParams = [
+            req.query['customer_username'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching fair ranking:', error);
+        res.status(500).send('Failed to fetch fair ranking');
     }
 });
 
