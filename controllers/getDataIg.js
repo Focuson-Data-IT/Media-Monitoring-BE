@@ -32,16 +32,19 @@ const apiRequestWithRetry = async (config, maxRetries = 5) => {
 const getDataUser = async (username = null, client_account = null, kategori = null, platform = null) => {
 
     try {
+        const encodedParams = new URLSearchParams();
+        encodedParams.set('username_or_url', `${username}`);
+        encodedParams.set('data', 'basic');
+
         const getUser = {
-            method: 'GET',
-            url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_profile_v2.php',
-            params: {
-                username_or_url: `https://www.instagram.com/${username}/`,
-            },
+            method: 'POST',
+            url: 'https://instagram-scraper-stable-api.p.rapidapi.com/ig_get_fb_profile.php',
             headers: {
-                'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
-            }
+                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data: encodedParams,
         };
 
         // console.log('Request details:', getUser);
@@ -59,10 +62,10 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
             kategori: kategori,
             platform: platform,
             username: username,
-            user_id: userData.id,
-            followers: userData.edge_followed_by.count || 0,
-            following: userData.edge_follow.count || 0,
-            mediaCount: userData.edge_owner_to_timeline_media.count || 0,
+            user_id: parseInt(userData.id),
+            followers: userData.follower_count || 0,
+            following: userData.following_count || 0,
+            mediaCount: userData.media_count || 0,
             profile_pic_url: userData.profile_pic_url,
         };
 
@@ -187,9 +190,9 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
         while (moreComments) {
             const getComment = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments',
+                url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_post_comments.php',
                 params: {
-                    code_or_id_or_url: unique_id_post,
+                    post_id: unique_id_post,
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
