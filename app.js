@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 function logMiddleware(req, res, next) {
     console.log = function (message) {
         process.stdout.write(message + '\n');
-        sendLogToClients(message);
+        // sendLogToClients(message);
     };
     next();
 }
