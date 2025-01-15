@@ -100,13 +100,13 @@ router.get('/getInteractions', async (req, res) => {
             SELECT
                 username,
                 client_account,
-                interaction AS value,
-            MAX(interaction) OVER () AS max_value
+                interactions AS value,
+            MAX(interactions) OVER () AS max_value
             FROM (
                 SELECT
                 username,
                 client_account,
-                interaction,
+                interactions,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
                 dailyFairScores
@@ -228,7 +228,7 @@ router.get('/getFairRanking', async (req, res) => {
                 client_account,
                 username,
                 MAX(fair_score) AS max_value,
-                AVG(fair_score) AS avg_value
+                SUM(fair_score) AS avg_value
             FROM dailyFairScores
             WHERE
                 client_account = ?
