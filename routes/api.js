@@ -270,11 +270,32 @@ router.get('/getAllData', async (req, res) => {
 
 router.get('/getAllPost', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts ORDER BY created_at DESC');
-        res.json(rows);
+        const query = `
+            SELECT *
+            FROM posts
+            WHERE
+                client_account = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY created_at DESC
+        `;
+
+        const queryParams = [
+            req.query['customer_username'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
     } catch (error) {
-        console.error('Error fetching data:', error.message);
-        res.status(500).json({ message: 'Gagal mengambil data.', error: error.message });
+        console.error('Error fetching dates:', error);
+        res.status(500).send('Failed to fetch dates');
     }
 });
 
