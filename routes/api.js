@@ -275,7 +275,7 @@ router.get('/getAllPost', async (req, res) => {
             FROM posts
             WHERE
                 client_account = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
             ORDER BY created_at DESC
         `;
 
