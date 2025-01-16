@@ -1,0 +1,17 @@
+[build]
+functions = "netlify/functions"
+
+[build.environment]
+    DB_HOST="103.30.195.110"
+    DB_USER="admin"
+    DB_PASSWORD="Balakutak-2023"
+    DB_NAME="monitorFairDashboard2"
+    PORT="7770"
+    RAPIDAPI_IG_KEY="59accfe60bmsh87b5c0067b0d37bp112bd2jsne463e6d5c3a8"
+    RAPIDAPI_IG_HOST="instagram-scraper-api2.p.rapidapi.com"
+    RAPIDAPI_TIKTOK_KEY="59accfe60bmsh87b5c0067b0d37bp112bd2jsne463e6d5c3a8"
+    RAPIDAPI_TIKTOK_HOST="tiktok-api15.p.rapidapi.com"
+
+[dev]
+functions = "netlify/functions"
+
