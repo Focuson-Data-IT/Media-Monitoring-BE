@@ -268,4 +268,14 @@ router.get('/getAllData', async (req, res) => {
     }
 });
 
+router.get('/getAllPost', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM posts ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching data:', error.message);
+        res.status(500).json({ message: 'Gagal mengambil data.', error: error.message });
+    }
+});
+
 module.exports = router;
