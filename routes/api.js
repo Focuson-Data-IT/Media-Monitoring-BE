@@ -2,6 +2,42 @@ const express = require('express');
 const router = express.Router();
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 
+router.post('/auth/login', async (req, res) => {
+    try {
+        const query = `
+            SELECT * FROM users
+            WHERE username = ?
+            AND password = ?
+        `;
+
+        const queryParams = [
+            req.body.username,
+            req.body.password
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        if (rows.length > 0) {
+            res.json({
+                code: 200,
+                status: 'OK',
+                data: rows[0],
+                errors: null
+            });
+        } else {
+            res.json({
+                code: 401,
+                status: 'Unauthorized',
+                data: null,
+                errors: ['Invalid username or password']
+            });
+        }
+    } catch (error) {
+        console.error('Error logging in:', error);
+        res.status(500).send('Failed to log in');
+    }
+});
+
 router.get('/getFollowers', async (req, res) => {
     try {
         const query = `
