@@ -55,7 +55,7 @@ router.get('/getFollowers', async (req, res) => {
                 FROM
                 dailyFairScores
                 WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -65,7 +65,7 @@ router.get('/getFollowers', async (req, res) => {
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -101,7 +101,7 @@ router.get('/getActivities', async (req, res) => {
                 FROM
                 dailyFairScores
                 WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -111,7 +111,7 @@ router.get('/getActivities', async (req, res) => {
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -147,7 +147,7 @@ router.get('/getInteractions', async (req, res) => {
                 FROM
                 dailyFairScores
                 WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -157,7 +157,7 @@ router.get('/getInteractions', async (req, res) => {
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -193,7 +193,7 @@ router.get('/getResponsiveness', async (req, res) => {
                 FROM
                 dailyFairScores
                 WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -203,7 +203,7 @@ router.get('/getResponsiveness', async (req, res) => {
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -232,13 +232,13 @@ router.get('/getFairScores', async (req, res) => {
                 date
             FROM dailyFairScores
             WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -267,14 +267,14 @@ router.get('/getFairRanking', async (req, res) => {
                 SUM(fair_score) AS avg_value
             FROM dailyFairScores
             WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             GROUP BY client_account, username
             ORDER BY max_value DESC
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
