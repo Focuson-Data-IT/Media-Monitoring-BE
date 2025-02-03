@@ -5,13 +5,13 @@ const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi databa
 router.post('/auth/login', async (req, res) => {
     try {
         const query = `
-            SELECT * FROM users
-            WHERE username = ?
+            SELECT * FROM mitra
+            WHERE email = ?
             AND password = ?
         `;
 
         const queryParams = [
-            req.body.username,
+            req.body.email,
             req.body.password
         ];
 
