@@ -1,3 +1,11 @@
+POST http://localhost:7770/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "disparbud@focuson.test",
+  "password": "123"
+}
+
 ### Get all products
 GET http://localhost:7770/api/data/calculateFairScore
 
