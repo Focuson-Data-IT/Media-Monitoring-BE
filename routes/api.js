@@ -296,8 +296,29 @@ router.get('/getFairRanking', async (req, res) => {
 // Endpoint untuk mengambil data dari tabel dailyFairScores
 router.get('/getAllData', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM dailyFairScores');
-        res.json(rows);
+        const query = `
+            SELECT *
+            FROM dailyFairScores
+            WHERE
+                kategori = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY DATE(date) DESC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
     } catch (error) {
         console.error('Error fetching data:', error.message);
         res.status(500).json({ message: 'Gagal mengambil data.', error: error.message });
