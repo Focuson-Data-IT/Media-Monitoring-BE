@@ -331,13 +331,13 @@ router.get('/getAllPost', async (req, res) => {
             SELECT *
             FROM posts
             WHERE
-                client_account = ?
+                kategori = ?
                 AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
             ORDER BY created_at DESC
         `;
 
         const queryParams = [
-            req.query['customer_username'],
+            req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']
         ];
