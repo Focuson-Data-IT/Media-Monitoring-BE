@@ -45,17 +45,20 @@ router.get('/getFollowers', async (req, res) => {
                 username,
                 client_account,
                 followers AS value,
+                platform,
             MAX(followers) OVER () AS max_value
             FROM (
                 SELECT
                 username,
                 client_account,
                 followers,
+                platform,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
                 dailyFairScores
                 WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -66,6 +69,7 @@ router.get('/getFollowers', async (req, res) => {
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -91,17 +95,20 @@ router.get('/getActivities', async (req, res) => {
                 username,
                 client_account,
                 activities AS value,
+                platform,
             MAX(activities) OVER () AS max_value
             FROM (
                 SELECT
                 username,
                 client_account,
                 activities,
+                platform,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
                 dailyFairScores
                 WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -112,6 +119,7 @@ router.get('/getActivities', async (req, res) => {
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -137,17 +145,20 @@ router.get('/getInteractions', async (req, res) => {
                 username,
                 client_account,
                 interactions AS value,
+                platform,
             MAX(interactions) OVER () AS max_value
             FROM (
                 SELECT
                 username,
                 client_account,
                 interactions,
+                platform,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
                 dailyFairScores
                 WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -158,6 +169,7 @@ router.get('/getInteractions', async (req, res) => {
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -183,17 +195,20 @@ router.get('/getResponsiveness', async (req, res) => {
                 username,
                 client_account,
                 responsiveness AS value,
+                platform,
             MAX(responsiveness) OVER () AS max_value
             FROM (
                 SELECT
                 username,
                 client_account,
                 responsiveness,
+                platform,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
                 dailyFairScores
                 WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
             WHERE
@@ -204,6 +219,7 @@ router.get('/getResponsiveness', async (req, res) => {
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -229,16 +245,19 @@ router.get('/getFairScores', async (req, res) => {
                 client_account,
                 username,
                 fair_score AS value,
-                date
+                date,
+                platform
             FROM dailyFairScores
             WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             
         `;
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -264,17 +283,20 @@ router.get('/getFairRanking', async (req, res) => {
                 client_account,
                 username,
                 MAX(fair_score) AS max_value,
-                SUM(fair_score) AS avg_value
+                SUM(fair_score) AS avg_value,
+                platform
             FROM dailyFairScores
             WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            GROUP BY client_account, username
+            GROUP BY client_account, username, platform
             ORDER BY max_value DESC
         `;
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -332,12 +354,14 @@ router.get('/getAllPost', async (req, res) => {
             FROM posts
             WHERE
                 kategori = ?
+                AND platform = ?
                 AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
             ORDER BY created_at DESC
         `;
 
         const queryParams = [
             req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
