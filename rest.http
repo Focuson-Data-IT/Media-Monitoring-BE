@@ -39,11 +39,11 @@ Content-Type: application/json
 }
 
 ### post addDataUser per hari
-POST http://localhost:7770/api/addDataUser
+POST http://localhost:7770/fair/addDataUser
 
 
 ### post processData
-POST http://localhost:7770/api/data/processData
+POST http://localhost:7770/fair/processData
 
 ### GET processData
 GET http://localhost:7770/api/data/getData
