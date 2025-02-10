@@ -32,7 +32,11 @@ const saveUser = async (user) => {
 // fungsi untuk menyimpan data post ke database
 const savePost = async (post) => {
     const sql = `
-        INSERT INTO posts (client_account, kategori, platform, user_id, unique_id_post, username, created_at, thumbnail_url, caption, post_code, comments, likes, media_name, product_type, tagged_users, is_pinned, followers, following, playCount)
+        INSERT INTO posts (
+            client_account, kategori, platform, user_id, unique_id_post, username, created_at, 
+            thumbnail_url, caption, post_code, comments, likes, media_name, product_type, 
+            tagged_users, is_pinned, followers, following, playCount
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
@@ -52,10 +56,11 @@ const savePost = async (post) => {
             is_pinned = VALUES(is_pinned),
             followers = VALUES(followers),
             following = VALUES(following),
-            playCount = VALUES(playCount),
+            playCount = VALUES(playCount);
+
     `;
     connection.query(sql, [
-        post.client_account, post.kategori, post.platform, 
+        post.client_account, post.kategori, post.platform,
         post.user_id, post.unique_id_post, post.username, post.created_at, post.thumbnail_url, post.caption, post.post_code, post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, post.followers, post.following, post.playCount
     ],
         (err, result) => {

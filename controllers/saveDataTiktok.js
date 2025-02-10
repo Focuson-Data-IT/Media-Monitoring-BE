@@ -108,15 +108,13 @@ const saveComment = async (comment) => {
 const saveChildComment = async (childComment) => {
     const sql = `
         INSERT INTO childComments 
-        (client_account, kategori, platform, username, user_id, unique_id_post, comment_unique_id, child_comment_unique_id, created_at, 
+        (client_account, kategori, platform, unique_id_post, comment_unique_id, child_comment_unique_id, created_at, 
         child_commenter_username, child_commenter_userid, child_comment_text, child_comment_like_count)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
             platform = VALUES(platform),
-            username = VALUES(username),
-            user_id = VALUES(user_id),
             unique_id_post = VALUES(unique_id_post),
             comment_unique_id = VALUES(comment_unique_id),
             created_at = VALUES(created_at),
@@ -127,8 +125,8 @@ const saveChildComment = async (childComment) => {
     `;
 
     connection.query(sql, [
-        childComment.client_account, childComment.kategori, childComment.platform, childComment.username,
-        childComment.user_id, childComment.unique_id_post, childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at,
+        childComment.client_account, childComment.kategori, childComment.platform,
+        childComment.unique_id_post, childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at,
         childComment.child_commenter_username, childComment.child_commenter_userid, childComment.child_comment_text, childComment.child_comment_like_count
     ], (err, result) => {
         if (err) {

@@ -92,7 +92,7 @@ router.get('/getData', async (req, res) => {
 });
 
 // Eksekusi getPost berdasarkan semua username di listAkun
-router.post('/getPost', async (req, res) => {
+router.get('/getPost', async (req, res) => {
     // Fetch data for TikTok
     try {
         const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok"');
@@ -117,30 +117,60 @@ router.post('/getPost', async (req, res) => {
     }
 });
 
+// 🔹 Fungsi untuk mengambil startDate dan endDate dari tabel `setting`
+const getDateRange = async () => {
+    try {
+        const [rows] = await db.query('SELECT startDate, endDate FROM settings WHERE id = 1');
+        if (rows.length === 0) throw new Error('Data setting tidak ditemukan.');
+
+        return {
+            startDate: new Date(rows[0].startDate).toISOString().split('T')[0],
+            endDate: new Date(rows[0].endDate).toISOString().split('T')[0]
+        };
+    } catch (error) {
+        console.error('❌ Error fetching date range from database:', error.message);
+        return null;
+    }
+};
+
+// 🔹 Endpoint untuk eksekusi getComment
 router.get('/getComment', async (req, res) => {
     const { fromStart } = req.query;
     const processFromStart = fromStart === 'true';
 
     try {
-        // Step 1: Proses Main Comments
+        const dateRange = await getDateRange();
+        if (!dateRange) {
+            return res.status(500).json({ message: 'Gagal mendapatkan rentang tanggal dari database.' });
+        }
+
+        const { startDate, endDate } = dateRange;
+
         console.log('Starting to fetch main comments...');
-        let query = 'SELECT unique_id_post FROM posts WHERE platform = "TikTok"';
-        
+        let query = `
+            SELECT unique_id_post, created_at 
+            FROM posts 
+            WHERE platform = "TikTok"
+            AND DATE(created_at) BETWEEN ? AND ?
+        `;
+
         if (!processFromStart) {
             query = `
-                SELECT p.unique_id_post
+                SELECT p.unique_id_post, p.created_at
                 FROM posts p
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
-                WHERE mc.unique_id_post IS NULL AND p.platform = "TikTok"
+                WHERE mc.unique_id_post IS NULL 
+                AND p.platform = "TikTok"
+                AND DATE(p.created_at) BETWEEN ? AND ?
             `;
         }
 
-        const [rows] = await db.query(query);
-        console.log(`Found ${rows.length} posts to process for main comments.`);
+        const [rows] = await db.query(query, [startDate, endDate]);
+        console.log(`📌 Found ${rows.length} posts to process for main comments.`);
 
         await processQueue(rows, async (row) => {
-            const unique_id_post = row.unique_id_post;
-            console.log(`Fetching comments for post: ${unique_id_post}...`);
+            const { unique_id_post } = row;
+            console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const userQuery = `
                 SELECT user_id, username, comments, client_account, kategori, platform
@@ -150,7 +180,7 @@ router.get('/getComment', async (req, res) => {
             const [userRows] = await db.query(userQuery, [unique_id_post]);
 
             if (userRows.length === 0) {
-                console.log(`Post ${unique_id_post} not found in database.`);
+                console.log(`🚫 Post ${unique_id_post} not found in database.`);
                 return;
             }
 
@@ -159,36 +189,44 @@ router.get('/getComment', async (req, res) => {
             if (comments > 0) {
                 try {
                     await getDataTiktok.getDataComment(unique_id_post, user_id, username, client_account, kategori, platform);
-                    console.log(`Comments for post ${unique_id_post} have been fetched and saved.`);
+                    console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
                 } catch (err) {
-                    console.error(`Error fetching comments for post ${unique_id_post}:`, err.message);
+                    console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
                 }
             } else {
-                console.log(`No comments for post ${unique_id_post}.`);
+                console.log(`ℹ️ No comments for post ${unique_id_post}.`);
             }
         });
 
-        console.log('Main comments processing completed.');
+        console.log('✅ Main comments processing completed.');
 
-        // Step 2: Proses Child Comments
+        // 🔹 Step 2: Proses Child Comments
         console.log('Starting to fetch child comments...');
-        let queryChild = 'SELECT comment_unique_id FROM mainComments WHERE platform = "TikTok"';
+        let queryChild = `
+            SELECT mc.comment_unique_id, mc.unique_id_post, mc.created_at 
+            FROM mainComments mc
+            JOIN posts p ON mc.unique_id_post = p.unique_id_post
+            WHERE mc.platform = "TikTok"
+            AND DATE(p.created_at) BETWEEN ? AND ?
+        `;
 
         if (!processFromStart) {
             queryChild = `
-                SELECT p.comment_unique_id 
-                FROM mainComments p
-                LEFT JOIN childComments mc ON p.comment_unique_id = mc.comment_unique_id
-                WHERE mc.comment_unique_id IS NULL AND p.platform = "TikTok"
+                SELECT mc.comment_unique_id, mc.unique_id_post, mc.created_at
+                FROM mainComments mc
+                JOIN posts p ON mc.unique_id_post = p.unique_id_post
+                WHERE mc.platform = "TikTok"
+                AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
+                AND DATE(p.created_at) BETWEEN ? AND ?
             `;
         }
 
-        const [childs] = await db.query(queryChild);
-        console.log(`Found ${childs.length} child comments to process.`);
+        const [childs] = await db.query(queryChild, [startDate, endDate]);
+        console.log(`📌 Found ${childs.length} child comments to process.`);
 
         await processQueue(childs, async (child) => {
-            const comment_unique_id = child.comment_unique_id;
-            console.log(`Fetching child comments for comment: ${comment_unique_id}...`);
+            const { comment_unique_id, unique_id_post } = child;
+            console.log(`🔍 Fetching child comments for comment: ${comment_unique_id} on post: ${unique_id_post}...`);
 
             const userQuery = `
                 SELECT unique_id_post, user_id, username, comment_unique_id, child_comment_count, client_account, kategori, platform
@@ -198,29 +236,29 @@ router.get('/getComment', async (req, res) => {
             const [userChild] = await db.query(userQuery, [comment_unique_id]);
 
             if (userChild.length === 0) {
-                console.log(`Comment ${comment_unique_id} not found in database.`);
+                console.log(`🚫 Comment ${comment_unique_id} not found in database.`);
                 return;
             }
 
-            const { unique_id_post, user_id, username, client_account, child_comment_count, kategori, platform } = userChild[0];
+            const { user_id, username, client_account, child_comment_count, kategori, platform } = userChild[0];
 
             if (child_comment_count > 0) {
                 try {
                     await getDataTiktok.getDataChildComment(unique_id_post, user_id, username, comment_unique_id, client_account, kategori, platform);
-                    console.log(`Child comments for comment ${comment_unique_id} have been fetched and saved.`);
+                    console.log(`✅ Child comments for comment ${comment_unique_id} have been fetched and saved.`);
                 } catch (err) {
-                    console.error(`Error fetching child comments for comment ${comment_unique_id}:`, err.message);
+                    console.error(`❌ Error fetching child comments for comment ${comment_unique_id}:`, err.message);
                 }
             } else {
-                console.log(`No child comments to fetch for comment ${comment_unique_id}.`);
+                console.log(`ℹ️ No child comments to fetch for comment ${comment_unique_id}.`);
             }
         });
 
-        console.log('Child comments processing completed.');
+        console.log('✅ Child comments processing completed.');
 
-        res.send('Data getComment and getChildComment for all users have been fetched and saved.');
+        res.send('✅ Data getComment and getChildComment for all users have been fetched and saved.');
     } catch (error) {
-        console.error('Error executing getComment:', error.message);
+        console.error('❌ Error executing getComment:', error.message);
         res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getComment.', error: error.message });
     }
 });
