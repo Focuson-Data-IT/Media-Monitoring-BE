@@ -65,7 +65,7 @@ GET http://localhost:7770/api/getFairScores?kategori=kemenkoinfra&start_date=202
 
 
 ### GET processData
-GET http://localhost:7770/api/getAllPost?kategori=kemenkoinfra&start_date=2025-01-01&end_date=2025-01-09&platform=instagram
+GET http://localhost:7770/api/getAllPost?page=1&perPage=5&kategori=disparbud&start_date=2025-01-01&end_date=2025-02-09&platform=instagram
 
 ### GET rank
 GET http://localhost:7770/api/getFairRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=TikTok
