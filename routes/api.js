@@ -408,15 +408,30 @@ router.get('/getAllData', async (req, res) => {
 
 router.get('/getAllPost', async (req, res) => {
     try {
-        const query = `
+        const countQuery = `
+            SELECT COUNT(*) AS total
+            FROM posts
+            WHERE kategori = ?
+              AND platform = ?
+              AND DATE (created_at) BETWEEN DATE (?)
+              AND DATE (?)
+        `;
+
+        const dataQuery = `
             SELECT *
             FROM posts
-            WHERE
-                kategori = ?
-                AND platform = ?
-                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+            WHERE kategori = ?
+              AND platform = ?
+              AND DATE (created_at) BETWEEN DATE (?)
+              AND DATE (?)
             ORDER BY created_at DESC
+                LIMIT ?
+            OFFSET ?
         `;
+
+        const perPage = parseInt(req.query['perPage']) || 10;
+        const page = parseInt(req.query['page']) || 1;
+        const offset = (page - 1) * perPage;
 
         const queryParams = [
             req.query['kategori'],
@@ -425,17 +440,23 @@ router.get('/getAllPost', async (req, res) => {
             req.query['end_date']
         ];
 
-        const [rows] = await db.query(query, queryParams);
+        const [countRows] = await db.query(countQuery, queryParams);
+        const total = countRows[0].total;
+        const totalPages = Math.ceil(total / perPage);
+
+        const [dataRows] = await db.query(dataQuery, [...queryParams, perPage, offset]);
 
         res.json({
             code: 200,
             status: 'OK',
-            data: rows,
+            data: dataRows,
+            totalRows: total,
+            totalPages: totalPages,
             errors: null
         });
     } catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
+        console.error('Error fetching posts:', error);
+        res.status(500).send('Failed to fetch posts');
     }
 });
 
