@@ -67,7 +67,7 @@ router.get('/getData', async (req, res) => {
 
     // Fetch data for Instagram
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "instagram"');
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Instagram"');
 
         await processQueue(rows, async (row) => {
             try {
@@ -98,7 +98,7 @@ router.get('/getData', async (req, res) => {
 router.get('/getPost', async (req, res) => {
     // Fetch data for Instagram
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "instagram"');
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Instagram"');
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -123,11 +123,11 @@ router.get('/getPost', async (req, res) => {
 // Endpoint untuk eksekusi getComment
 router.get('/getComment', async (req, res) => {
     const { fromStart } = req.query; // Parameter untuk menentukan apakah proses dimulai dari awal
-    const processFromStart = fromStart === 'true';
+    const processFromStart = fromStart === 'false';
 
     // Fetch Comment for Instagram
     try {
-        let query = 'SELECT unique_id_post FROM posts WHERE platform = "instagram"';
+        let query = 'SELECT unique_id_post FROM posts WHERE platform = "Instagram"';
         
         // Jika proses tidak dimulai dari awal, hanya ambil data yang belum diproses
         if (!processFromStart) {
@@ -135,7 +135,7 @@ router.get('/getComment', async (req, res) => {
                 SELECT p.unique_id_post
                 FROM posts p
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
-                WHERE mc.unique_id_post IS NULL AND p.platform = "instagram"
+                WHERE mc.unique_id_post IS NULL AND p.platform = "Instagram"
             `;
         }
 
@@ -151,7 +151,7 @@ router.get('/getComment', async (req, res) => {
             const userQuery = `
                 SELECT user_id, username, comments, client_account, kategori, platform
                 FROM posts 
-                WHERE unique_id_post = ? AND platform = "instagram"
+                WHERE unique_id_post = ? AND platform = "Instagram"
             `;
             const [userRows] = await db.query(userQuery, [unique_id_post]);
 
@@ -182,10 +182,59 @@ router.get('/getComment', async (req, res) => {
     }
 });
 
+// Endpoint untuk eksekusi getChildComment
+router.get('/getChildComment', async (req, res) => {
+    const { fromStart } = req.query;
+    const processFromStart = fromStart === 'false';
+
+    try {
+        let query = `
+            SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform, 
+            mc.child_comment_count, mc.client_account, mc.kategori
+            FROM mainComments mc
+            WHERE mc.platform = "Instagram"
+        `;
+
+        if (!processFromStart) {
+            query = `
+                SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform, 
+                mc.child_comment_count, mc.client_account, mc.kategori
+                FROM mainComments mc
+                WHERE mc.platform = "Instagram"
+                AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
+            `;
+        }
+
+        const [rows] = await db.query(query);
+        console.log(`Found ${rows.length} comments to process.`);
+
+        await processQueue(rows, async (row) => {
+            const { comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account, kategori } = row;
+            console.log(`Fetching child comments for comment ID: ${comment_unique_id} on post: ${unique_id_post}...`);
+
+            if (child_comment_count > 0) {
+                try {
+                    await getDataIg.getDataChildComment(unique_id_post, comment_unique_id, client_account, kategori, user_id, username, platform);
+                    console.log(`✅ Child comments for comment ID ${comment_unique_id} on post ${unique_id_post} have been fetched and saved.`);
+                } catch (err) {
+                    console.error(`❌ Error fetching child comments for comment ID ${comment_unique_id} on post ${unique_id_post}:`, err.message);
+                }
+            } else {
+                console.log(`ℹ️ No child comments for comment ID ${comment_unique_id} on post ${unique_id_post}.`);
+            }
+        });
+
+        res.send('✅ Data getChildComment for all users has been fetched and saved.');
+    } catch (error) {
+        console.error('❌ Error executing getChildComment:', error.message);
+        res.status(500).json({ message: 'Terjadi kesalahan saat menjalankan proses getChildComment.', error: error.message });
+    }
+});
+
 // Eksekusi getLikes count
 router.get('/getLikes', async (req, res) => {
     try {
-        let query = 'SELECT * FROM posts WHERE platform = "instagram"';
+        let query = 'SELECT * FROM posts WHERE platform = "Instagram"';
 
         const [rows] = await db.query(query);
 
@@ -194,7 +243,7 @@ router.get('/getLikes', async (req, res) => {
             const userQuery = `
                 SELECT created_at
                 FROM posts
-                WHERE post_code = ? AND platform = "instagram"
+                WHERE post_code = ? AND platform = "Instagram"
             `;
             const [userRows] = await db.query(userQuery, [post_code]);
             const { created_at } = userRows[0];

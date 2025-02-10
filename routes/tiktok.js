@@ -62,9 +62,9 @@ const processQueue = async (items, processFunction) => {
 
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
-    // Fetch data for Tiktok
+    // Fetch data for TikTok
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "tiktok"');
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "TikTok"');
 
         await processQueue(rows, async (row) => {
             try {
@@ -72,10 +72,10 @@ router.get('/getData', async (req, res) => {
         
                 // Panggil fungsi getDataUser
                 await getDataTiktok.getDataUser(
-                    row.username,
                     row.client_account,
                     row.kategori,
-                    row.platform
+                    row.platform,
+                    row.username
                 );
         
                 console.log(`Data for user ${row.username} has been fetched and saved.`);
@@ -93,17 +93,17 @@ router.get('/getData', async (req, res) => {
 
 // Eksekusi getPost berdasarkan semua username di listAkun
 router.post('/getPost', async (req, res) => {
-    // Fetch data for Tiktok
+    // Fetch data for TikTok
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "tiktok"');
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok"');
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
             await getDataTiktok.getDataPost(
-                row.username,
                 row.client_account,
                 row.kategori,
                 row.platform,
+                row.username,
                 row.followers,
                 row.following
             );
@@ -124,14 +124,14 @@ router.get('/getComment', async (req, res) => {
     try {
         // Step 1: Proses Main Comments
         console.log('Starting to fetch main comments...');
-        let query = 'SELECT unique_id_post FROM posts WHERE platform = "tiktok"';
+        let query = 'SELECT unique_id_post FROM posts WHERE platform = "TikTok"';
         
         if (!processFromStart) {
             query = `
                 SELECT p.unique_id_post
                 FROM posts p
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
-                WHERE mc.unique_id_post IS NULL AND p.platform = "tiktok"
+                WHERE mc.unique_id_post IS NULL AND p.platform = "TikTok"
             `;
         }
 
@@ -145,7 +145,7 @@ router.get('/getComment', async (req, res) => {
             const userQuery = `
                 SELECT user_id, username, comments, client_account, kategori, platform
                 FROM posts 
-                WHERE unique_id_post = ? AND platform = "tiktok"
+                WHERE unique_id_post = ? AND platform = "TikTok"
             `;
             const [userRows] = await db.query(userQuery, [unique_id_post]);
 
@@ -172,14 +172,14 @@ router.get('/getComment', async (req, res) => {
 
         // Step 2: Proses Child Comments
         console.log('Starting to fetch child comments...');
-        let queryChild = 'SELECT comment_unique_id FROM mainComments WHERE platform = "tiktok"';
+        let queryChild = 'SELECT comment_unique_id FROM mainComments WHERE platform = "TikTok"';
 
         if (!processFromStart) {
             queryChild = `
                 SELECT p.comment_unique_id 
                 FROM mainComments p
                 LEFT JOIN childComments mc ON p.comment_unique_id = mc.comment_unique_id
-                WHERE mc.comment_unique_id IS NULL AND p.platform = "tiktok"
+                WHERE mc.comment_unique_id IS NULL AND p.platform = "TikTok"
             `;
         }
 
@@ -193,7 +193,7 @@ router.get('/getComment', async (req, res) => {
             const userQuery = `
                 SELECT unique_id_post, user_id, username, comment_unique_id, child_comment_count, client_account, kategori, platform
                 FROM mainComments 
-                WHERE comment_unique_id = ? AND platform = "tiktok"
+                WHERE comment_unique_id = ? AND platform = "TikTok"
             `;
             const [userChild] = await db.query(userQuery, [comment_unique_id]);
 

@@ -1,65 +1,93 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../models/db');
-const connection = require("../models/db"); // Pastikan ini diatur sesuai koneksi database Anda
+const cliProgress = require('cli-progress');
 
 router.post('/prosesPerformaKonten', async (req, res) => {
     try {
-        const query = `
-            UPDATE posts
-            SET performa_konten = (
-                CASE
-                    WHEN platform = 'instagram' THEN
-                        CASE
-                            WHEN media_name IN ('post', 'album') THEN
-                                (playCount / 24 * 0) +
-                                (likes / 24 * 2) +
-                                (comments / 24 * 1) +
-                                (shareCount / 24 * 0)
-                            WHEN media_name = 'reel' THEN
-                                (playCount / 24 * 2.5) +
-                                (likes / 24 * 2) +
-                                (comments / 24 * 1.5) +
-                                (shareCount / 24 * 1)
-                            END
-                    WHEN platform = 'TikTok' THEN
-                        (playCount / 24 * 4) +
-                        (likes / 24 * 2.5) +
-                        (comments / 24 * 1.5) +
-                        (shareCount / 24 * 1.5) +
-                        (collectCount / 24 * 0.5)
-                    ELSE
-                        NULL
-                    END
-                )
-            WHERE DATE(created_at) BETWEEN ? AND ?
+        console.info("🔄 Memulai proses update performa konten...");
+        console.info("📅 Rentang tanggal:", req.body.startDate, "sampai", req.body.endDate);
+
+        // Ambil jumlah total baris yang akan diperbarui
+        const countQuery = `
+            SELECT COUNT(*) AS total FROM posts WHERE DATE(created_at) BETWEEN ? AND ?
         `;
+        const [countResult] = await db.query(countQuery, [req.body.startDate, req.body.endDate]);
+        const totalRows = countResult[0].total;
 
-        const queryParams = [
-            req.body.startDate,
-            req.body.endDate
-        ];
-
-        const [rows] = await db.query(query, queryParams);
-
-        if (rows.length > 0) {
-            res.json({
+        if (totalRows === 0) {
+            console.warn("⚠️ Tidak ada data yang diperbarui dalam rentang tanggal tersebut.");
+            return res.json({
                 code: 200,
                 status: 'OK',
-                data: rows[0],
+                message: "Tidak ada data yang diperbarui",
+                data: null,
                 errors: null
             });
         }
-    } catch (error) {
-        console.error('Error logging in:', error);
+
+        // Inisialisasi Progress Bar
+        const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+        progressBar.start(totalRows, 0);
+
+        // Update per baris menggunakan iterasi manual
+        const updateQuery = `
+            UPDATE posts
+            SET performa_konten = (
+                CASE
+                    WHEN platform = 'Instagram' THEN
+                        CASE
+                            WHEN media_name IN ('post', 'album') THEN
+                                COALESCE((IFNULL(likes, 0) / 24 * 2) +
+                                         (IFNULL(comments, 0) / 24 * 1), 0)
+                            WHEN media_name = 'reel' THEN
+                                COALESCE((IFNULL(playCount, 0) / 24 * 2.5) +
+                                         (IFNULL(likes, 0) / 24 * 2) +
+                                         (IFNULL(comments, 0) / 24 * 1.5) +
+                                         (IFNULL(shareCount, 0) / 24 * 1), 0)
+                        END
+                    WHEN platform = 'TikTok' THEN
+                        COALESCE((IFNULL(playCount, 0) / 24 * 4) +
+                                 (IFNULL(likes, 0) / 24 * 2.5) +
+                                 (IFNULL(comments, 0) / 24 * 1.5) +
+                                 (IFNULL(shareCount, 0) / 24 * 1.5) +
+                                 (IFNULL(collectCount, 0) / 24 * 0.5), 0)
+                    ELSE 0
+                END
+            )
+            WHERE post_id = ?
+        `;
+
+        // Ambil semua ID postingan yang perlu diperbarui
+        const selectQuery = `SELECT post_id FROM posts WHERE DATE(created_at) BETWEEN ? AND ?`;
+        const [rows] = await db.query(selectQuery, [req.body.startDate, req.body.endDate]);
+
+        for (const row of rows) {
+            await db.query(updateQuery, [row.post_id]);
+            progressBar.increment(); // Update progress bar setiap 1 record selesai
+        }
+
+        progressBar.stop(); // Hentikan progress bar setelah semua selesai
+
+        console.info("✅ Semua data berhasil diperbarui.");
+
         res.json({
-            code: 401,
-            status: 'Unauthorized',
+            code: 200,
+            status: 'OK',
+            message: "Performa konten berhasil diperbarui",
+            data: { updatedRows: totalRows },
+            errors: null
+        });
+    } catch (error) {
+        console.error("❌ Terjadi kesalahan:", error);
+        res.status(500).json({
+            code: 500,
+            status: 'Internal Server Error',
             data: null,
-            errors: error
+            errors: error.message
         });
     }
-})
+});
 
 router.post('/auth/login', async (req, res) => {
     try {
@@ -438,5 +466,6 @@ router.get('/getAllPost', async (req, res) => {
         res.status(500).send('Failed to fetch dates');
     }
 });
+
 
 module.exports = router;
