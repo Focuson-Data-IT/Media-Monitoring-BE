@@ -72,3 +72,13 @@ GET http://localhost:7770/api/getFairRanking?kategori=disparbud&start_date=2025-
 
 ### GET fair score
 GET http://localhost:7770/api/getFairScores?customer_username=kemenkoinfra&start_date=2025-01-01&end_date=2025-01-09
+
+
+### Proses Performa Konten
+POST http://localhost:7770/api/prosesPerformaKonten?startDate=2025-01-01&endDate=2025-02-10
+Content-Type: application/json
+
+{
+  "startDate": "2025-01-01",
+  "password": "2025-02-10"
+}

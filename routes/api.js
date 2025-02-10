@@ -1,6 +1,65 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
+const db = require('../models/db');
+const connection = require("../models/db"); // Pastikan ini diatur sesuai koneksi database Anda
+
+router.post('/prosesPerformaKonten', async (req, res) => {
+    try {
+        const query = `
+            UPDATE posts
+            SET performa_konten = (
+                CASE
+                    WHEN platform = 'instagram' THEN
+                        CASE
+                            WHEN media_name IN ('post', 'album') THEN
+                                (playCount / 24 * 0) +
+                                (likes / 24 * 2) +
+                                (comments / 24 * 1) +
+                                (shareCount / 24 * 0)
+                            WHEN media_name = 'reel' THEN
+                                (playCount / 24 * 2.5) +
+                                (likes / 24 * 2) +
+                                (comments / 24 * 1.5) +
+                                (shareCount / 24 * 1)
+                            END
+                    WHEN platform = 'TikTok' THEN
+                        (playCount / 24 * 4) +
+                        (likes / 24 * 2.5) +
+                        (comments / 24 * 1.5) +
+                        (shareCount / 24 * 1.5) +
+                        (collectCount / 24 * 0.5)
+                    ELSE
+                        NULL
+                    END
+                )
+            WHERE DATE(created_at) BETWEEN ? AND ?
+        `;
+
+        const queryParams = [
+            req.body.startDate,
+            req.body.endDate
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        if (rows.length > 0) {
+            res.json({
+                code: 200,
+                status: 'OK',
+                data: rows[0],
+                errors: null
+            });
+        }
+    } catch (error) {
+        console.error('Error logging in:', error);
+        res.json({
+            code: 401,
+            status: 'Unauthorized',
+            data: null,
+            errors: error
+        });
+    }
+})
 
 router.post('/auth/login', async (req, res) => {
     try {
