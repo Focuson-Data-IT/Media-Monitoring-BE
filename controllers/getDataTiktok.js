@@ -201,6 +201,7 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
             const userComment = response.data.data.comments;
 
             for (const item of userComment) {
+                const postDate = new Date(item.create_time * 1000).getTime();
                 const comment = {
                     client_account: client_account,
                     kategori: kategori,
@@ -209,7 +210,7 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                     username: username,
                     unique_id_post: unique_id_post,
                     comment_unique_id: item.id,
-                    created_at: new Date(item.create_time * 1000).toISOString().slice(0, 19).replace('T', ' '),
+                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     commenter_username: item.user.unique_id,
                     commenter_userid: item.user.id,
                     comment_text: item.text,
@@ -261,16 +262,15 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
             const userComment = response.data.data.comments;
 
             for (const item of userComment) {
+                const postDate = new Date(item.create_time * 1000).getTime();
                 const childComment = {
                     client_account: client_account,
                     kategori: kategori,
                     platform: platform,
-                    user_id: user_id,
-                    username: username,
                     unique_id_post: unique_id_post,
                     comment_unique_id: comment_unique_id,
                     child_comment_unique_id: item.id,
-                    created_at: new Date(item.create_time * 1000).toISOString().slice(0, 19).replace('T', ' '),
+                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     child_commenter_username: item.user.unique_id,
                     child_commenter_userid: item.user.id,
                     child_comment_text: item.text,
