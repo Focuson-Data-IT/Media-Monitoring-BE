@@ -246,14 +246,13 @@ router.get('/getFairScores', async (req, res) => {
                 username,
                 fair_score AS value,
                 date,
-                platform,
-                is_render
+                platform
             FROM dailyFairScores
             WHERE
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            
+                AND is_render = 1
         `;
 
         const queryParams = [
