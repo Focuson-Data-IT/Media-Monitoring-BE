@@ -18,7 +18,7 @@ const apiRequestWithRetry = async (config, maxRetries = 5) => {
 };
 
 // Fungsi untuk mendapatkan data User dari API
-const getDataUser = async (username = null, client_account = null, kategori = null, platform = null) => {
+const getDataUser = async (client_account = null, kategori = null, platform = null, username = null) => {
     try {
         const getUser = {
             method: 'GET',
@@ -34,23 +34,22 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
 
         const response = await apiRequestWithRetry(getUser);
 
-        if (!response.data || !response.data.data) {
+        if (!response || !response.data) {
             throw new Error('Response does not contain user data');
         }
 
         const userData = response.data.data;
 
         const user = {
-            username: username,
             client_account: client_account,
             kategori: kategori,
+            username: username,
             platform: platform,
             user_id: userData.user.id,
-            secUid: userData.user.secUid, // New Data
             followers: userData.stats.followerCount || 0,
             following: userData.stats.followingCount || 0,
             mediaCount: userData.stats.videoCount || 0,
-            likeCount: userData.stats.heart || 0 // New Data
+            profile_pic_url: userData.user.avatarThumb || '',
         };
 
         await save.saveUser(user);
@@ -60,7 +59,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
 };
 
 // Fungsi untuk mendapatkan data Post dari API
-const getDataPost = async (username = null, client_account = null, kategori = null, platform = null, followers = null, following = null) => {
+const getDataPost = async (client_account = null, kategori = null, platform = null, username = null, followers = null, following = null) => {
     try {
 
         // Ambil startDate dari server
@@ -90,7 +89,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
 
             const response = await apiRequestWithRetry(getPost);
 
-            if (!response.data || !response.data.data) {
+            if (!response || !response.data) {
                 throw new Error('Response does not contain user data');
             }
 
@@ -107,24 +106,23 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                         platform: platform,
                         user_id: item.author.id,
                         unique_id_post: item.video_id,
-                        aweme_id: item.aweme_id, // New item
-                        username: item.author.unique_id,
-                        created_at: new Date(postDate).toISOString().slice(0, 19).replace('T', ' '),
+                        username: username,
+                        created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                         thumbnail_url: item.cover,
                         caption: item.title || '',
-                        // post_code: item.code, // Deleted item
+                        post_code: item.code || '',
                         comments: item.comment_count,
                         likes: item.digg_count,
-                        playCount: item.play_count, // New item
-                        shareCount: item.share_count, // New item
-                        downloadCount: item.download_count, // New item
-                        collectCount: item.collect_count, // New item
-                        // media_name: item.media_name, // Delete item
-                        // product_type: item.product_type, // Delete item
-                        // tagged_users: item.tagged_users?.map(tag => tag.user.username).join(', ') || '', // Delete item
+                        media_name: item.media_name || '',
+                        product_type: item.media_type || '',
+                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                         is_pinned: isPinned,
-                        followers: followers,
-                        following: following
+                        followers: followers || 0, // Ambil dari database
+                        following: following || 0,  // Ambil dari database
+                        playCount: item.play_count || 0,
+                        collectCount: item.collect_count || 0,
+                        shareCount: item.share_count || 0,
+                        downloadCount: item.download_count || 0,
                     };
 
                     await save.savePost(post);
@@ -141,24 +139,23 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                     platform: platform,
                     user_id: item.author.id,
                     unique_id_post: item.video_id,
-                    aweme_id: item.aweme_id, // New item
-                    username: item.author.unique_id,
-                    created_at: new Date(postDate).toISOString().slice(0, 19).replace('T', ' '),
+                    username: username,
+                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     thumbnail_url: item.cover,
                     caption: item.title || '',
-                    // post_code: item.code, // Deleted item
+                    post_code: item.code || '',
                     comments: item.comment_count,
                     likes: item.digg_count,
-                    playCount: item.play_count, // New item
-                    shareCount: item.share_count, // New item
-                    downloadCount: item.download_count, // New item
-                    collectCount: item.collect_count, // New item
-                    // media_name: item.media_name, // Delete item
-                    // product_type: item.product_type, // Delete item
-                    // tagged_users: item.tagged_users?.map(tag => tag.user.username).join(', ') || '', // Delete item
+                    media_name: item.media_name || '',
+                    product_type: item.media_type || '',
+                    tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                     is_pinned: isPinned,
-                    followers: followers,
-                    following: following
+                    followers: followers || 0, // Ambil dari database
+                    following: following || 0,  // Ambil dari database
+                    playCount: item.play_count || 0,
+                    collectCount: item.collect_count || 0,
+                    shareCount: item.share_count || 0,
+                    downloadCount: item.download_count || 0,
                 };
 
                 await save.savePost(post);
@@ -233,7 +230,7 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 };
 
 // Fungsi untuk mendapatkan data Child Comment dari API
-const getDataChildComment = async (user_id = null, username = null, unique_id_post = null, comment_unique_id = null, client_account = null, kategori = null, platform = null) => {
+const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null) => {
     try {
         let cursor = 0;
         let hasMore = true;
@@ -292,10 +289,9 @@ const getDataChildComment = async (user_id = null, username = null, unique_id_po
     }
 };
 
-
 module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
-    getDataChildComment,
+    getDataChildComment
 };
