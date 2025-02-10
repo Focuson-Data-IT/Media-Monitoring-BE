@@ -75,12 +75,12 @@ GET http://localhost:7770/api/getFairScores?customer_username=kemenkoinfra&start
 
 
 ### Proses Performa Konten
-POST http://103.30.195.110:7770/api/prosesPerformaKonten
+POST http://localhost:7770/api/prosesPerformaKonten
 Content-Type: application/json
 
 {
   "startDate": "2025-01-01",
-  "endDate": "2025-01-10"
+  "endDate": "2025-02-10"
 }
 
 

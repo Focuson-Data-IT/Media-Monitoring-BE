@@ -63,6 +63,7 @@ router.post('/prosesPerformaKonten', async (req, res) => {
         const [rows] = await db.query(selectQuery, [req.body.startDate, req.body.endDate]);
 
         for (const row of rows) {
+            console.info(row.post_id)
             await db.query(updateQuery, [row.post_id]);
             progressBar.increment(); // Update progress bar setiap 1 record selesai
         }
@@ -339,7 +340,7 @@ router.get('/getFairScores', async (req, res) => {
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                AND is_render = 1
+--                 AND is_render = 1
         `;
 
         const queryParams = [
