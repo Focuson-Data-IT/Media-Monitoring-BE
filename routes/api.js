@@ -465,7 +465,9 @@ router.get('/getAllPost', async (req, res) => {
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
-            req.query['end_date']
+            req.query['end_date'],
+            perPage,
+            offset
         ];
 
         const [countRows] = await db.query(countQuery, queryParams);
