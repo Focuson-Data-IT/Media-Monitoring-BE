@@ -97,7 +97,7 @@ const processBatchForDate = async (date) => {
             // Perhitungan fair_score
             const fair_score = ((followers_score * 2) + (activities_score * 2) + (interactions_score * 3) + (responsiveness_score * 1)) / 8 * 100;
 
-            const isRender = row.activities !== 0 && row.interactions !== 0 && row.responsiveness !== 0;
+            const isRender = row.activities !== 0;
 
             updates.push([
                 row.followers, followers_score, followers_score * 2,

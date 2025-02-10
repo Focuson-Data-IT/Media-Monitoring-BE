@@ -340,7 +340,7 @@ router.get('/getFairScores', async (req, res) => {
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
---                 AND is_render = 1
+                AND is_render = 1
         `;
 
         const queryParams = [
