@@ -246,7 +246,8 @@ router.get('/getFairScores', async (req, res) => {
                 username,
                 fair_score AS value,
                 date,
-                platform
+                platform,
+                is_render
             FROM dailyFairScores
             WHERE
                 kategori = ?
