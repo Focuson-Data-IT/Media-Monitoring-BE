@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const getDataIg = require('../controllers/getDataIg');
+const saveDataIg = require('../controllers/saveDataIg');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
+const connection = require("../models/db");
 
 let requestCount = 0;
 const maxRequestsPerMinute = 240;
