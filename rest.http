@@ -22,7 +22,7 @@ Content-Type: application/json
 }
 
 ### Get ListAkun
-GET http://localhost:7770/api/ListAkun
+GET http://localhost:7770/accounts/ListAkun
 
 ### Delete ListAkun
 DELETE http://localhost:7770/api/deleteListAkun/129
@@ -75,10 +75,38 @@ GET http://localhost:7770/api/getFairScores?customer_username=kemenkoinfra&start
 
 
 ### Proses Performa Konten
-POST http://localhost:7770/api/prosesPerformaKonten?startDate=2025-01-01&endDate=2025-02-10
+POST http://localhost:7770/api/prosesPerformaKonten
 Content-Type: application/json
 
 {
   "startDate": "2025-01-01",
-  "password": "2025-02-10"
+  "endDate": "2025-01-10"
 }
+
+
+### Get Instagram User Data
+GET http://localhost:7770/instagram/getData
+
+### Get Tiktok User Data
+GET http://localhost:7770/tiktok/getData
+
+### Get Instagram User Post
+GET http://localhost:7770/instagram/getPost
+
+### Get Instagram User Post
+GET http://localhost:7770/tiktok/getPost
+
+### Get Instagram User Post
+GET http://localhost:7770/instagram/getComment
+
+### Get Instagram User Post
+GET http://localhost:7770/instagram/getChildComment
+
+### Get Instagram User Post
+GET http://localhost:7770/tiktok/getComment
+
+
+
+
+### Get Instagram User Data
+GET http://localhost:7770/api/getAllUsers?kategori=disparbud&platform=Instagram&username=budpardepok
