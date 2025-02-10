@@ -5,7 +5,7 @@ const getDataForBatchProcessing = async (date) => {
     const [data] = await connection.query(`
         SELECT 
             dfs.list_id, dfs.client_account, dfs.kategori, dfs.platform, dfs.username, dfs.date,
-            u.followers,
+            u.followers, dfs.is_render,
             (
                 SELECT COUNT(*) 
                 FROM posts p 
@@ -111,6 +111,8 @@ const processBatchForDate = async (date) => {
             // Perhitungan fair_score
             const fair_score = ((followers_bobot + activities_bobot + interactions_bobot + responsiveness_bobot) / 8) * 100;
 
+            const isRender = activities !== 0 && interactions !== 0 && responsiveness !== 0;
+
             // Simpan hasil ke dalam batch update
             updates.push([
                 followers, followers_score, followers_bobot,
@@ -118,7 +120,7 @@ const processBatchForDate = async (date) => {
                 interactions, interactions_score, interactions_bobot,
                 responsiveness, responsiveness_score, responsiveness_bobot,
                 fair_score,
-                list_id, client_account, kategori, platform, username, date
+                list_id, client_account, kategori, platform, username, date, isRender
             ]);
         }
     }
@@ -136,7 +138,7 @@ const batchUpdateDailyFairScores = async (updates) => {
             interactions, interactions_score, interactions_bobot,
             responsiveness, responsiveness_score, responsiveness_bobot,
             fair_score,
-            list_id, client_account, kategori, platform, username, date
+            list_id, client_account, kategori, platform, username, date, is_render
         ) VALUES ?
         ON DUPLICATE KEY UPDATE
             followers = IFNULL(VALUES(followers), followers),
@@ -151,7 +153,8 @@ const batchUpdateDailyFairScores = async (updates) => {
             responsiveness = IFNULL(VALUES(responsiveness), responsiveness),
             responsiveness_score = IFNULL(VALUES(responsiveness_score), responsiveness_score),
             responsiveness_bobot = IFNULL(VALUES(responsiveness_bobot), responsiveness_bobot),
-            fair_score = IFNULL(VALUES(fair_score), fair_score)
+            fair_score = IFNULL(VALUES(fair_score), fair_score),
+            is_render = is_render;
     `;
     await connection.query(updateSql, [updates]);
     console.log(`Batch updated ${updates.length} rows.`);
