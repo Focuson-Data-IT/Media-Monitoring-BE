@@ -467,5 +467,36 @@ router.get('/getAllPost', async (req, res) => {
     }
 });
 
+router.get('/getAllUsers', async (req, res) => {
+    try {
+        const query = `
+            SELECT *
+            FROM users
+            WHERE
+                kategori = ?
+                AND platform = ?
+                AND username = ?
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['username']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching dates:', error);
+        res.status(500).send('Failed to fetch dates');
+    }
+});
+
 
 module.exports = router;
