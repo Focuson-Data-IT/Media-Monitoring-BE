@@ -34,9 +34,9 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
     try {
         const getUser = {
             method: 'GET',
-            url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_profile_v2.php',
+            url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
             params: {
-                username_or_url: `https://www.instagram.com/${username}/`,
+                username_or_id_or_url: `${username}`,
             },
             headers: {
                 'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
@@ -52,7 +52,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
             throw new Error('Response does not contain user data');
         }
 
-        const userData = response.data;
+        const userData = response.data.data;
 
         const user = {
             client_account: client_account,
@@ -60,9 +60,9 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
             platform: platform,
             username: username,
             user_id: userData.id,
-            followers: userData.edge_followed_by.count || 0,
-            following: userData.edge_follow.count || 0,
-            mediaCount: userData.edge_owner_to_timeline_media.count || 0,
+            followers: userData.follower_count || 0,
+            following: userData.following_count || 0,
+            mediaCount: userData.media_count || 0,
             profile_pic_url: userData.profile_pic_url,
         };
 
@@ -85,57 +85,53 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
         const endDateObj = new Date(endDate).getTime();
 
         while (morePosts) {
-            // Buat encodedParams untuk pengiriman data dengan application/x-www-form-urlencoded
-            const encodedParams = new URLSearchParams();
-            encodedParams.set('username_or_url', `https://www.instagram.com/${username}/`);
-            if (paginationToken) {
-                encodedParams.set('pagination_token', paginationToken);
-            }
-
             const getPost = {
-                method: 'POST',
-                url: 'https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_user_posts.php',
-                headers: {
-                    'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
-                    'x-rapidapi-host': 'instagram-scraper-stable-api.p.rapidapi.com',
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                method: 'GET',
+                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1.2/posts',
+                params: {
+                    username_or_id_or_url: username,
+                    ...(paginationToken && { pagination_token: paginationToken })
                 },
-                data: encodedParams,
+                headers: {
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                }
             };
 
             const response = await apiRequestWithRetry(getPost);
 
-            if (!response.data || !response.data.posts) {
+            if (!response || !response.data) {
                 throw new Error('Response does not contain user data');
             }
 
-            const userPosts = response.data.posts;
+            const userPosts = response.data.data.items;
+            const userData = response.data.data.user;
 
             for (const item of userPosts) {
-                const isPinned = item.node.timeline_pinned_user_ids && item.node.timeline_pinned_user_ids.length > 0 ? 1 : 0;
-                const postDate = new Date(item.node.taken_at * 1000).getTime();
+                const isPinned = item.is_pinned ? 1 : 0;
+                const postDate = new Date(item.taken_at * 1000).getTime();
 
                 if (isPinned) {
                     const post = {
                         client_account: client_account,
                         kategori: kategori,
                         platform: platform,
-                        user_id: item.node.user.id,
-                        unique_id_post: item.node.pk,
-                        username: item.node.user.username,
+                        user_id: userData.id,
+                        unique_id_post: item.id,
+                        username: username,
                         created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                        thumbnail_url: item.node.thumbnails,
-                        caption: item.node.accessibility_caption || '',
-                        post_code: item.node.code,
-                        comments: item.node.comment_count,
-                        likes: item.node.like_count,
-                        media_name: item.node.media_type,
-                        product_type: item.node.product_type,
-                        tagged_users: item.node.usertags?.in?.map(tag => tag.user.username).join(', ') || '',
+                        thumbnail_url: item.thumbnail_url,
+                        caption: item.caption.text || '',
+                        post_code: item.code,
+                        comments: item.comment_count,
+                        likes: item.like_count,
+                        media_name: item.media_name,
+                        product_type: item.media_type,
+                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                         is_pinned: isPinned,
                         followers: followers || 0, // Ambil dari database
                         following: following || 0,  // Ambil dari database
-                        playCount: item.node.view_count || 0,
+                        playCount: item.play_count || 0,
                     };
 
                     await save.savePost(post);
@@ -150,22 +146,22 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                     client_account: client_account,
                     kategori: kategori,
                     platform: platform,
-                    user_id: item.node.user.id,
-                    unique_id_post: item.node.pk,
-                    username: item.node.user.username,
+                    user_id: userData.id,
+                    unique_id_post: item.id,
+                    username: username,
                     created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                    thumbnail_url: item.node.thumbnails,
-                    caption: item.node.accessibility_caption || '',
-                    post_code: item.node.code,
-                    comments: item.node.comment_count,
-                    likes: item.node.like_count,
-                    media_name: item.node.media_type,
-                    product_type: item.node.product_type,
-                    tagged_users: item.node.usertags?.in?.map(tag => tag.user.username).join(', ') || '',
+                    thumbnail_url: item.thumbnail_url,
+                    caption: item.caption.text || '',
+                    post_code: item.code,
+                    comments: item.comment_count,
+                    likes: item.like_count,
+                    media_name: item.media_name,
+                    product_type: item.media_type,
+                    tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                     is_pinned: isPinned,
                     followers: followers || 0, // Ambil dari database
                     following: following || 0,  // Ambil dari database
-                    playCount: item.node.view_count || 0,
+                    playCount: item.play_count || 0,
                 };
 
                 await save.savePost(post);
@@ -190,6 +186,7 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments',
                 params: {
                     code_or_id_or_url: unique_id_post,
+                    sort_by: 'popular',
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
@@ -200,12 +197,12 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 
             const response = await apiRequestWithRetry(getComment);
 
-            if (!response.data || !response.data.comments) {
+            if (!response.data || !response.data.data.items) {
                 moreComments = false;
                 break;
             }
 
-            const userComment = response.data.comments;
+            const userComment = response.data.data.items;
 
             for (const item of userComment) {
                 // Simpan data comment utama
@@ -216,39 +213,76 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                     user_id: user_id,
                     username: username,
                     unique_id_post: unique_id_post,
-                    comment_unique_id: item.pk,
+                    comment_unique_id: item.id,
                     created_at: new Date(item.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     commenter_username: item.user.username,
                     commenter_userid: item.user.id,
                     comment_text: item.text,
-                    comment_like_count: item.comment_like_count,
+                    comment_like_count: item.like_count,
                     child_comment_count: item.child_comment_count
                 };
 
                 await save.saveComment(comment);
 
-                // Jika terdapat child comments, iterasi dan simpan child comments
-                if (item.preview_child_comments && item.preview_child_comments.length > 0) {
-                    for (const child of item.preview_child_comments) {
-                        const childComment = {
-                            client_account: client_account,
-                            kategori: kategori,
-                            platform: platform,
-                            user_id: user_id,
-                            username: username,
-                            unique_id_post: unique_id_post,
-                            parent_comment_unique_id: item.pk, // Parent comment ID
-                            comment_unique_id: child.pk, // Unique ID dari child comment
-                            created_at: new Date(child.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                            commenter_username: child.user.username,
-                            commenter_userid: child.user.id,
-                            comment_text: child.text,
-                            comment_like_count: child.comment_like_count
-                        };
+            }
 
-                        await save.saveChildComment(childComment);
-                    }
+            paginationToken = response.data.pagination_token;
+            if (!paginationToken) moreComments = false;
+        }
+    } catch (error) {
+        console.error(`Error fetching data for ${unique_id_post}:`, error.message);
+    }
+};
+
+const getDataChildComment = async (unique_id_post = null, client_account = null, kategori = null, comment_unique_id = null, user_id = null, username = null, platform = null) => {
+    try {
+        let paginationToken = null;
+        let moreComments = true;
+
+        while (moreComments) {
+            const getChildComment = {
+                method: 'GET',
+                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments_thread',
+                params: {
+                    code_or_id_or_url: unique_id_post,
+                    comment_id: comment_unique_id,
+                    ...(paginationToken && { pagination_token: paginationToken })
+                },
+                headers: {
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
                 }
+            };
+
+            const response = await apiRequestWithRetry(getChildComment);
+
+            if (!response.data || !response.data.data.items) {
+                moreComments = false;
+                break;
+            }
+
+            const userComment = response.data.data.items;
+
+            for (const child of userComment) {
+                // Simpan data comment utama
+                const childComment = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
+                    user_id: user_id,
+                    username: username,
+                    unique_id_post: unique_id_post,
+                    parent_comment_unique_id: comment_unique_id, // Parent comment ID
+                    comment_unique_id: child.id, // Unique ID dari child comment
+                    created_at: new Date(child.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                    commenter_username: child.user.username,
+                    commenter_userid: child.user.id,
+                    comment_text: child.text,
+                    comment_like_count: child.comment_like_count
+                };
+
+                await save.saveChildComment(childComment);
+
             }
 
             paginationToken = response.data.pagination_token;
@@ -307,5 +341,6 @@ module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
+    getDataChildComment,
     getDataLikes
 };
