@@ -92,3 +92,9 @@ GET http://localhost:7770/tiktok/getData
 
 ### Get Instagram User Data
 GET http://localhost:7770/instagram/getPost
+
+
+
+
+### Get Instagram User Data
+GET http://localhost:7770/api/getAllUsers?kategori=disparbud&platform=Instagram&username=budpardepok
