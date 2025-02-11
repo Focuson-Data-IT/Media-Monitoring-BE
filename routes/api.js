@@ -221,9 +221,17 @@ router.get('/getInteractions', async (req, res) => {
         SELECT
             username,
             client_account,
-            SUM(interactions) AS value, -- Menjumlahkan semua interactions per user
+            CASE 
+                WHEN SUM(activities) = 0 THEN 0 -- Menghindari pembagian dengan nol
+                ELSE SUM(interactions) / SUM(activities) 
+            END AS value, -- Membagi total interactions dengan total activities per user
             platform,
-            MAX(SUM(interactions)) OVER () AS max_value -- Mengambil nilai SUM tertinggi dari semua user
+            MAX(
+                CASE 
+                    WHEN SUM(activities) = 0 THEN 0
+                    ELSE SUM(interactions) / SUM(activities) 
+                END
+            ) OVER () AS max_value -- Mengambil nilai terbesar dari perhitungan di atas
         FROM dailyFairScores
         WHERE
             kategori = ?
