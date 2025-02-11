@@ -49,16 +49,16 @@ POST http://localhost:7770/fair/processData
 GET http://localhost:7770/api/data/getData
 
 ### GET processData
-GET http://localhost:7770/api/getFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=TikTok
+GET http://localhost:7770/api/getFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET processData
-GET http://localhost:7770/api/getActivities?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=TikTok
+GET http://localhost:7770/api/getActivities?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET processData
-GET http://localhost:7770/api/getInteractions?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=TikTok
+GET http://localhost:7770/api/getInteractions?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET processData
-GET http://localhost:7770/api/getResponsiveness?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=TikTok
+GET http://localhost:7770/api/getResponsiveness?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET processData
 GET http://localhost:7770/api/getFairScores?kategori=kemenkoinfra&start_date=2025-01-01&end_date=2025-01-09&platform=TikTok
