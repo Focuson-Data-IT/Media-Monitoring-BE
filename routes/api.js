@@ -126,6 +126,45 @@ router.post('/auth/login', async (req, res) => {
     }
 });
 
+router.get('/getDailyFollowers', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                username,
+                client_account,
+                followers AS value,
+                platform,
+                date
+            FROM dailyFairScores
+            WHERE
+                kategori = ?
+                AND platform = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
 router.get('/getFollowers', async (req, res) => {
     try {
         const query = `
@@ -176,6 +215,45 @@ router.get('/getFollowers', async (req, res) => {
     }
 });
 
+router.get('/getDailyActivities', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                username,
+                client_account,
+                activities AS value,
+                platform,
+                date
+            FROM dailyFairScores
+            WHERE
+                kategori = ?
+                AND platform = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
 router.get('/getActivities', async (req, res) => {
     try {
         const query = `
@@ -212,6 +290,45 @@ router.get('/getActivities', async (req, res) => {
     } catch (error) {
         console.error('Error fetching dates:', error);
         res.status(500).send('Failed to fetch dates');
+    }
+});
+
+router.get('/getDailyInteractions', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                username,
+                client_account,
+                interactions AS value,
+                platform,
+                date
+            FROM dailyFairScores
+            WHERE
+                kategori = ?
+                AND platform = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
     }
 });
 
@@ -259,6 +376,45 @@ router.get('/getInteractions', async (req, res) => {
     } catch (error) {
         console.error('Error fetching dates:', error);
         res.status(500).send('Failed to fetch dates');
+    }
+});
+
+router.get('/getDailyResponsiveness', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                username,
+                client_account,
+                responsiveness AS value,
+                platform,
+                date
+            FROM dailyFairScores
+            WHERE
+                kategori = ?
+                AND platform = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
     }
 });
 
