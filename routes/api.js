@@ -588,7 +588,7 @@ router.get('/getAllPost', async (req, res) => {
               AND platform = ?
               AND DATE (created_at) BETWEEN DATE (?)
               AND DATE (?)
-            ORDER BY created_at DESC
+            ORDER BY ? ?
                 LIMIT ?
             OFFSET ?
         `;
@@ -602,6 +602,8 @@ router.get('/getAllPost', async (req, res) => {
             req.query['platform'],
             req.query['start_date'],
             req.query['end_date'],
+            req.query['orderBy'],
+            req.query['direction'],
             perPage,
             offset
         ];
