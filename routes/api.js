@@ -126,6 +126,45 @@ router.post('/auth/login', async (req, res) => {
     }
 });
 
+router.get('/getDailyFollowers', async (req, res) => {
+    try {
+        const query = `
+            SELECT
+                username,
+                client_account,
+                followers AS value,
+                platform,
+                date
+            FROM dailyFairScores
+            WHERE
+                kategori = ?
+                AND platform = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
 router.get('/getFollowers', async (req, res) => {
     try {
         const query = `
@@ -176,7 +215,7 @@ router.get('/getFollowers', async (req, res) => {
     }
 });
 
-router.get('/getActivities', async (req, res) => {
+router.get('/getDailyActivities', async (req, res) => {
     try {
         const query = `
             SELECT
@@ -184,25 +223,53 @@ router.get('/getActivities', async (req, res) => {
                 client_account,
                 activities AS value,
                 platform,
-            MAX(activities) OVER () AS max_value
-            FROM (
-                SELECT
-                username,
-                client_account,
-                activities,
-                platform,
-                ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
-                FROM
-                dailyFairScores
-                WHERE
+                date
+            FROM dailyFairScores
+            WHERE
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                ) AS ranked
-            WHERE
-                row_num = 1
             ORDER BY
-                max_value DESC
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
+router.get('/getActivities', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            username,
+            client_account,
+            SUM(activities) AS value, -- Menjumlahkan semua activities per user
+            platform,
+            MAX(SUM(activities)) OVER () AS max_value -- Mengambil nilai SUM tertinggi dari semua user
+        FROM dailyFairScores
+        WHERE
+            kategori = ?
+            AND platform = ?
+            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY username, client_account, platform -- Kelompokkan berdasarkan user agar tidak hanya satu hasil
+        ORDER BY value DESC;  
         `;
 
         const queryParams = [
@@ -226,7 +293,7 @@ router.get('/getActivities', async (req, res) => {
     }
 });
 
-router.get('/getInteractions', async (req, res) => {
+router.get('/getDailyInteractions', async (req, res) => {
     try {
         const query = `
             SELECT
@@ -234,25 +301,61 @@ router.get('/getInteractions', async (req, res) => {
                 client_account,
                 interactions AS value,
                 platform,
-            MAX(interactions) OVER () AS max_value
-            FROM (
-                SELECT
-                username,
-                client_account,
-                interactions,
-                platform,
-                ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
-                FROM
-                dailyFairScores
-                WHERE
+                date
+            FROM dailyFairScores
+            WHERE
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                ) AS ranked
-            WHERE
-                row_num = 1
             ORDER BY
-                max_value DESC
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
+router.get('/getInteractions', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            username,
+            client_account,
+            CASE 
+                WHEN SUM(activities) = 0 THEN 0 -- Menghindari pembagian dengan nol
+                ELSE SUM(interactions) / SUM(activities) 
+            END AS value, -- Membagi total interactions dengan total activities per user
+            platform,
+            MAX(
+                CASE 
+                    WHEN SUM(activities) = 0 THEN 0
+                    ELSE SUM(interactions) / SUM(activities) 
+                END
+            ) OVER () AS max_value -- Mengambil nilai terbesar dari perhitungan di atas
+        FROM dailyFairScores
+        WHERE
+            kategori = ?
+            AND platform = ?
+            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY username, client_account, platform -- Pastikan data dikelompokkan per user
+        ORDER BY value DESC;
         `;
 
         const queryParams = [
@@ -276,7 +379,7 @@ router.get('/getInteractions', async (req, res) => {
     }
 });
 
-router.get('/getResponsiveness', async (req, res) => {
+router.get('/getDailyResponsiveness', async (req, res) => {
     try {
         const query = `
             SELECT
@@ -284,25 +387,53 @@ router.get('/getResponsiveness', async (req, res) => {
                 client_account,
                 responsiveness AS value,
                 platform,
-            MAX(responsiveness) OVER () AS max_value
-            FROM (
-                SELECT
-                username,
-                client_account,
-                responsiveness,
-                platform,
-                ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
-                FROM
-                dailyFairScores
-                WHERE
+                date
+            FROM dailyFairScores
+            WHERE
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                ) AS ranked
-            WHERE
-                row_num = 1
             ORDER BY
-                max_value DESC
+                date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
+router.get('/getResponsiveness', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            username,
+            client_account,
+            SUM(responsiveness) AS value, -- Menjumlahkan semua responsiveness per user
+            platform,
+            MAX(SUM(responsiveness)) OVER () AS max_value -- Mengambil nilai SUM tertinggi dari semua user
+        FROM dailyFairScores
+        WHERE
+            kategori = ?
+            AND platform = ?
+            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY username, client_account, platform -- Pastikan data dikelompokkan per user
+        ORDER BY value DESC;
         `;
 
         const queryParams = [

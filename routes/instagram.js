@@ -64,10 +64,10 @@ const processQueue = async (items, processFunction) => {
 
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
-
+    const { kategori } = req.query;
     // Fetch data for Instagram
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Instagram"');
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Instagram" AND kategori = ?', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
@@ -96,9 +96,10 @@ router.get('/getData', async (req, res) => {
 
 // Eksekusi getPost berdasarkan semua username di listAkun
 router.get('/getPost', async (req, res) => {
+    const { kategori } = req.query;
     // Fetch data for Instagram
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Instagram"');
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Instagram" AND kategori = ?', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -122,8 +123,9 @@ router.get('/getPost', async (req, res) => {
 
 // 🔹 Fungsi untuk mengambil startDate dan endDate dari tabel `setting`
 const getDateRange = async () => {
+    const { kategori } = req.query;
     try {
-        const [rows] = await db.query('SELECT startDate, endDate FROM settings WHERE id = 1');
+        const [rows] = await db.query('SELECT startDate, endDate FROM settings WHERE id = 1 AND kategori = ?', [kategori]);
         if (rows.length === 0) throw new Error('Data setting tidak ditemukan.');
         
         return {
@@ -152,8 +154,9 @@ router.get('/getComment', async (req, res) => {
         let query = `
             SELECT unique_id_post, created_at
             FROM posts 
-            WHERE platform = "Instagram"
+            WHERE platform = "Instagram" 
             AND DATE(created_at) BETWEEN ? AND ?
+            AND kategori = ? 
         `;
 
         if (!processFromStart) {
