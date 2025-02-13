@@ -577,15 +577,20 @@ router.get('/getAllPost', async (req, res) => {
               AND DATE (?)
         `;
 
+        let orderQuery = '';
+
+        if (req.query['orderBy'] && req.query['direction']) {
+            orderQuery += `ORDER BY ${req.query['orderBy']} ${req.query['direction']}`;
+        }
+
         const dataQuery = `
             SELECT *
             FROM posts
             WHERE kategori = ?
               AND platform = ?
-              AND DATE (created_at) BETWEEN DATE (?)
-              AND DATE (?)
-            ORDER BY ? ?
-                LIMIT ?
+              AND DATE (created_at) BETWEEN DATE (?) AND DATE (?) 
+            ${orderQuery} 
+            LIMIT ?
             OFFSET ?
         `;
 
@@ -597,17 +602,15 @@ router.get('/getAllPost', async (req, res) => {
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
-            req.query['end_date'],
-            req.query['orderBy'],
-            req.query['direction'],
-            perPage,
-            offset
+            req.query['end_date']
         ];
 
         const [countRows] = await db.query(countQuery, queryParams);
         const total = countRows[0].total;
         const totalPages = Math.ceil(total / perPage);
 
+        console.info(dataQuery);
+        console.info(queryParams);
         const [dataRows] = await db.query(dataQuery, [...queryParams, perPage, offset]);
 
         res.json({
