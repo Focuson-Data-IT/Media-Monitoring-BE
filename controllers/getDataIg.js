@@ -32,6 +32,10 @@ const apiRequestWithRetry = async (config, maxRetries = 5) => {
 const getDataUser = async (username = null, client_account = null, kategori = null, platform = null) => {
 
     try {
+        const encodedParams = new URLSearchParams();
+        encodedParams.set('username_or_url', `${username}`);
+        encodedParams.set('data', 'basic');
+
         const getUser = {
             method: 'GET',
             url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
@@ -39,9 +43,11 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
                 username_or_id_or_url: `${username}`,
             },
             headers: {
-                'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
-            }
+                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data: encodedParams,
         };
 
         // console.log('Request details:', getUser);
