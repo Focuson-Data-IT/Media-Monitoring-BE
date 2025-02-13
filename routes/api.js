@@ -260,19 +260,23 @@ router.get('/getActivities', async (req, res) => {
         SELECT
             username,
             client_account,
-            SUM(activities) AS value, -- Menjumlahkan semua activities per user
+            SUM(activities) / NULLIF(DATEDIFF(?, ?) + 1, 0) AS value,
             platform,
-            MAX(SUM(activities)) OVER () AS max_value -- Mengambil nilai SUM tertinggi dari semua user
+            MAX(SUM(activities) / NULLIF(DATEDIFF(?, ?) + 1, 0)) OVER () AS max_value
         FROM dailyFairScores
         WHERE
             kategori = ?
             AND platform = ?
             AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY username, client_account, platform -- Kelompokkan berdasarkan user agar tidak hanya satu hasil
-        ORDER BY value DESC;  
+        GROUP BY username, client_account, platform
+        ORDER BY activities DESC;
         `;
 
         const queryParams = [
+            req.query['end_date'],
+            req.query['start_date'],
+            req.query['end_date'],
+            req.query['start_date'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
