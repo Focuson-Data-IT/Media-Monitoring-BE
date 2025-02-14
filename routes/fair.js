@@ -19,7 +19,7 @@ router.post('/addDataUser', async (req, res) => {
 router.post('/processData', async (req, res) => {
     try {
         console.info('Starting to process data...');
-        await fairScore.processData(req, res);
+        await fairScore.processData('2025-01-01', new Date().toISOString().split('T')[0]);
         res.json({ success: true, message: 'Data berhasil diproses dan disimpan ke dailyFairScores.' });
     } catch (error) {
         console.error('Error processing data:', error.message);
