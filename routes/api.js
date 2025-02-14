@@ -134,7 +134,7 @@ router.get('/getDailyFollowers', async (req, res) => {
                 client_account,
                 followers AS value,
                 platform,
-                date
+                CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM dailyFairScores
             WHERE
                 kategori = ?
@@ -217,13 +217,14 @@ router.get('/getFollowers', async (req, res) => {
 
 router.get('/getDailyActivities', async (req, res) => {
     try {
+        console.info(req.query);
         const query = `
             SELECT
                 username,
                 client_account,
                 activities AS value,
                 platform,
-                date
+                CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM dailyFairScores
             WHERE
                 kategori = ?
@@ -305,7 +306,7 @@ router.get('/getDailyInteractions', async (req, res) => {
                 client_account,
                 interactions AS value,
                 platform,
-                date
+                CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM dailyFairScores
             WHERE
                 kategori = ?
@@ -391,7 +392,7 @@ router.get('/getDailyResponsiveness', async (req, res) => {
                 client_account,
                 responsiveness AS value,
                 platform,
-                date
+                CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM dailyFairScores
             WHERE
                 kategori = ?
@@ -468,7 +469,7 @@ router.get('/getFairScores', async (req, res) => {
                 client_account,
                 username,
                 fair_score AS value,
-                date,
+                CONVERT_TZ(date, '+00:00', '+07:00') AS date,
                 platform
             FROM dailyFairScores
             WHERE
