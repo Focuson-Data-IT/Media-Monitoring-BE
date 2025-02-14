@@ -261,23 +261,25 @@ router.get('/getActivities', async (req, res) => {
         SELECT
             username,
             client_account,
-            SUM(activities) / NULLIF(DATEDIFF(?, ?) + 1, 0) AS value,
+            activities AS value, -- Langsung ambil nilai activities dari tanggal terbaru
             platform,
-            MAX(SUM(activities) / NULLIF(DATEDIFF(?, ?) + 1, 0)) OVER () AS max_value
+            MAX(activities) OVER () AS max_value -- Mengambil nilai activities tertinggi dari tanggal terbaru
         FROM dailyFairScores
-        WHERE
-            kategori = ?
+        WHERE kategori = ?
             AND platform = ?
-            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY username, client_account, platform
-        ORDER BY activities DESC;
+            AND DATE(date) = (
+                SELECT MAX(date) 
+                FROM dailyFairScores 
+                WHERE kategori = ? 
+                AND platform = ? 
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        )
+        ORDER BY value DESC;
         `;
 
         const queryParams = [
-            req.query['end_date'],
-            req.query['start_date'],
-            req.query['end_date'],
-            req.query['start_date'],
+            req.query['kategori'],
+            req.query['platform'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
@@ -293,8 +295,8 @@ router.get('/getActivities', async (req, res) => {
             errors: null
         });
     } catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
+        console.error('Error fetching activities:', error);
+        res.status(500).send('Failed to fetch activities');
     }
 });
 
@@ -340,30 +342,28 @@ router.get('/getDailyInteractions', async (req, res) => {
 router.get('/getInteractions', async (req, res) => {
     try {
         const query = `
-        SELECT
+        SELECT 
             username,
             client_account,
-            CASE 
-                WHEN SUM(activities) = 0 THEN 0 -- Menghindari pembagian dengan nol
-                ELSE SUM(interactions) / SUM(activities) 
-            END AS value, -- Membagi total interactions dengan total activities per user
+            interactions AS value, -- Langsung ambil nilai interactions dari tanggal terbaru
             platform,
-            MAX(
-                CASE 
-                    WHEN SUM(activities) = 0 THEN 0
-                    ELSE SUM(interactions) / SUM(activities) 
-                END
-            ) OVER () AS max_value -- Mengambil nilai terbesar dari perhitungan di atas
+            MAX(interactions) OVER () AS max_value -- Mengambil nilai interactions tertinggi dari tanggal terbaru
         FROM dailyFairScores
-        WHERE
-            kategori = ?
+        WHERE kategori = ?
             AND platform = ?
-            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY username, client_account, platform -- Pastikan data dikelompokkan per user
+            AND DATE(date) = (
+                SELECT MAX(date) 
+                FROM dailyFairScores 
+                WHERE kategori = ? 
+                AND platform = ? 
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        )
         ORDER BY value DESC;
         `;
 
         const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
@@ -379,10 +379,11 @@ router.get('/getInteractions', async (req, res) => {
             errors: null
         });
     } catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
+        console.error('Error fetching interactions:', error);
+        res.status(500).send('Failed to fetch interactions');
     }
 });
+
 
 router.get('/getDailyResponsiveness', async (req, res) => {
     try {
@@ -426,22 +427,28 @@ router.get('/getDailyResponsiveness', async (req, res) => {
 router.get('/getResponsiveness', async (req, res) => {
     try {
         const query = `
-        SELECT
+        SELECT 
             username,
             client_account,
-            SUM(responsiveness) AS value, -- Menjumlahkan semua responsiveness per user
+            responsiveness AS value, -- Langsung ambil nilai responsiveness dari tanggal terbaru
             platform,
-            MAX(SUM(responsiveness)) OVER () AS max_value -- Mengambil nilai SUM tertinggi dari semua user
+            MAX(responsiveness) OVER () AS max_value -- Mengambil nilai responsiveness tertinggi dari tanggal terbaru
         FROM dailyFairScores
-        WHERE
-            kategori = ?
+        WHERE kategori = ?
             AND platform = ?
-            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY username, client_account, platform -- Pastikan data dikelompokkan per user
+            AND DATE(date) = (
+                SELECT MAX(date) 
+                FROM dailyFairScores 
+                WHERE kategori = ? 
+                AND platform = ? 
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        )
         ORDER BY value DESC;
         `;
 
         const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
@@ -457,8 +464,8 @@ router.get('/getResponsiveness', async (req, res) => {
             errors: null
         });
     } catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
+        console.error('Error fetching responsiveness:', error);
+        res.status(500).send('Failed to fetch responsiveness');
     }
 });
 
@@ -503,22 +510,27 @@ router.get('/getFairScores', async (req, res) => {
 router.get('/getFairRanking', async (req, res) => {
     try {
         const query = `
-            SELECT
+            SELECT 
                 client_account,
                 username,
-                MAX(fair_score) AS max_value,
-                SUM(fair_score) AS avg_value,
+                fair_score,
                 platform
             FROM dailyFairScores
-            WHERE
-                kategori = ?
+            WHERE kategori = ?
                 AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            GROUP BY client_account, username, platform
-            ORDER BY max_value DESC
+                AND date = (
+                    SELECT MAX(date) 
+                    FROM dailyFairScores 
+                    WHERE kategori = ? 
+                        AND platform = ? 
+                        AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                )
+            ORDER BY fair_score DESC;
         `;
 
         const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
@@ -577,9 +589,9 @@ router.get('/getAllPost', async (req, res) => {
             SELECT COUNT(*) AS total
             FROM posts
             WHERE kategori = ?
-              AND platform = ?
-              AND DATE (created_at) BETWEEN DATE (?)
-              AND DATE (?)
+                AND platform = ?
+                AND DATE (created_at) BETWEEN DATE (?)
+                AND DATE (?)
         `;
 
         let orderQuery = '';
@@ -592,8 +604,8 @@ router.get('/getAllPost', async (req, res) => {
             SELECT *
             FROM posts
             WHERE kategori = ?
-              AND platform = ?
-              AND DATE (created_at) BETWEEN DATE (?) AND DATE (?) 
+                AND platform = ?
+                AND DATE (created_at) BETWEEN DATE (?) AND DATE (?) 
             ${orderQuery} 
             LIMIT ?
             OFFSET ?
