@@ -52,6 +52,15 @@ const getDataForBatchProcessing = async (date) => {
                 AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) / ? AS activities,
             (
+                SELECT COUNT(*) 
+                FROM posts
+                WHERE client_account = dfs.client_account
+                    AND kategori = dfs.kategori 
+                    AND platform = dfs.platform 
+                    AND username = dfs.username  
+                    AND DATE(created_at) = dfs.date
+            ) AS nilai_aktifitas,  /* ✅ Ditambahkan tapi tidak dihitung dalam skor */
+            (
                 SELECT SUM(likes) 
                 FROM posts 
                 WHERE client_account = dfs.client_account 
@@ -115,6 +124,7 @@ const processBatchForDate = async (date) => {
     const updates = rows.map(row => ([
         row.followers || 0,
         row.activities || 0,
+        row.nilai_aktifitas || 0,  // ✅ Ditambahkan tapi tidak dihitung skor
         row.interactions || 0,
         row.responsiveness || 0,
         row.list_id, row.client_account, row.kategori, row.platform, row.username, row.date
@@ -124,18 +134,19 @@ const processBatchForDate = async (date) => {
     await processScoresForDate(date);
 };
 
-// 🔹 **Batch Update Data Dasar (Followers, Activities, Interactions, Responsiveness)**
+// 🔹 **Batch Update Data Dasar**
 const batchUpdateFairScores = async (updates) => {
     console.log(`[DEBUG] Updating ${updates.length} rows...`);
 
     const updateSql = `
         INSERT INTO dailyFairScores (
-            followers, activities, interactions, responsiveness,
+            followers, activities, nilai_aktifitas, interactions, responsiveness,  /* ✅ nilai_aktifitas hanya dimasukkan */
             list_id, client_account, kategori, platform, username, date
         ) VALUES ?
         ON DUPLICATE KEY UPDATE
             followers = VALUES(followers),
             activities = VALUES(activities),
+            nilai_aktifitas = VALUES(nilai_aktifitas),  /* ✅ Tidak ikut dalam skor */
             interactions = VALUES(interactions),
             responsiveness = VALUES(responsiveness);
     `;
@@ -151,9 +162,13 @@ const batchUpdateScores = async (updates) => {
     const updateSql = `
         UPDATE dailyFairScores
         SET 
-            followers_score = ?, activities_score = ?, interactions_score = ?, responsiveness_score = ?, fair_score = ?
+            followers_score = VALUES(followers_score), 
+            activities_score = VALUES(activities_score), 
+            interactions_score = VALUES(interactions_score), 
+            responsiveness_score = VALUES(responsiveness_score), 
+            fair_score = VALUES(fair_score)
         WHERE 
-            list_id = ? AND date = ?;
+            list_id = VALUES(list_id) AND date = VALUES(date);
     `;
 
     await Promise.all(updates.map(update => connection.query(updateSql, update)));
@@ -161,7 +176,7 @@ const batchUpdateScores = async (updates) => {
     console.log(`[DEBUG] Scores updated for ${updates.length} rows.`);
 };
 
-// 🔹 **Hitung Skor & Bobot Per Kategori**
+// 🔹 **Hitung Skor & Bobot Per Kategori (Tanpa nilai_aktifitas)**
 const processScoresForDate = async (date) => {
     console.log(`[DEBUG] Processing scores for date: ${date}`);
 
@@ -190,19 +205,10 @@ const processScoresForDate = async (date) => {
         `, [kategori, date]);
 
         for (const row of rows) {
-            const { list_id, followers, activities, interactions, responsiveness } = row;
+            const fair_score = ((row.followers / max_followers * 2) + (row.activities / max_activities * 2) + 
+                               (row.interactions / max_interactions * 3) + (row.responsiveness / max_responsiveness * 1)) / 8 * 100; // ✅ Tanpa nilai_aktifitas
 
-            const followers_score = max_followers > 0 ? followers / max_followers : 0;
-            const activities_score = max_activities > 0 ? activities / max_activities : 0;
-            const interactions_score = max_interactions > 0 ? interactions / max_interactions : 0;
-            const responsiveness_score = max_responsiveness > 0 ? responsiveness / max_responsiveness : 0;
-
-            const fair_score = ((followers_score * 2) + (activities_score * 2) + (interactions_score * 3) + (responsiveness_score * 1)) / 8 * 100;
-
-            updates.push([
-                followers_score, activities_score, interactions_score, responsiveness_score, fair_score,
-                list_id, date
-            ]);
+            updates.push([fair_score, row.list_id, date]);
         }
     }
 
