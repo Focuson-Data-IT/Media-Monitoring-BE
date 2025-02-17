@@ -190,8 +190,7 @@ router.get('/getFollowers', async (req, res) => {
                 ) AS ranked
             WHERE
                 row_num = 1
-            ORDER BY
-                max_value DESC
+            ORDER BY value DESC;
         `;
 
         const queryParams = [
@@ -222,7 +221,7 @@ router.get('/getDailyActivities', async (req, res) => {
             SELECT
                 username,
                 client_account,
-                activities AS value,
+                nilai_aktifitas AS value,
                 platform,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM dailyFairScores
