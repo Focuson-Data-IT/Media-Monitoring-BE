@@ -1,4 +1,6 @@
 const express = require('express');
+const axios = require('axios');
+
 var cors = require('cors')
 require('dotenv').config();
 
@@ -31,6 +33,17 @@ app.use('/accounts', logMiddleware, accounts);
 app.use('/data', logMiddleware, data);
 app.use('/instagram', logMiddleware, instagram);
 app.use('/tiktok', logMiddleware, tiktok);
+
+app.get('/proxy-image', async (req, res) => {
+    try {
+        const imageUrl = req.query.url;
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        res.set('Content-Type', 'image/jpeg');
+        res.send(response.data);
+    } catch (error) {
+        res.status(500).send('Error fetching image');
+    }
+});
 
 // Jalankan server
 const port = process.env.PORT || 3000;
