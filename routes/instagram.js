@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const getDataIg = require('../controllers/getDataIg');
-const saveDataIg = require('../controllers/saveDataIg');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
-const connection = require("../models/db");
 
 let requestCount = 0;
 const maxRequestsPerMinute = 240;
@@ -69,7 +67,7 @@ router.get('/getData', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Instagram" AND kategori = ?', [kategori]);
 
-        await processQueue(rows, async (row) => {
+        for (const row of rows) {
             try {
                 console.info('Fetching data for user:' + row.username);
         
@@ -85,7 +83,7 @@ router.get('/getData', async (req, res) => {
             } catch (error) {
                 console.error(`Error fetching data for user ${row.username}:`, error.message);
             }
-        });        
+        }
 
         res.send('Data getData for all users have been fetched and saved.');
     } catch (error) {
