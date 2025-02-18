@@ -8,8 +8,7 @@ const saveUser = async (user) => {
                     ON DUPLICATE KEY UPDATE
                     client_account = VALUES(client_account),
                     kategori = VALUES(kategori),
-                    platform = VALUES(platform),
-                    user_id = VALUES(user_id),
+                    platform = VALUES(platform), 
                     followers = VALUES(followers),
                     following = VALUES(following),
                     mediaCount = VALUES(mediaCount),
