@@ -30,29 +30,26 @@ const apiRequestWithRetry = async (config, maxRetries = 5) => {
 
 // Fungsi untuk mendapatkan data User dari API
 const getDataUser = async (username = null, client_account = null, kategori = null, platform = null) => {
-
     try {
-        const encodedParams = new URLSearchParams();
-        encodedParams.set('username_or_url', `${username}`);
-        encodedParams.set('data', 'basic');
-
         const getUser = {
             method: 'GET',
             url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
             params: {
-                username_or_id_or_url: `${username}`,
+                username_or_id_or_url: username, // ✅ Gunakan langsung tanpa template literal jika sudah string
+                include_about: 'true',
+                url_embed_safe: 'true'
             },
             headers: {
-                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
-                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST,
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            data: encodedParams,
+                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY, 
+                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+            }
         };
 
-        // console.log('Request details:', getUser);
+        console.log('Request details:', getUser); // Debugging
 
-        const response = await apiRequestWithRetry(getUser);
+        const response = await axios.request(getUser);
+
+        console.info('Response:', response.data);
 
         if (!response.data) {
             throw new Error('Response does not contain user data');
@@ -74,7 +71,11 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
 
         await save.saveUser(user);
     } catch (error) {
-        console.error(`Error fetching data for user ${username}:`, error.message);
+        if (error.response) {
+            console.error('API Error:', error.response.status, error.response.data);
+        } else {
+            console.error('Request failed:', error.message);
+        }
     }
 };
 

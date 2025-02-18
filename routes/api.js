@@ -584,30 +584,48 @@ router.get('/getAllData', async (req, res) => {
 
 router.get('/getAllPost', async (req, res) => {
     try {
+        const allowedOrderByFields = ["created_at", "likes", "comments", "playCount", "shareCount", "collectCount", "downloadCount", "performa_konten"];
+        const orderBy = allowedOrderByFields.includes(req.query['orderBy']) ? req.query['orderBy'] : "created_at";
+        const direction = req.query['direction'] === "asc" ? "ASC" : "DESC";
+
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM posts
             WHERE kategori = ?
                 AND platform = ?
-                AND DATE (created_at) BETWEEN DATE (?)
-                AND DATE (?)
+                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
         `;
 
-        let orderQuery = '';
-
-        if (req.query['orderBy'] && req.query['direction']) {
-            orderQuery += `ORDER BY ${req.query['orderBy']} ${req.query['direction']}`;
-        }
-
         const dataQuery = `
-            SELECT *
+            SELECT *, 
+                (CASE 
+                    WHEN performa_konten <= ? THEN 'red'
+                    WHEN performa_konten >= ? THEN 'green'
+                    ELSE 'yellow'
+                END) AS performa_color
             FROM posts
             WHERE kategori = ?
                 AND platform = ?
-                AND DATE (created_at) BETWEEN DATE (?) AND DATE (?) 
-            ${orderQuery} 
+                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY ${orderBy} ${direction}
             LIMIT ?
             OFFSET ?
+        `;
+
+        const percentileQuery = `
+            WITH ranked AS (
+                SELECT 
+                    performa_konten,
+                    PERCENT_RANK() OVER (ORDER BY performa_konten) AS percentile
+                FROM posts
+                WHERE kategori = ?
+                    AND platform = ?
+                    AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+            )
+            SELECT 
+                MAX(CASE WHEN percentile <= 0.1 THEN performa_konten END) AS percentile_10,
+                MAX(CASE WHEN percentile >= 0.9 THEN performa_konten END) AS percentile_90
+            FROM ranked;
         `;
 
         const perPage = parseInt(req.query['perPage']) || 10;
@@ -621,13 +639,32 @@ router.get('/getAllPost', async (req, res) => {
             req.query['end_date']
         ];
 
+        console.info("Received Request: ", {
+            page: page,
+            perPage: perPage,
+            offset: offset,
+            kategori: req.query['kategori'],
+            platform: req.query['platform'],
+            start_date: req.query['start_date'],
+            end_date: req.query['end_date']
+        });
+
+        // Hitung total data
         const [countRows] = await db.query(countQuery, queryParams);
         const total = countRows[0].total;
         const totalPages = Math.ceil(total / perPage);
+        const hasMore = offset + perPage < total;
 
-        console.info(dataQuery);
-        console.info(queryParams);
-        const [dataRows] = await db.query(dataQuery, [...queryParams, perPage, offset]);
+        // Hitung persentil 10% dan 90%
+        const [percentileRows] = await db.query(percentileQuery, queryParams);
+        const percentile10 = percentileRows[0].percentile_10 || 0;
+        const percentile90 = percentileRows[0].percentile_90 || 0;
+
+        console.info("Executing Query:", dataQuery);
+        console.info("Query Params:", [...queryParams, perPage, offset]);
+
+        // Fetch data + Tambahkan indikator warna performa
+        const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, ...queryParams, perPage, offset]);
 
         res.json({
             code: 200,
@@ -635,11 +672,15 @@ router.get('/getAllPost', async (req, res) => {
             data: dataRows,
             totalRows: total,
             totalPages: totalPages,
+            hasMore: hasMore,
+            percentile10: percentile10,
+            percentile90: percentile90,
             errors: null
         });
+
     } catch (error) {
         console.error('Error fetching posts:', error);
-        res.status(500).send('Failed to fetch posts');
+        res.status(500).json({ code: 500, status: 'ERROR', message: 'Failed to fetch posts' });
     }
 });
 
@@ -673,6 +714,65 @@ router.get('/getAllUsers', async (req, res) => {
         res.status(500).send('Failed to fetch dates');
     }
 });
+
+router.get('/getAllUsername', async (req, res) => {
+    try {
+        const query = `
+            SELECT DISTINCT username
+            FROM users
+            WHERE kategori = ?
+                AND platform = ?
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching dates:', error);
+        res.status(500).send('Failed to fetch dates');
+    }
+}
+);
+
+router.get('/getPictureData', async (req, res) => {
+    try{
+        const query = `
+        SElECT *
+        from users
+        WHERE
+        kategori = ?
+        AND platform = ?
+        AND username = ?
+        `;
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['username']
+        ];
+        const [rows] = await db.query(query, queryParams);
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    }
+    catch (error) {
+        console.error('Error fetching dates:', error);
+        res.status(500).send('Failed to fetch dates');
+    }
+}
+);
 
 
 module.exports = router;
