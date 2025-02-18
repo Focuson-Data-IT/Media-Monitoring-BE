@@ -41,7 +41,7 @@ app.get('/proxy-image', async (req, res) => {
         res.set('Content-Type', 'image/jpeg');
         res.send(response.data);
     } catch (error) {
-        res.status(500).send('Error fetching image');
+        res.status(500).send(error);
     }
 });
 
