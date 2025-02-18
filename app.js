@@ -37,7 +37,7 @@ app.use('/tiktok', logMiddleware, tiktok);
 app.get('/proxy-image', async (req, res) => {
     try {
         const imageUrl = req.query.url;
-        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const response = await axios.get(imageUrl, {responseType: 'arraybuffer', timeout: 30000});
         res.set('Content-Type', 'image/jpeg');
         res.send(response.data);
     } catch (error) {
