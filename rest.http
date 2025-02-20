@@ -38,12 +38,14 @@ Content-Type: application/json
     "username": "ismailisme"
 }
 
+
 ### post addDataUser per hari
 POST http://localhost:7770/fair/addDataUser
 
-
 ### post processData
 POST http://localhost:7770/fair/processData
+
+
 
 ### GET processData
 GET http://localhost:7770/api/data/getData
@@ -68,7 +70,7 @@ GET http://localhost:7770/api/getFairScores?kategori=disparbud&start_date=2025-0
 
 
 ### GET processData
-GET http://localhost:7770/api/getAllPost?page=1&perPage=5&kategori=disparbud&start_date=2025-01-01&end_date=2025-02-09&platform=instagram
+GET http://localhost:7770/api/getAllPost?page=1&perPage=5&kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET rank
 GET http://localhost:7770/api/getFairRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
@@ -83,21 +85,21 @@ Content-Type: application/json
 
 {
   "startDate": "2025-01-01",
-  "endDate": "2025-02-13"
+  "endDate": "2025-02-20"
 }
 
 
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=disparbud
+GET http://localhost:7770/instagram/getData?kategori=opdbekasikab
 
 ### Get Tiktok User Data
-GET http://localhost:7770/tiktok/getData
+GET http://localhost:7770/tiktok/getData?kategori=disparbud
 
 ### Get Instagram User Post
 GET http://localhost:7770/instagram/getPost?kategori=disparbud
 
 ### Get Instagram User Post
-GET http://localhost:7770/tiktok/getPost
+GET http://localhost:7770/tiktok/getPost?kategori=disparbud
 
 ### Get Instagram User Post
 GET http://localhost:7770/instagram/getComment
@@ -119,3 +121,9 @@ GET http://localhost:7770/api/getAllUsername?kategori=disparbud&platform=Instagr
 
 ### Get Picture Data
 GET http://localhost:7770/api/getPictureData?kategori=disparbud&platform=Instagram&username=disparbudbandungbarat
+
+### Get Fair Data for Insights
+GET http://localhost:7770/insights/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=disbudparkotacirebon
+
+### Get Ai Summary
+GET http://localhost:7770/insights/getFairSummary?username=smilingbogorcity&month=2025-01&kategori=disparbud&platform=Instagram

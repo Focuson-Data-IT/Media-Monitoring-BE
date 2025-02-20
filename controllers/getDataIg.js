@@ -49,7 +49,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
 
         const response = await axios.request(getUser);
 
-        console.info('Response:', response.data);
+        // console.info('Response:', response.data);
 
         if (!response.data) {
             throw new Error('Response does not contain user data');
@@ -97,6 +97,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1.2/posts',
                 params: {
                     username_or_id_or_url: username,
+                    url_embed_safe: 'true',
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
@@ -139,6 +140,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                         followers: followers || 0, // Ambil dari database
                         following: following || 0,  // Ambil dari database
                         playCount: item.play_count || 0,
+                        shareCount: item.share_count || 0,
                     };
 
                     await save.savePost(post);
@@ -169,6 +171,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                     followers: followers || 0, // Ambil dari database
                     following: following || 0,  // Ambil dari database
                     playCount: item.play_count || 0,
+                    shareCount: item.share_count || 0,
                 };
 
                 await save.savePost(post);
