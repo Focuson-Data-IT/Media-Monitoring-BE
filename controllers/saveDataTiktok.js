@@ -9,22 +9,23 @@ const saveUser = async (user) => {
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
             platform = VALUES(platform),
-            username = VALUES(username),
-            user_id = VALUES(user_id),
             followers = VALUES(followers),
             following = VALUES(following),
             mediaCount = VALUES(mediaCount),
             profile_pic_url = VALUES(profile_pic_url)
     `;
-    try {
-        const [result] = await connection.query(sql, [
-            user.client_account, user.kategori, user.platform, user.username,
-            user.user_id, user.followers, user.following, user.mediaCount, user.profile_pic_url
-        ]);
-        console.log(`✅ Saved user ${user.username}, ${user.kategori}, for platform ${user.platform} in ${user.client_account}`);
-    } catch (err) {
-        console.error(`❌ Error saving user ${user.username} to database:`, err.message);
-    }
+    connection.query(sql, [
+        user.client_account, user.kategori, user.platform,
+        user.username, user.user_id, user.followers, user.following, user.mediaCount, user.profile_pic_url
+    ],
+        (err, result) => {
+            if (err) {
+                console.error(`Error saving user ${user.username} to database:`, err.message);
+            } else {
+                console.log(`Saved user ${user.username}, ${user.kategori}, untuk platform ${user.platform} to database`);
+            }
+        }
+    );
 };
 
 // Fungsi untuk menyimpan data post ke database

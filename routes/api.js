@@ -8,11 +8,15 @@ router.post('/prosesPerformaKonten', async (req, res) => {
         console.info("🔄 Memulai proses update performa konten...");
         console.info("📅 Rentang tanggal:", req.body.startDate, "sampai", req.body.endDate);
 
-        // Ambil jumlah total baris yang akan diperbarui
+        const { startDate, endDate } = req.body;
+
+        // 1️⃣ Hitung total data yang akan diperbarui
         const countQuery = `
-            SELECT COUNT(*) AS total FROM posts WHERE DATE(created_at) BETWEEN ? AND ?
+            SELECT COUNT(*) AS total
+            FROM posts
+            WHERE DATE(created_at) BETWEEN ? AND ?
         `;
-        const [countResult] = await db.query(countQuery, [req.body.startDate, req.body.endDate]);
+        const [countResult] = await db.query(countQuery, [startDate, endDate]);
         const totalRows = countResult[0].total;
 
         if (totalRows === 0) {
@@ -26,50 +30,63 @@ router.post('/prosesPerformaKonten', async (req, res) => {
             });
         }
 
-        // Inisialisasi Progress Bar
-        const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-        progressBar.start(totalRows, 0);
+        // 2️⃣ Ambil semua post_id dan informasi gruping
+        const selectQuery = `
+            SELECT 
+                post_id,
+                platform,
+                kategori,
+                media_name,
+                likes,
+                comments,
+                playCount,
+                shareCount,
+                collectCount
+            FROM posts
+            WHERE DATE(created_at) BETWEEN ? AND ?
+        `;
+        const [posts] = await db.query(selectQuery, [startDate, endDate]);
 
-        // Update per baris menggunakan iterasi manual
+        // 3️⃣ Fungsi hitung performa berdasarkan grup
+        const hitungPerforma = (post) => {
+            const { platform, media_name, likes = 0, comments = 0, playCount = 0, shareCount = 0, collectCount = 0 } = post;
+
+            if (platform === 'Instagram') {
+                if (['post', 'album'].includes(media_name)) {
+                    return ((likes / 24) * 2) + ((comments / 24) * 1);
+                } else if (media_name === 'reel') {
+                    return ((playCount / 24) * 2.5) +
+                           ((likes / 24) * 2) +
+                           ((comments / 24) * 1.5) +
+                           ((shareCount / 24) * 1);
+                }
+            } else if (platform === 'TikTok') {
+                return ((playCount / 24) * 4) +
+                       ((likes / 24) * 2.5) +
+                       ((comments / 24) * 1.5) +
+                       ((shareCount / 24) * 1.5) +
+                       ((collectCount / 24) * 0.5);
+            }
+            return 0; // Default jika tidak sesuai kondisi
+        };
+
+        // 4️⃣ Update setiap post dengan performa yang dihitung
         const updateQuery = `
             UPDATE posts
-            SET performa_konten = (
-                CASE
-                    WHEN platform = 'Instagram' THEN
-                        CASE
-                            WHEN media_name IN ('post', 'album') THEN
-                                COALESCE((IFNULL(likes, 0) / 24 * 2) +
-                                         (IFNULL(comments, 0) / 24 * 1), 0)
-                            WHEN media_name = 'reel' THEN
-                                COALESCE((IFNULL(playCount, 0) / 24 * 2.5) +
-                                         (IFNULL(likes, 0) / 24 * 2) +
-                                         (IFNULL(comments, 0) / 24 * 1.5) +
-                                         (IFNULL(shareCount, 0) / 24 * 1), 0)
-                        END
-                    WHEN platform = 'TikTok' THEN
-                        COALESCE((IFNULL(playCount, 0) / 24 * 4) +
-                                 (IFNULL(likes, 0) / 24 * 2.5) +
-                                 (IFNULL(comments, 0) / 24 * 1.5) +
-                                 (IFNULL(shareCount, 0) / 24 * 1.5) +
-                                 (IFNULL(collectCount, 0) / 24 * 0.5), 0)
-                    ELSE 0
-                END
-            )
+            SET performa_konten = ?
             WHERE post_id = ?
         `;
 
-        // Ambil semua ID postingan yang perlu diperbarui
-        const selectQuery = `SELECT post_id FROM posts WHERE DATE(created_at) BETWEEN ? AND ?`;
-        const [rows] = await db.query(selectQuery, [req.body.startDate, req.body.endDate]);
+        const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+        progressBar.start(totalRows, 0);
 
-        for (const row of rows) {
-            console.info(row.post_id)
-            await db.query(updateQuery, [row.post_id]);
-            progressBar.increment(); // Update progress bar setiap 1 record selesai
+        for (const post of posts) {
+            const performa = hitungPerforma(post);
+            await db.query(updateQuery, [performa, post.post_id]);
+            progressBar.increment();
         }
 
-        progressBar.stop(); // Hentikan progress bar setelah semua selesai
-
+        progressBar.stop();
         console.info("✅ Semua data berhasil diperbarui.");
 
         res.json({
@@ -79,6 +96,7 @@ router.post('/prosesPerformaKonten', async (req, res) => {
             data: { updatedRows: totalRows },
             errors: null
         });
+
     } catch (error) {
         console.error("❌ Terjadi kesalahan:", error);
         res.status(500).json({
@@ -584,97 +602,160 @@ router.get('/getAllData', async (req, res) => {
 
 router.get('/getAllPost', async (req, res) => {
     try {
-        const allowedOrderByFields = ["created_at", "likes", "comments", "playCount", "shareCount", "collectCount", "downloadCount", "performa_konten"];
-        const orderBy = allowedOrderByFields.includes(req.query['orderBy']) ? req.query['orderBy'] : "created_at";
+        const allowedOrderByFields = [
+            "created_at", "likes", "comments", "playCount", 
+            "shareCount", "collectCount", "downloadCount", "performa_konten"
+        ];
+        const orderBy = allowedOrderByFields.includes(req.query['orderBy']) ? req.query['orderBy'] : "performa_konten";
         const direction = req.query['direction'] === "asc" ? "ASC" : "DESC";
 
+        const perPage = parseInt(req.query['perPage']) || 5;
+        const page = parseInt(req.query['page']) || 1;
+        const offset = (page - 1) * perPage;
+
+        const { kategori, platform, start_date, end_date } = req.query;
+
+        const queryParams = [kategori, platform, start_date, end_date];
+
+        console.info("Received Request: ", { page, perPage, offset, kategori, platform, start_date, end_date });
+
+        // 1️⃣ Hitung total data
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM posts
             WHERE kategori = ?
-                AND platform = ?
-                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+              AND platform = ?
+              AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
         `;
-
-        const dataQuery = `
-            SELECT *, 
-                (CASE 
-                    WHEN performa_konten <= ? THEN 'red'
-                    WHEN performa_konten >= ? THEN 'green'
-                    ELSE 'yellow'
-                END) AS performa_color
-            FROM posts
-            WHERE kategori = ?
-                AND platform = ?
-                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY ${orderBy} ${direction}
-            LIMIT ?
-            OFFSET ?
-        `;
-
-        const percentileQuery = `
-            WITH ranked AS (
-                SELECT 
-                    performa_konten,
-                    PERCENT_RANK() OVER (ORDER BY performa_konten) AS percentile
-                FROM posts
-                WHERE kategori = ?
-                    AND platform = ?
-                    AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-            )
-            SELECT 
-                MAX(CASE WHEN percentile <= 0.1 THEN performa_konten END) AS percentile_10,
-                MAX(CASE WHEN percentile >= 0.9 THEN performa_konten END) AS percentile_90
-            FROM ranked;
-        `;
-
-        const perPage = parseInt(req.query['perPage']) || 10;
-        const page = parseInt(req.query['page']) || 1;
-        const offset = (page - 1) * perPage;
-
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date']
-        ];
-
-        console.info("Received Request: ", {
-            page: page,
-            perPage: perPage,
-            offset: offset,
-            kategori: req.query['kategori'],
-            platform: req.query['platform'],
-            start_date: req.query['start_date'],
-            end_date: req.query['end_date']
-        });
-
-        // Hitung total data
         const [countRows] = await db.query(countQuery, queryParams);
         const total = countRows[0].total;
         const totalPages = Math.ceil(total / perPage);
         const hasMore = offset + perPage < total;
 
-        // Hitung persentil 10% dan 90%
+        if (total === 0) {
+            return res.json({
+                code: 200,
+                status: 'OK',
+                percentile_10: 0,
+                percentile_90: 0,
+                totalRows: 0,
+                totalPages: 0,
+                hasMore: false,
+                data: [],
+                errors: null
+            });
+        }
+
+        // 2️⃣ Hitung persentil 10% & 90% dengan grup yang diminta
+        const percentileQuery = `
+            WITH ordered AS (
+                SELECT 
+                    performa_konten,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY 
+                            platform,
+                            kategori,
+                            CASE 
+                                WHEN platform = 'Instagram' THEN 
+                                    CASE 
+                                        WHEN media_name IN ('post', 'album') THEN 'post_album'
+                                        WHEN media_name = 'reel' THEN 'reel'
+                                        ELSE 'other'
+                                    END
+                                ELSE 'TikTok'
+                            END
+                        ORDER BY performa_konten
+                    ) AS row_num,
+                    COUNT(*) OVER (
+                        PARTITION BY 
+                            platform,
+                            kategori,
+                            CASE 
+                                WHEN platform = 'Instagram' THEN 
+                                    CASE 
+                                        WHEN media_name IN ('post', 'album') THEN 'post_album'
+                                        WHEN media_name = 'reel' THEN 'reel'
+                                        ELSE 'other'
+                                    END
+                                ELSE 'TikTok'
+                            END
+                    ) AS total_rows
+                FROM posts
+                WHERE kategori = ?
+                  AND platform = ?
+                  AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+            ),
+            positions AS (
+                SELECT
+                    ((0.1 * (total_rows + 1))) AS pos_10,
+                    ((0.9 * (total_rows + 1))) AS pos_90
+                FROM ordered
+                LIMIT 1
+            ),
+            percentile_10_calc AS (
+                SELECT performa_konten AS percentile_10
+                FROM ordered, positions
+                WHERE row_num = FLOOR(pos_10)
+                ORDER BY row_num
+                LIMIT 1
+            ),
+            percentile_90_calc AS (
+                SELECT performa_konten AS percentile_90
+                FROM ordered, positions
+                WHERE row_num = FLOOR(pos_90)
+                ORDER BY row_num
+                LIMIT 1
+            )
+            SELECT 
+                p10.percentile_10,
+                p90.percentile_90
+            FROM percentile_10_calc p10
+            CROSS JOIN percentile_90_calc p90;
+        `;
+
         const [percentileRows] = await db.query(percentileQuery, queryParams);
-        const percentile10 = percentileRows[0].percentile_10 || 0;
-        const percentile90 = percentileRows[0].percentile_90 || 0;
+        const percentile10 = percentileRows[0]?.percentile_10 || 0;
+        const percentile90 = percentileRows[0]?.percentile_90 || 0;
 
-        console.info("Executing Query:", dataQuery);
-        console.info("Query Params:", [...queryParams, perPage, offset]);
+        console.info(`Calculated Percentiles (Grouped): 10% = ${percentile10}, 90% = ${percentile90}`);
 
-        // Fetch data + Tambahkan indikator warna performa
+        // 3️⃣ Hitung warna performa untuk semua data, kemudian paginasi
+        const dataQuery = `
+            WITH all_data AS (
+                SELECT 
+                    *,
+                    (CASE 
+                        WHEN performa_konten <= ? THEN 'red'
+                        WHEN performa_konten >= ? THEN 'green'
+                        ELSE 'yellow'
+                    END) AS performa_color
+                FROM posts
+                WHERE kategori = ?
+                  AND platform = ?
+                  AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+            )
+            SELECT *
+            FROM all_data
+            ORDER BY ${orderBy} ${direction}
+            LIMIT ?
+            OFFSET ?;
+        `;
+
+        console.info("Executing Data Query:", dataQuery);
+        console.info("Query Params:", [percentile10, percentile90, ...queryParams, perPage, offset]);
+
         const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, ...queryParams, perPage, offset]);
 
+        // 4️⃣ Kirim respons ke frontend
         res.json({
             code: 200,
             status: 'OK',
-            data: dataRows,
+            percentile_10: percentile10,
+            percentile_90: percentile90,
             totalRows: total,
-            totalPages: totalPages,
-            hasMore: hasMore,
-            percentile10: percentile10,
-            percentile90: percentile90,
+            totalPages,
+            hasMore,
+            data: dataRows,
             errors: null
         });
 
@@ -745,7 +826,7 @@ router.get('/getAllUsername', async (req, res) => {
 );
 
 router.get('/getPictureData', async (req, res) => {
-    try{
+    try {
         const query = `
         SElECT *
         from users
