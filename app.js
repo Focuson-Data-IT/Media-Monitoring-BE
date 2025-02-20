@@ -12,6 +12,7 @@ const accounts = require('./routes/accounts');
 const data = require('./routes/data');
 const instagram = require('./routes/instagram');
 const tiktok = require('./routes/tiktok');
+const insights = require('./routes/insights');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(cors())
@@ -33,6 +34,7 @@ app.use('/accounts', logMiddleware, accounts);
 app.use('/data', logMiddleware, data);
 app.use('/instagram', logMiddleware, instagram);
 app.use('/tiktok', logMiddleware, tiktok);
+app.use('/insights', logMiddleware, insights);
 
 app.get('/proxy-image', async (req, res) => {
     try {

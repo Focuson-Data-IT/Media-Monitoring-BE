@@ -62,9 +62,10 @@ const processQueue = async (items, processFunction) => {
 
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
+    const { kategori } = req.query;
     // Fetch data for TikTok
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "TikTok"');
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "TikTok"', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
@@ -93,9 +94,10 @@ router.get('/getData', async (req, res) => {
 
 // Eksekusi getPost berdasarkan semua username di listAkun
 router.get('/getPost', async (req, res) => {
+    const { kategori } = req.query;
     // Fetch data for TikTok
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok"');
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok"', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);

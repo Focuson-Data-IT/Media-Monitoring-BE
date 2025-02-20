@@ -34,9 +34,9 @@ const savePost = async (post) => {
         INSERT INTO posts (
             client_account, kategori, platform, user_id, unique_id_post, username, created_at, 
             thumbnail_url, caption, post_code, comments, likes, media_name, product_type, 
-            tagged_users, is_pinned, followers, following, playCount
+            tagged_users, is_pinned, followers, following, playCount, shareCount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
@@ -55,12 +55,12 @@ const savePost = async (post) => {
             is_pinned = VALUES(is_pinned),
             followers = VALUES(followers),
             following = VALUES(following),
-            playCount = VALUES(playCount);
-
+            playCount = VALUES(playCount),
+            shareCount = VALUES(shareCount)
     `;
     connection.query(sql, [
         post.client_account, post.kategori, post.platform,
-        post.user_id, post.unique_id_post, post.username, post.created_at, post.thumbnail_url, post.caption, post.post_code, post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, post.followers, post.following, post.playCount
+        post.user_id, post.unique_id_post, post.username, post.created_at, post.thumbnail_url, post.caption, post.post_code, post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, post.followers, post.following, post.playCount, post.shareCount
     ],
         (err, result) => {
             if (err) {
