@@ -1043,44 +1043,44 @@ router.get('/getDailySaves', async (req, res) => {
     }
 });
 
-router.get('/getDailyDownloads', async (req, res) => {
-    try {
-        const query = `
-        SELECT
-            p.username,
-            p.client_account,
-            SUM(p.downloadCount) AS value, -- Total likes per hari
-            p.platform,
-            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
-        FROM posts p
-        WHERE
-            p.kategori = ?
-            AND p.platform = ?
-            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
-        ORDER BY date ASC;
-        `;
+// router.get('/getDailyDownloads', async (req, res) => {
+//     try {
+//         const query = `
+//         SELECT
+//             p.username,
+//             p.client_account,
+//             SUM(p.downloadCount) AS value, -- Total likes per hari
+//             p.platform,
+//             DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+//         FROM posts p
+//         WHERE
+//             p.kategori = ?
+//             AND p.platform = ?
+//             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+//         GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+//         ORDER BY date ASC;
+//         `;
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date'],
-        ];
+//         const queryParams = [
+//             req.query['kategori'],
+//             req.query['platform'],
+//             req.query['start_date'],
+//             req.query['end_date'],
+//         ];
 
-        const [rows] = await db.query(query, queryParams);
+//         const [rows] = await db.query(query, queryParams);
 
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null,
-        });
-    } catch (error) {
-        console.error('Error fetching daily likes:', error);
-        res.status(500).send('Failed to fetch daily likes');
-    }
-});
+//         res.json({
+//             code: 200,
+//             status: 'OK',
+//             data: rows,
+//             errors: null,
+//         });
+//     } catch (error) {
+//         console.error('Error fetching daily likes:', error);
+//         res.status(500).send('Failed to fetch daily likes');
+//     }
+// });
 
 router.get('/getDailyShares', async (req, res) => {
     try {
