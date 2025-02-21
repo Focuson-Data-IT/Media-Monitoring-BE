@@ -76,7 +76,7 @@ Content-Type: application/json
 }
 
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=opdbekasikab
+GET http://localhost:7770/instagram/getData?kategori=kevin
 
 ### Get Tiktok User Data
 GET http://localhost:7770/tiktok/getData?kategori=disparbud
