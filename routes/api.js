@@ -56,16 +56,16 @@ router.post('/prosesPerformaKonten', async (req, res) => {
                     return ((likes / 24) * 2) + ((comments / 24) * 1);
                 } else if (media_name === 'reel') {
                     return ((playCount / 24) * 2.5) +
-                           ((likes / 24) * 2) +
-                           ((comments / 24) * 1.5) +
-                           ((shareCount / 24) * 1);
+                        ((likes / 24) * 2) +
+                        ((comments / 24) * 1.5) +
+                        ((shareCount / 24) * 1);
                 }
             } else if (platform === 'TikTok') {
                 return ((playCount / 24) * 4) +
-                       ((likes / 24) * 2.5) +
-                       ((comments / 24) * 1.5) +
-                       ((shareCount / 24) * 1.5) +
-                       ((collectCount / 24) * 0.5);
+                    ((likes / 24) * 2.5) +
+                    ((comments / 24) * 1.5) +
+                    ((shareCount / 24) * 1.5) +
+                    ((collectCount / 24) * 0.5);
             }
             return 0; // Default jika tidak sesuai kondisi
         };
@@ -144,45 +144,6 @@ router.post('/auth/login', async (req, res) => {
     }
 });
 
-router.get('/getDailyFollowers', async (req, res) => {
-    try {
-        const query = `
-            SELECT
-                username,
-                client_account,
-                followers AS value,
-                platform,
-                CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
-            WHERE
-                kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY
-                date ASC
-        `;
-
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date']
-        ];
-
-        const [rows] = await db.query(query, queryParams);
-
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
-    } catch (error) {
-        console.error('Error fetching daily followers:', error);
-        res.status(500).send('Failed to fetch daily followers');
-    }
-});
-
 router.get('/getFollowers', async (req, res) => {
     try {
         const query = `
@@ -232,45 +193,45 @@ router.get('/getFollowers', async (req, res) => {
     }
 });
 
-router.get('/getDailyActivities', async (req, res) => {
-    try {
-        console.info(req.query);
-        const query = `
-            SELECT
-                username,
-                client_account,
-                nilai_aktifitas AS value,
-                platform,
-                CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
-            WHERE
-                kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY
-                date ASC
-        `;
+// router.get('/getDailyActivities', async (req, res) => {
+//     try {
+//         console.info(req.query);
+//         const query = `
+//             SELECT
+//                 username,
+//                 client_account,
+//                 nilai_aktifitas AS value,
+//                 platform,
+//                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
+//             FROM dailyFairScores
+//             WHERE
+//                 kategori = ?
+//                 AND platform = ?
+//                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+//             ORDER BY
+//                 date ASC
+//         `;
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date']
-        ];
+//         const queryParams = [
+//             req.query['kategori'],
+//             req.query['platform'],
+//             req.query['start_date'],
+//             req.query['end_date']
+//         ];
 
-        const [rows] = await db.query(query, queryParams);
+//         const [rows] = await db.query(query, queryParams);
 
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
-    } catch (error) {
-        console.error('Error fetching daily followers:', error);
-        res.status(500).send('Failed to fetch daily followers');
-    }
-});
+//         res.json({
+//             code: 200,
+//             status: 'OK',
+//             data: rows,
+//             errors: null
+//         });
+//     } catch (error) {
+//         console.error('Error fetching daily followers:', error);
+//         res.status(500).send('Failed to fetch daily followers');
+//     }
+// });
 
 router.get('/getActivities', async (req, res) => {
     try {
@@ -317,44 +278,44 @@ router.get('/getActivities', async (req, res) => {
     }
 });
 
-router.get('/getDailyInteractions', async (req, res) => {
-    try {
-        const query = `
-            SELECT
-                username,
-                client_account,
-                interactions AS value,
-                platform,
-                CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
-            WHERE
-                kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY
-                date ASC
-        `;
+// router.get('/getDailyInteractions', async (req, res) => {
+//     try {
+//         const query = `
+//             SELECT
+//                 username,
+//                 client_account,
+//                 interactions AS value,
+//                 platform,
+//                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
+//             FROM dailyFairScores
+//             WHERE
+//                 kategori = ?
+//                 AND platform = ?
+//                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+//             ORDER BY
+//                 date ASC
+//         `;
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date']
-        ];
+//         const queryParams = [
+//             req.query['kategori'],
+//             req.query['platform'],
+//             req.query['start_date'],
+//             req.query['end_date']
+//         ];
 
-        const [rows] = await db.query(query, queryParams);
+//         const [rows] = await db.query(query, queryParams);
 
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
-    } catch (error) {
-        console.error('Error fetching daily followers:', error);
-        res.status(500).send('Failed to fetch daily followers');
-    }
-});
+//         res.json({
+//             code: 200,
+//             status: 'OK',
+//             data: rows,
+//             errors: null
+//         });
+//     } catch (error) {
+//         console.error('Error fetching daily followers:', error);
+//         res.status(500).send('Failed to fetch daily followers');
+//     }
+// });
 
 router.get('/getInteractions', async (req, res) => {
     try {
@@ -401,45 +362,44 @@ router.get('/getInteractions', async (req, res) => {
     }
 });
 
+// router.get('/getDailyResponsiveness', async (req, res) => {
+//     try {
+//         const query = `
+//             SELECT
+//                 username,
+//                 client_account,
+//                 responsiveness AS value,
+//                 platform,
+//                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
+//             FROM dailyFairScores
+//             WHERE
+//                 kategori = ?
+//                 AND platform = ?
+//                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+//             ORDER BY
+//                 date ASC
+//         `;
 
-router.get('/getDailyResponsiveness', async (req, res) => {
-    try {
-        const query = `
-            SELECT
-                username,
-                client_account,
-                responsiveness AS value,
-                platform,
-                CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
-            WHERE
-                kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY
-                date ASC
-        `;
+//         const queryParams = [
+//             req.query['kategori'],
+//             req.query['platform'],
+//             req.query['start_date'],
+//             req.query['end_date']
+//         ];
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date']
-        ];
+//         const [rows] = await db.query(query, queryParams);
 
-        const [rows] = await db.query(query, queryParams);
-
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
-    } catch (error) {
-        console.error('Error fetching daily followers:', error);
-        res.status(500).send('Failed to fetch daily followers');
-    }
-});
+//         res.json({
+//             code: 200,
+//             status: 'OK',
+//             data: rows,
+//             errors: null
+//         });
+//     } catch (error) {
+//         console.error('Error fetching daily followers:', error);
+//         res.status(500).send('Failed to fetch daily followers');
+//     }
+// });
 
 router.get('/getResponsiveness', async (req, res) => {
     try {
@@ -526,40 +486,70 @@ router.get('/getFairScores', async (req, res) => {
 
 router.get('/getFairRanking', async (req, res) => {
     try {
-        const query = `
-            SELECT 
-                client_account,
-                username,
-                fair_score,
-                platform
-            FROM dailyFairScores
-            WHERE kategori = ?
-                AND platform = ?
-                AND date = (
-                    SELECT MAX(date) 
-                    FROM dailyFairScores 
-                    WHERE kategori = ? 
-                        AND platform = ? 
-                        AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                )
-            ORDER BY fair_score DESC;
-        `;
+        const { kategori, platform, start_date, end_date } = req.query;
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['start_date'],
-            req.query['end_date']
-        ];
+        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
+        const [dateRows] = await db.query(`
+        SELECT 
+          MAX(date) AS max_date,
+          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ?
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+      `, [kategori, platform, start_date, end_date]);
 
-        const [rows] = await db.query(query, queryParams);
+        const { max_date, prev_date } = dateRows[0];
+
+        if (!max_date) {
+            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+        }
+
+        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
+        const [latestRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          fair_score,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY fair_score DESC;
+      `, [kategori, platform, max_date]);
+
+        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
+        const [prevRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          fair_score,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY fair_score DESC;
+      `, [kategori, platform, prev_date]);
+
+        // Helper function untuk mendapatkan peringkat berdasarkan username
+        const getRank = (username, rows) => {
+            const rank = rows.findIndex(item => item.username === username);
+            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+        };
+
+        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        const mergedData = latestRows.map((item, index) => ({
+            ...item,
+            current_rank: index + 1,
+            previous_rank: getRank(item.username, prevRows)
+        }));
 
         res.json({
             code: 200,
             status: 'OK',
-            data: rows,
+            data: mergedData,
             errors: null
         });
     } catch (error) {
@@ -603,7 +593,7 @@ router.get('/getAllData', async (req, res) => {
 router.get('/getAllPost', async (req, res) => {
     try {
         const allowedOrderByFields = [
-            "created_at", "likes", "comments", "playCount", 
+            "created_at", "likes", "comments", "playCount",
             "shareCount", "collectCount", "downloadCount", "performa_konten"
         ];
         const orderBy = allowedOrderByFields.includes(req.query['orderBy']) ? req.query['orderBy'] : "performa_konten";
@@ -855,5 +845,280 @@ router.get('/getPictureData', async (req, res) => {
 }
 );
 
+// Daily Data Api || Growth Metrics
+
+router.get('/getDailyFollowers', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            username,
+            client_account,
+            followers AS value,
+            platform,
+            CONVERT_TZ(date, '+00:00', '+07:00') AS date
+        FROM dailyFairScores
+        WHERE
+            kategori = ?
+            AND platform = ?
+            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        ORDER BY
+            date ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date']
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
+    }
+});
+
+router.get('/getDailyLikes', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            p.username,
+            p.client_account,
+            SUM(p.likes) AS value, -- Total likes per hari
+            p.platform,
+            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+        FROM posts p
+        WHERE
+            p.kategori = ?
+            AND p.platform = ?
+            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        ORDER BY date ASC;
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null,
+        });
+    } catch (error) {
+        console.error('Error fetching daily likes:', error);
+        res.status(500).send('Failed to fetch daily likes');
+    }
+});
+
+
+router.get('/getDailyViews', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            p.username,
+            p.client_account,
+            SUM(p.playCount) AS value, -- Total likes per hari
+            p.platform,
+            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+        FROM posts p
+        WHERE
+            p.kategori = ?
+            AND p.platform = ?
+            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        ORDER BY date ASC;
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null,
+        });
+    } catch (error) {
+        console.error('Error fetching daily likes:', error);
+        res.status(500).send('Failed to fetch daily likes');
+    }
+});
+
+router.get('/getDailyComments', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            p.username,
+            p.client_account,
+            SUM(p.comments) AS value, -- Total likes per hari
+            p.platform,
+            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+        FROM posts p
+        WHERE
+            p.kategori = ?
+            AND p.platform = ?
+            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        ORDER BY date ASC;
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null,
+        });
+    } catch (error) {
+        console.error('Error fetching daily likes:', error);
+        res.status(500).send('Failed to fetch daily likes');
+    }
+});
+
+router.get('/getDailySaves', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            p.username,
+            p.client_account,
+            SUM(p.collectCount) AS value, -- Total likes per hari
+            p.platform,
+            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+        FROM posts p
+        WHERE
+            p.kategori = ?
+            AND p.platform = ?
+            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        ORDER BY date ASC;
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null,
+        });
+    } catch (error) {
+        console.error('Error fetching daily likes:', error);
+        res.status(500).send('Failed to fetch daily likes');
+    }
+});
+
+router.get('/getDailyDownloads', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            p.username,
+            p.client_account,
+            SUM(p.downloadCount) AS value, -- Total likes per hari
+            p.platform,
+            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+        FROM posts p
+        WHERE
+            p.kategori = ?
+            AND p.platform = ?
+            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        ORDER BY date ASC;
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null,
+        });
+    } catch (error) {
+        console.error('Error fetching daily likes:', error);
+        res.status(500).send('Failed to fetch daily likes');
+    }
+});
+
+router.get('/getDailyShares', async (req, res) => {
+    try {
+        const query = `
+        SELECT
+            p.username,
+            p.client_account,
+            SUM(p.shareCount) AS value, -- Total likes per hari
+            p.platform,
+            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+        FROM posts p
+        WHERE
+            p.kategori = ?
+            AND p.platform = ?
+            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        ORDER BY date ASC;
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'],
+            req.query['end_date'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null,
+        });
+    } catch (error) {
+        console.error('Error fetching daily likes:', error);
+        res.status(500).send('Failed to fetch daily likes');
+    }
+});
 
 module.exports = router;
