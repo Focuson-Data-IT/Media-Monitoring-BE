@@ -120,7 +120,7 @@ GET http://localhost:7770/api/getAllUsername?kategori=disparbud&platform=Instagr
 GET http://localhost:7770/api/getPictureData?kategori=disparbud&platform=Instagram&username=disparbudbandungbarat
 
 ### Get Fair Data for Insights
-GET http://localhost:7770/api/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=disbudparkotacirebon
+GET http://localhost:7770/api/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=purwakartapariwisata
 
 ### Get Ai Summary
 GET http://localhost:7770/api/getFairSummary?username=smilingbogorcity&month=2025-01&kategori=disparbud&platform=Instagram
