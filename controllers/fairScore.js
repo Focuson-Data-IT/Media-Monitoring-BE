@@ -44,32 +44,40 @@ const getDataForBatchProcessing = async (date) => {
     const daysInMonth = getDaysInMonth(date);
 
     const query = `
-        SELECT dfs.list_id, dfs.client_account, dfs.kategori, dfs.platform, dfs.username, dfs.date,
-            (SELECT followers FROM users WHERE users.username = dfs.username LIMIT 1) AS followers,
+                SELECT dfs.list_id, dfs.client_account, dfs.kategori, dfs.platform, dfs.username, dfs.date,
+        
+            -- ✅ Followers dengan filter platform
+            (SELECT followers FROM users WHERE users.username = dfs.username AND users.platform = dfs.platform LIMIT 1) AS followers,
+        
+            -- ✅ Activities (rata-rata posting per hari)
             (
                 SELECT COUNT(*) 
                 FROM posts 
                 WHERE client_account = dfs.client_account 
                   AND kategori = dfs.kategori 
-                  AND platform = dfs.platform 
+                  AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) / ? AS activities,
+        
+            -- ✅ Nilai Aktivitas (jumlah posting di tanggal tertentu)
             (
                 SELECT COUNT(*) 
                 FROM posts
                 WHERE client_account = dfs.client_account
                   AND kategori = dfs.kategori 
-                  AND platform = dfs.platform 
+                  AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username  
                   AND DATE(created_at) = dfs.date
             ) AS nilai_aktifitas,
+        
+            -- ✅ Interactions (rata-rata likes per postingan)
             (
                 SELECT SUM(likes) 
                 FROM posts 
                 WHERE client_account = dfs.client_account 
                   AND kategori = dfs.kategori 
-                  AND platform = dfs.platform 
+                  AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) /
@@ -78,30 +86,47 @@ const getDataForBatchProcessing = async (date) => {
                 FROM posts 
                 WHERE client_account = dfs.client_account 
                   AND kategori = dfs.kategori 
-                  AND platform = dfs.platform 
+                  AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) AS interactions,
+        
+            -- ✅ Responsiveness dengan filter platform
             (
-                SELECT COALESCE(SUM(mc_count), 0) / NULLIF(COALESCE(SUM(cc_count), 1), 0) * 100
+                SELECT 
+                    COALESCE(reply_count, 0) / NULLIF(COALESCE(incoming_count, 1), 0) * 100
                 FROM (
+                    -- 🔹 Hitung total komentar masuk (mainComments + childComments) dari user lain
                     SELECT 
-                        p.unique_id_post,
-                        COUNT(DISTINCT mc.comment_unique_id) AS mc_count,
-                        COUNT(DISTINCT cc.child_comment_unique_id) AS cc_count
+                        COUNT(DISTINCT mc.comment_unique_id) + COUNT(DISTINCT cc.child_comment_unique_id) AS incoming_count,
+
+                        -- 🔹 Hitung total balasan dari akun ini (baik di mainComments maupun childComments)
+                        (
+                            SELECT COUNT(*)
+                            FROM mainComments mc_reply
+                            WHERE mc_reply.commenter_username = dfs.username
+                              AND mc_reply.unique_id_post = p.unique_id_post
+                        ) +
+                        (
+                            SELECT COUNT(*)
+                            FROM childComments cc_reply
+                            WHERE cc_reply.child_commenter_username = dfs.username
+                              AND cc_reply.unique_id_post = p.unique_id_post
+                        ) AS reply_count
                     FROM posts p
                     LEFT JOIN mainComments mc ON mc.unique_id_post = p.unique_id_post
                     LEFT JOIN childComments cc ON cc.unique_id_post = p.unique_id_post
                     WHERE p.client_account = dfs.client_account 
                       AND p.kategori = dfs.kategori 
-                      AND p.platform = dfs.platform 
-                      AND p.username = dfs.username 
+                      AND p.platform = dfs.platform
+                      AND p.username = dfs.username
                       AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
-                    GROUP BY p.unique_id_post
-                ) AS comment_counts
+                ) AS comment_summary
             ) AS responsiveness
+
         FROM dailyFairScores dfs
         WHERE dfs.date = ?
+        
     `;
 
     const [data] = await connection.query(query, [
@@ -173,20 +198,23 @@ const batchUpdateFairScores = async (updates) => {
     }
 };
 
-// 🔹 **Hitung Skor & Bobot Per Kategori (Tanpa nilai_aktifitas)**
+// 🔹 **Hitung Skor & Bobot Per Kategori dan Platform**
 const processScoresForDate = async (date) => {
-    console.info(`[INFO] Processing scores for date: ${date}`);
+    console.info(`[INFO] Processing scores and weights for date: ${date}`);
 
     const query = `
-        SELECT kategori, MAX(followers) AS max_followers, MAX(activities) AS max_activities,
-               MAX(interactions) AS max_interactions, MAX(responsiveness) AS max_responsiveness
+        SELECT kategori, platform, 
+               MAX(followers) AS max_followers, 
+               MAX(activities) AS max_activities,
+               MAX(interactions) AS max_interactions, 
+               MAX(responsiveness) AS max_responsiveness
         FROM dailyFairScores
         WHERE date = ?
-        GROUP BY kategori;
+        GROUP BY kategori, platform;
     `;
 
     const [maxValues] = await connection.query(query, [date]);
-    console.info('[INFO] Max values per kategori:', maxValues);
+    console.info('[INFO] Max values per kategori and platform:', maxValues);
 
     if (maxValues.length === 0) {
         console.warn(`[WARN] No max values found for date: ${date}`);
@@ -195,49 +223,69 @@ const processScoresForDate = async (date) => {
 
     const updates = [];
 
-    for (const { kategori, max_followers, max_activities, max_interactions, max_responsiveness } of maxValues) {
+    for (const { kategori, platform, max_followers, max_activities, max_interactions, max_responsiveness } of maxValues) {
         const [rows] = await connection.query(`
             SELECT list_id, followers, activities, interactions, responsiveness
             FROM dailyFairScores
-            WHERE kategori = ? AND date = ?
-        `, [kategori, date]);
+            WHERE kategori = ? AND platform = ? AND date = ?
+        `, [kategori, platform, date]);
 
-        console.info(`[INFO] Processing kategori: ${kategori}, found ${rows.length} rows.`);
+        console.info(`[INFO] Processing kategori: ${kategori}, platform: ${platform}, found ${rows.length} rows.`);
 
         rows.forEach(row => {
-            const fair_score = (
-                ((row.followers / (max_followers || 1)) * 2) +
-                ((row.activities / (max_activities || 1)) * 2) +
-                ((row.interactions / (max_interactions || 1)) * 3) +
-                ((row.responsiveness / (max_responsiveness || 1)) * 1)
-            ) / 8 * 100;
+            // 🔥 Hitung skor
+            const followers_score = (row.followers / (max_followers || 1)) || 0;
+            const activities_score = (row.activities / (max_activities || 1)) || 0;
+            const interactions_score = (row.interactions / (max_interactions || 1)) || 0;
+            const responsiveness_score = (row.responsiveness / (max_responsiveness || 1)) || 0;
+
+            // 🔥 Hitung bobot
+            const followers_bobot = followers_score * 2;
+            const activities_bobot = activities_score * 2;
+            const interactions_bobot = interactions_score * 3;
+            const responsiveness_bobot = responsiveness_score * 1;
+
+            // 🔥 Hitung FAIR Score
+            const fair_score = ((followers_bobot + activities_bobot + interactions_bobot + responsiveness_bobot) / 8) * 100;
 
             console.info(`[INFO] Calculated fair_score for list_id: ${row.list_id} => ${fair_score.toFixed(2)}%`);
 
-            updates.push([fair_score, row.list_id, date]);
+            updates.push([
+                followers_score, followers_bobot,
+                activities_score, activities_bobot,
+                interactions_score, interactions_bobot,
+                responsiveness_score, responsiveness_bobot,
+                fair_score, row.list_id, date
+            ]);
         });
     }
 
     await batchUpdateScores(updates);
 };
 
-// 🔹 **Update Skor Akhir**
+// 🔹 **Update Skor, Bobot, dan FAIR Score**
 const batchUpdateScores = async (updates) => {
     if (!updates.length) {
         console.warn('[WARN] No fair score updates to apply.');
         return;
     }
 
-    console.info(`[INFO] Updating fair scores for ${updates.length} rows...`);
+    console.info(`[INFO] Updating fair scores, scores, and weights for ${updates.length} rows...`);
+
     const updateSql = `
         UPDATE dailyFairScores
-        SET fair_score = ?
+        SET 
+            followers_score = ?, followers_bobot = ?,
+            activities_score = ?, activities_bobot = ?,
+            interactions_score = ?, interactions_bobot = ?,
+            responsiveness_score = ?, responsiveness_bobot = ?,
+            fair_score = ?
         WHERE list_id = ? AND date = ?;
     `;
 
     try {
         await Promise.all(updates.map(update => connection.query(updateSql, update)));
-        console.info(`[SUCCESS] Fair scores updated successfully for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Updated scores and weights for ${updates.length} rows.`);
     } catch (error) {
         console.error('[ERROR] Failed to update fair scores:', error);
     }

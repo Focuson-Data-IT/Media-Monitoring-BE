@@ -20,9 +20,6 @@ GET http://localhost:7770/api/data/getData
 GET http://localhost:7770/api/getFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET processData
-GET http://localhost:7770/api/getDailyInteractions?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Tiktok
-
-### GET processData
 GET http://localhost:7770/api/getActivities?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET processData
@@ -76,7 +73,7 @@ Content-Type: application/json
 }
 
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=opdbekasikab
+GET http://localhost:7770/instagram/getData?kategori=kevin
 
 ### Get Tiktok User Data
 GET http://localhost:7770/tiktok/getData?kategori=disparbud
@@ -123,7 +120,45 @@ GET http://localhost:7770/api/getAllUsername?kategori=disparbud&platform=Instagr
 GET http://localhost:7770/api/getPictureData?kategori=disparbud&platform=Instagram&username=disparbudbandungbarat
 
 ### Get Fair Data for Insights
-GET http://localhost:7770/insights/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=disbudparkotacirebon
+GET http://localhost:7770/api/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=purwakartapariwisata
 
 ### Get Ai Summary
-GET http://localhost:7770/insights/getFairSummary?username=smilingbogorcity&month=2025-01&kategori=disparbud&platform=Instagram
+GET http://localhost:7770/api/getFairSummary?username=smilingbogorcity&month=2025-01&kategori=disparbud&platform=Instagram
+
+
+### Daily Data // Growth Metrics
+### Instagram
+### GET Daily Followers
+GET http://localhost:7770/api/getDailyFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+
+### GET Daily Likes
+GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+
+### GET Daily Views
+GET http://localhost:7770/api/getDailyViews?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+
+### GET Daily Comments
+GET http://localhost:7770/api/getDailyComments?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+
+### TikTok
+### GET Daily Followers
+GET http://localhost:7770/api/getDailyFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
+### GET Daily Likes
+GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
+### GET Daily Views
+GET http://localhost:7770/api/getDailyViews?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
+### GET Daily Comments
+GET http://localhost:7770/api/getDailyComments?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
+### GET Daily Saves
+GET http://localhost:7770/api/getDailySaves?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
+# ### GET Daily Downloads
+# GET http://localhost:7770/api/getDailyDownloads?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
+### GET Daily Shares
+GET http://localhost:7770/api/getDailyShares?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+
