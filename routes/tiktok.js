@@ -138,7 +138,7 @@ const getDateRange = async () => {
 // 🔹 Endpoint untuk eksekusi getComment
 router.get('/getComment', async (req, res) => {
     const { fromStart } = req.query;
-    const processFromStart = fromStart === 'true';
+    const processFromStart = fromStart === 'false';
 
     try {
         const dateRange = await getDateRange();

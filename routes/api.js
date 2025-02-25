@@ -1183,4 +1183,111 @@ router.get('/getFairDataInsights', async (req, res) => {
     }
 });
 
+router.get('/getGrowthData', async (req, res) => {
+    const { username, platform, start_date, end_date } = req.query;
+
+    if (!username || !platform || !start_date || !end_date) {
+        return res.status(400).json({
+            message: 'username, platform, start_date, and end_date are required.'
+        });
+    }
+
+    try {
+        const connection = await db.getConnection();
+
+        // Followers Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
+        const [followersResult] = await connection.query(
+            `
+            SELECT DATE(date) AS date, followers
+            FROM dailyFairScores
+            WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        // Posts Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
+        const [postsResult] = await connection.query(
+            `
+            SELECT DATE(date) AS date, nilai_aktifitas AS posts
+            FROM dailyFairScores
+            WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        // Likes Query (tetap gunakan CONVERT_TZ karena kolom bertipe DATETIME)
+        const [likesResult] = await connection.query(
+            `
+            SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+07:00')) AS date, SUM(likes) AS likes
+            FROM posts
+            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+            GROUP BY DATE(CONVERT_TZ(created_at, '+00:00', '+07:00'))
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        // Views Query
+        const [viewsResult] = await connection.query(
+            `
+            SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+07:00')) AS date, SUM(playCount) AS views
+            FROM posts
+            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+            GROUP BY DATE(CONVERT_TZ(created_at, '+00:00', '+07:00'))
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        // Comments Query
+        const [commentsResult] = await connection.query(
+            `
+            SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+07:00')) AS date, SUM(comments) AS comments
+            FROM posts
+            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+            GROUP BY DATE(CONVERT_TZ(created_at, '+00:00', '+07:00'))
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        connection.release();
+
+        // Gabungkan data berdasarkan tanggal
+        const dataMap = {};
+
+        const mergeData = (result, key) => {
+            result.forEach(item => {
+                const date = item.date;
+                if (!dataMap[date]) {
+                    dataMap[date] = { date, followers: 0, posts: 0, likes: 0, views: 0, comments: 0 };
+                }
+                dataMap[date][key] = item[key] ?? 0;
+            });
+        };
+
+        mergeData(followersResult, 'followers');
+        mergeData(postsResult, 'posts');
+        mergeData(likesResult, 'likes');
+        mergeData(viewsResult, 'views');
+        mergeData(commentsResult, 'comments');
+
+        const combinedData = Object.values(dataMap).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.status(200).json({
+            username,
+            platform,
+            start_date,
+            end_date,
+            data: combinedData
+        });
+
+    } catch (error) {
+        console.error('Error fetching growth data:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+});
+
 module.exports = router;
