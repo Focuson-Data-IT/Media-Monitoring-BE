@@ -1126,12 +1126,12 @@ router.get('/getFairDataInsights', async (req, res) => {
 
         const startDate = `${month}-01`; // Awal bulan
 
-        console.log('Start Date:', startDate);
-        console.log('End Date:', endDate);
+        console.info('Start Date:', startDate);
+        console.info('End Date:', endDate);
 
         // 🔍 Cari MAX(date) dengan konversi ke UTC+7
         const [maxDateResult] = await db.query(
-            `SELECT MAX(DATE(CONVERT_TZ(date, '+00:00', '+07:00'))) AS maxDate
+            `SELECT MAX((CONVERT_TZ(date, '+00:00', '+07:00'))) AS maxDate
              FROM dailyFairScores 
              WHERE kategori = ? AND LOWER(platform) = LOWER(?) 
              AND DATE(CONVERT_TZ(date, '+00:00', '+07:00')) BETWEEN DATE(?) AND DATE(?)`,
@@ -1139,7 +1139,7 @@ router.get('/getFairDataInsights', async (req, res) => {
         );
 
         const maxDate = maxDateResult[0]?.maxDate;
-        console.log('Max Date from DB:', maxDate);
+        console.info('Max Date from DB:', maxDate);
 
         if (!maxDate) {
             return res.json({ code: 200, status: 'OK', data: [], errors: 'No data found' });
@@ -1147,9 +1147,9 @@ router.get('/getFairDataInsights', async (req, res) => {
 
         // 🔍 Ambil semua data untuk tanggal MAX dengan konversi timezone
         const [allRows] = await db.query(
-            `SELECT *, DATE(CONVERT_TZ(date, '+00:00', '+07:00')) AS local_date
+            `SELECT *, CONVERT_TZ(date, '+00:00', '+07:00') AS local_date
              FROM dailyFairScores
-             WHERE kategori = ? AND LOWER(platform) = LOWER(?) AND DATE(CONVERT_TZ(date, '+00:00', '+07:00')) = ?`,
+             WHERE kategori = ? AND LOWER(platform) = LOWER(?) AND CONVERT_TZ(date, '+00:00', '+07:00') = ?`,
             [kategori, platform, maxDate]
         );
 
@@ -1192,24 +1192,28 @@ router.get('/getGrowthData', async (req, res) => {
         });
     }
 
+    console.info(start_date, end_date);
+
     try {
         const connection = await db.getConnection();
 
         // Followers Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
         const [followersResult] = await connection.query(
             `
-            SELECT DATE(date) AS date, followers
+            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
             FROM dailyFairScores
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
+
+        // console.info(followersResult);
 
         // Posts Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
         const [postsResult] = await connection.query(
             `
-            SELECT DATE(date) AS date, nilai_aktifitas AS posts
+            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, nilai_aktifitas AS posts
             FROM dailyFairScores
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
@@ -1217,41 +1221,77 @@ router.get('/getGrowthData', async (req, res) => {
             [username, platform, start_date, end_date]
         );
 
+        // console.info(postsResult);
+
         // Likes Query (tetap gunakan CONVERT_TZ karena kolom bertipe DATETIME)
         const [likesResult] = await connection.query(
             `
-            SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+07:00')) AS date, SUM(likes) AS likes
+            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(likes) AS likes
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY DATE(CONVERT_TZ(created_at, '+00:00', '+07:00'))
+            GROUP BY date
             ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
+
+        // console.info(likesResult);
 
         // Views Query
         const [viewsResult] = await connection.query(
             `
-            SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+07:00')) AS date, SUM(playCount) AS views
+            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(playCount) AS views
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY DATE(CONVERT_TZ(created_at, '+00:00', '+07:00'))
+            GROUP BY date
             ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
 
+        // console.info(viewsResult);
+
         // Comments Query
         const [commentsResult] = await connection.query(
             `
-            SELECT DATE(CONVERT_TZ(created_at, '+00:00', '+07:00')) AS date, SUM(comments) AS comments
+            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(comments) AS comments
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY DATE(CONVERT_TZ(created_at, '+00:00', '+07:00'))
+            GROUP BY date
             ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
+
+        // console.info(commentsResult);
+
+        // Views Query
+        const [savesResult] = await connection.query(
+            `
+            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(collectCount) AS saves
+            FROM posts
+            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+            GROUP BY date
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        // console.info(savesResult);
+
+        // Comments Query
+        const [sharesResult] = await connection.query(
+            `
+            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(shareCount) AS shares
+            FROM posts
+            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+            GROUP BY date
+            ORDER BY date ASC;
+            `,
+            [username, platform, start_date, end_date]
+        );
+
+        // console.info(sharesResult);
 
         connection.release();
 
@@ -1262,7 +1302,7 @@ router.get('/getGrowthData', async (req, res) => {
             result.forEach(item => {
                 const date = item.date;
                 if (!dataMap[date]) {
-                    dataMap[date] = { date, followers: 0, posts: 0, likes: 0, views: 0, comments: 0 };
+                    dataMap[date] = { date, followers: 0, posts: 0, likes: 0, views: 0, comments: 0, saves:0, shares:0 };
                 }
                 dataMap[date][key] = item[key] ?? 0;
             });
@@ -1273,6 +1313,8 @@ router.get('/getGrowthData', async (req, res) => {
         mergeData(likesResult, 'likes');
         mergeData(viewsResult, 'views');
         mergeData(commentsResult, 'comments');
+        mergeData(savesResult, 'saves');
+        mergeData(sharesResult, 'shares');
 
         const combinedData = Object.values(dataMap).sort((a, b) => new Date(a.date) - new Date(b.date));
 
