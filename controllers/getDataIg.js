@@ -14,7 +14,7 @@ async function fetchUserData(username) {
 }
 
 // Fungsi helper untuk melakukan permintaan API dengan retry
-const apiRequestWithRetry = async (config, maxRetries = 5) => {
+const apiRequestWithRetry = async (config, maxRetries = 1) => {
     let attempts = 0;
     while (attempts < maxRetries) {
         try {
@@ -244,7 +244,10 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
     }
 };
 
-const getDataChildComment = async (unique_id_post = null, client_account = null, kategori = null, comment_unique_id = null, user_id = null, username = null, platform = null) => {
+const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null) => {
+    
+    console.info(unique_id_post, client_account, kategori, comment_unique_id, user_id, username, platform);
+
     try {
         let paginationToken = null;
         let moreComments = true;
@@ -299,7 +302,7 @@ const getDataChildComment = async (unique_id_post = null, client_account = null,
             if (!paginationToken) moreComments = false;
         }
     } catch (error) {
-        console.error(`Error fetching data for ${unique_id_post}:`, error.message);
+        console.error(`Error fetching data for comment ${comment_unique_id} on post ${unique_id_post}:`, error.message);
     }
 };
 
