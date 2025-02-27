@@ -45,7 +45,7 @@ Aku telah mengembangkan alat ukur performa akun sosial media bernama **FAIR** ya
 - Interaction (I): 3
 - Responsiveness (R): 1
 
-### Cara Menghitung FAIR Score:
+**Cara Menghitung FAIR Score:**
 1. Tentukan skor tiap elemen dengan membagi nilai elemen akun tertentu dengan nilai elemen tertinggi dari seluruh akun yang dibandingkan.
 2. Kalikan skor elemen tersebut dengan bobotnya.
 3. Jumlahkan semua bobot elemen.
@@ -53,7 +53,7 @@ Aku telah mengembangkan alat ukur performa akun sosial media bernama **FAIR** ya
 
 ---
 
-### **Data Performa Bulan ${month}:**
+**Data Performa Bulan ${month}:**
 
 🔝 **Top 3 Akun:**
 ${top3.map((acc, i) => `${i + 1}. Username: ${acc.username}\n   - Rank: ${acc.rank}\n   - Follower: ${acc.followers}\n   - Activity: ${acc.activities}\n   - Interaction: ${acc.interactions}\n   - Responsiveness: ${acc.responsiveness}\n   - FAIR Score: ${acc.fair_score.toFixed(2)}\n`).join('')}
@@ -66,9 +66,7 @@ ${top3.map((acc, i) => `${i + 1}. Username: ${acc.username}\n   - Rank: ${acc.ra
 - Responsiveness: ${requestedUser.responsiveness}
 - FAIR Score: ${requestedUser.fair_score.toFixed(2)}
 
----
-
-### **Instruksi untuk AI:**
+**Instruksi untuk Kamu!:**
 
 1. Jelaskan akun **${requestedUser.username}** berada di **peringkat ${requestedUser.rank}**.  
    - Jika berada di **top 3**, sebutkan performanya lumayan baik dibandingkan akun lain.  
@@ -93,31 +91,9 @@ ${top3.map((acc, i) => `${i + 1}. Username: ${acc.username}\n   - Rank: ${acc.ra
    - **Rajin membuat konten** (meningkatkan activity)  
    - **Mengikuti isu terkini** (meningkatkan like, activity, follower)  
 
-👉 Fokuskan rekomendasi pada elemen terlemah terlebih dahulu.
+****Fokuskan rekomendasi pada elemen terlemah terlebih dahulu, Berikan jawaban yang padat dan singkat dan jelas, tidak lebih dari 2 Paragraf, dan kalau mau menyertakan angka, jangan lupa di format ada pembagi ribuannya. ****
 
----
-
-### **Format jawaban yang diharapkan:**
-
-1. **Peringkat akun ${requestedUser.username}:**  
-   - Jelaskan posisi ranking akun.  
-   - Sebutkan apakah termasuk top 3 atau di luar top 3.  
-
-2. **Detail performa akun:**  
-   - Follower: ...  
-   - Activity: ...  
-   - Interaction: ...  
-   - Responsiveness: ...  
-
-3. **Analisis perbandingan dengan akun peringkat 1:**  
-   - Perbedaan F: ...  
-   - Perbedaan A: ...  
-   - Perbedaan I: ...  
-   - Perbedaan R: ...  
-
-4. **Rekomendasi:**  
-   - Fokus pada elemen yang paling lemah.  
-   - Berikan rekomendasi yang relevan dan actionable.  
+ 
 `;
 
         console.info('✅ Generated prompt for Gemini:', prompt);

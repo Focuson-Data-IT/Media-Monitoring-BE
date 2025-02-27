@@ -108,12 +108,17 @@ const saveComment = async (comment) => {
 // fungsi untuk menyimpan data comment ke database
 const saveChildComment = async (childComment) => {
     const sql = `
-        INSERT INTO childComments (client_account, kategori, platform, unique_id_post, comment_unique_id, child_comment_unique_id, created_at, child_commenter_username, child_commenter_userid, child_comment_text, child_comment_like_count)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO childComments 
+        (client_account, kategori, platform, 
+        user_id, username, unique_id_post, comment_unique_id, child_comment_unique_id, created_at, 
+        child_commenter_username, child_commenter_userid, child_comment_text, child_comment_like_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
             platform = VALUES(platform),
+            user_id = VALUES(user_id),
+            username = VALUES(username),
             unique_id_post = VALUES(unique_id_post),
             comment_unique_id = VALUES(comment_unique_id),
             created_at = VALUES(created_at),
@@ -122,9 +127,12 @@ const saveChildComment = async (childComment) => {
             child_comment_text = VALUES(child_comment_text),
             child_comment_like_count = VALUES(child_comment_like_count)
     `;
+
     connection.query(sql, [
         childComment.client_account, childComment.kategori, childComment.platform,
-        childComment.unique_id_post, childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at, childComment.child_commenter_username, childComment.child_commenter_userid, childComment.child_comment_text, childComment.child_comment_like_count
+        childComment.user_id, childComment.username,
+        childComment.unique_id_post, childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at,
+        childComment.child_commenter_username, childComment.child_commenter_userid, childComment.child_comment_text, childComment.child_comment_like_count
     ],
         (err, result) => {
             if (err) {

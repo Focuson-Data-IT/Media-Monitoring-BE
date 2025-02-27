@@ -7,9 +7,9 @@ const async = require('async');
 let requestCount = 0;
 const maxRequestsPerMinute = 240;
 const threadRequestLimit = 10;
-const threadRestTime = 300; // Dalam ms
+const threadRestTime = 60000; // Dalam ms
 const totalThreads = 20;
-const delay = 60000 / maxRequestsPerMinute;
+const delay = 60000;
 
 const trackRequests = async () => {
     requestCount++;
@@ -138,7 +138,7 @@ const getDateRange = async () => {
 // 🔹 Endpoint untuk eksekusi getComment
 router.get('/getComment', async (req, res) => {
     const { fromStart } = req.query;
-    const processFromStart = fromStart === 'true';
+    const processFromStart = fromStart === 'false';
 
     try {
         const dateRange = await getDateRange();
@@ -246,7 +246,15 @@ router.get('/getComment', async (req, res) => {
 
             if (child_comment_count > 0) {
                 try {
-                    await getDataTiktok.getDataChildComment(unique_id_post, user_id, username, comment_unique_id, client_account, kategori, platform);
+                    await getDataTiktok.getDataChildComment(
+                        unique_id_post, 
+                        user_id, 
+                        username, 
+                        comment_unique_id, 
+                        client_account, 
+                        kategori, 
+                        platform
+                    );
                     console.log(`✅ Child comments for comment ${comment_unique_id} have been fetched and saved.`);
                 } catch (err) {
                     console.error(`❌ Error fetching child comments for comment ${comment_unique_id}:`, err.message);

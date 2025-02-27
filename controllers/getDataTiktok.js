@@ -3,7 +3,7 @@ const axios = require('axios');
 const save = require('./saveDataTiktok');
 
 // Fungsi helper untuk melakukan permintaan API dengan retry
-const apiRequestWithRetry = async (config, maxRetries = 5) => {
+const apiRequestWithRetry = async (config, maxRetries = 1) => {
     let attempts = 0;
     while (attempts < maxRetries) {
         try {
@@ -267,6 +267,8 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                     client_account: client_account,
                     kategori: kategori,
                     platform: platform,
+                    user_id: user_id,
+                    username: username,
                     unique_id_post: unique_id_post,
                     comment_unique_id: comment_unique_id,
                     child_comment_unique_id: item.id,

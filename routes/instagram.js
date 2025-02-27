@@ -5,11 +5,11 @@ const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi databa
 const async = require('async');
 
 let requestCount = 0;
-const maxRequestsPerMinute = 240;
+const maxRequestsPerMinute = 200;
 const threadRequestLimit = 10;
-const threadRestTime = 300; // Dalam ms
-const totalThreads = 20;
-const delay = 60000 / maxRequestsPerMinute;
+const threadRestTime = 60000; // Dalam ms
+const totalThreads = 50;
+const delay = 60000;
 
 const trackRequests = async () => {
     requestCount++;
@@ -138,7 +138,7 @@ const getDateRange = async () => {
 // 🔹 Endpoint untuk eksekusi getComment & getChildComment sekaligus
 router.get('/getComment', async (req, res) => {
     const { fromStart } = req.query;
-    const processFromStart = fromStart === 'true';
+    const processFromStart = fromStart === 'false';
 
     console.info(fromStart)
     console.info(processFromStart)
@@ -247,12 +247,12 @@ router.get('/getComment', async (req, res) => {
             if (child_comment_count > 0) {
                 try {
                     await getDataIg.getDataChildComment(
-                        unique_id_post,
-                        comment_unique_id,
-                        client_account,
-                        kategori,
-                        user_id,
-                        username,
+                        unique_id_post, 
+                        user_id, 
+                        username, 
+                        comment_unique_id, 
+                        client_account, 
+                        kategori, 
                         platform
                     );
                     console.log(`✅ Child comments for comment ID ${comment_unique_id} on post ${unique_id_post} have been fetched and saved.`);
