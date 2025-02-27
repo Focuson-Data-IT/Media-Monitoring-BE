@@ -72,23 +72,27 @@ Content-Type: application/json
     "username": "ismailisme"
 }
 
+### List Akun Mitra / Kategori nya
+
+- opdbekasikab bekasi khusus (instagram) doang
+- disparbud (Instagram dan TikTok) 
+- disparbud_competitor (Instagram dan TikTok) 
+- disparbud_ambassador (Instagram dan TikTok) 
+
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=kevin
+GET http://localhost:7770/instagram/getData?kategori=disparbud_ambassador
 
 ### Get Tiktok User Data
-GET http://localhost:7770/tiktok/getData?kategori=disparbud
+GET http://localhost:7770/tiktok/getData?kategori=disparbud_competitor
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=disparbud
+GET http://localhost:7770/instagram/getPost?kategori=disparbud_ambassador
 
 ### Get Instagram User Post
 GET http://localhost:7770/tiktok/getPost?kategori=disparbud
 
 ### Get Instagram User Post
 GET http://localhost:7770/instagram/getComment
-
-### Get Instagram User Post
-GET http://localhost:7770/instagram/getChildComment
 
 ### Get Instagram User Post
 GET http://localhost:7770/tiktok/getComment
@@ -107,7 +111,7 @@ Content-Type: application/json
 
 {
   "startDate": "2025-01-01",
-  "endDate": "2025-02-20"
+  "endDate": "2025-02-26"
 }
 
 ### Get Instagram User Data
@@ -162,3 +166,8 @@ GET http://localhost:7770/api/getDailySaves?kategori=disparbud&start_date=2025-0
 ### GET Daily Shares
 GET http://localhost:7770/api/getDailyShares?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
+
+
+
+###
+GET http://localhost:7770/api/getGrowthData?username=smilingbogorcity&start_date=2025-02-01&end_date=2025-02-28&platform=Instagram
