@@ -604,9 +604,9 @@ router.get('/getAllPost', async (req, res) => {
         const page = parseInt(req.query['page']) || 1;
         const offset = (page - 1) * perPage;
 
-        const { kategori, platform, start_date, end_date } = req.query;
+        const { kategori, platform, start_date, end_date, username } = req.query;
 
-        const queryParams = [kategori, platform, start_date, end_date];
+        const queryParams = [kategori, platform, start_date, end_date, username];
 
         console.info("Received Request: ", { page, perPage, offset, kategori, platform, start_date, end_date });
 
@@ -617,6 +617,7 @@ router.get('/getAllPost', async (req, res) => {
             WHERE kategori = ?
               AND platform = ?
               AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+              AND username LIKE CONCAT('%', ?, '%')
         `;
         const [countRows] = await db.query(countQuery, queryParams);
         const total = countRows[0].total;
@@ -675,6 +676,7 @@ router.get('/getAllPost', async (req, res) => {
                 WHERE kategori = ?
                   AND platform = ?
                   AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+                  AND username LIKE CONCAT('%', ?, '%')
             ),
             positions AS (
                 SELECT
@@ -724,6 +726,7 @@ router.get('/getAllPost', async (req, res) => {
                 WHERE kategori = ?
                   AND platform = ?
                   AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+                  AND username LIKE CONCAT('%', ?, '%')
             )
             SELECT *
             FROM all_data
@@ -732,10 +735,8 @@ router.get('/getAllPost', async (req, res) => {
             OFFSET ?;
         `;
 
-        console.info("Executing Data Query:", dataQuery);
-        console.info("Query Params:", [percentile10, percentile90, ...queryParams, perPage, offset]);
-
-        const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, ...queryParams, perPage, offset]);
+        console.info([percentile10, percentile90, kategori, platform, username, perPage, offset])
+        const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, kategori, platform, start_date, end_date, username, perPage, offset]);
 
         // 4️⃣ Kirim respons ke frontend
         res.json({
@@ -815,6 +816,41 @@ router.get('/getAllUsername', async (req, res) => {
     }
 }
 );
+
+
+
+router.get('/getAllSearchUsername', async (req, res) => {
+        try {
+            const query = `
+            SELECT DISTINCT username
+            FROM users
+            WHERE kategori = ?
+                AND platform = ?
+            AND username LIKE CONCAT('%', ?, '%')
+        `;
+
+            const queryParams = [
+                req.query['kategori'],
+                req.query['platform'],
+                req.query['search'],
+            ];
+
+            const [rows] = await db.query(query, queryParams);
+
+            res.json({
+                code: 200,
+                status: 'OK',
+                data: rows,
+                errors: null
+            });
+        } catch (error) {
+            console.error('Error fetching dates:', error);
+            res.status(500).send('Failed to fetch dates');
+        }
+    }
+);
+
+
 
 router.get('/getPictureData', async (req, res) => {
     try {
