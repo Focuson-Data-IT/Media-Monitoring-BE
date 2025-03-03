@@ -8,9 +8,9 @@ const connection = mysql.createPool({
   password: process.env.DB_PASSWORD,    // Password database
   database: process.env.DB_NAME,         // Nama database
   waitForConnections: true,
-  connectionLimit: 10,                  // Batas jumlah koneksi di pool
-  queueLimit: 0,
-  connectTimeout: 3600000,
+  // connectionLimit: 10,                  // Batas jumlah koneksi di pool
+  // queueLimit: 0,
+  // connectTimeout: 3600000,
   timezone: '+07:00'               // Timeout koneksi (1 jam dalam milidetik)
 });
 
