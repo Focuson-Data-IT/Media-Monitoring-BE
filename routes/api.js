@@ -511,7 +511,7 @@ router.get('/getFairRanking', async (req, res) => {
         SELECT 
           client_account,
           username,
-          fair_score,
+          fair_score AS value,
           platform
         FROM dailyFairScores
         WHERE kategori = ? 
@@ -525,13 +525,309 @@ router.get('/getFairRanking', async (req, res) => {
         SELECT 
           client_account,
           username,
-          fair_score,
+          fair_score AS value,
           platform
         FROM dailyFairScores
         WHERE kategori = ? 
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY fair_score DESC;
+      `, [kategori, platform, prev_date]);
+
+        // Helper function untuk mendapatkan peringkat berdasarkan username
+        const getRank = (username, rows) => {
+            const rank = rows.findIndex(item => item.username === username);
+            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+        };
+
+        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        const mergedData = latestRows.map((item, index) => ({
+            ...item,
+            current_rank: index + 1,
+            previous_rank: getRank(item.username, prevRows)
+        }));
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: mergedData,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching fair ranking:', error);
+        res.status(500).send('Failed to fetch fair ranking');
+    }
+});
+
+router.get('/getFollowersRanking', async (req, res) => {
+    try {
+        const { kategori, platform, start_date, end_date } = req.query;
+
+        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
+        const [dateRows] = await db.query(`
+        SELECT 
+          MAX(date) AS max_date,
+          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ?
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+      `, [kategori, platform, start_date, end_date]);
+
+        const { max_date, prev_date } = dateRows[0];
+
+        if (!max_date) {
+            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+        }
+
+        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
+        const [latestRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          followers AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY followers DESC;
+      `, [kategori, platform, max_date]);
+
+        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
+        const [prevRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          followers AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY followers DESC;
+      `, [kategori, platform, prev_date]);
+
+        // Helper function untuk mendapatkan peringkat berdasarkan username
+        const getRank = (username, rows) => {
+            const rank = rows.findIndex(item => item.username === username);
+            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+        };
+
+        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        const mergedData = latestRows.map((item, index) => ({
+            ...item,
+            current_rank: index + 1,
+            previous_rank: getRank(item.username, prevRows)
+        }));
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: mergedData,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching fair ranking:', error);
+        res.status(500).send('Failed to fetch fair ranking');
+    }
+});
+
+router.get('/getActivitiesRanking', async (req, res) => {
+    try {
+        const { kategori, platform, start_date, end_date } = req.query;
+
+        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
+        const [dateRows] = await db.query(`
+        SELECT 
+          MAX(date) AS max_date,
+          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ?
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+      `, [kategori, platform, start_date, end_date]);
+
+        const { max_date, prev_date } = dateRows[0];
+
+        if (!max_date) {
+            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+        }
+
+        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
+        const [latestRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          activities AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY activities DESC;
+      `, [kategori, platform, max_date]);
+
+        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
+        const [prevRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          activities AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY activities DESC;
+      `, [kategori, platform, prev_date]);
+
+        // Helper function untuk mendapatkan peringkat berdasarkan username
+        const getRank = (username, rows) => {
+            const rank = rows.findIndex(item => item.username === username);
+            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+        };
+
+        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        const mergedData = latestRows.map((item, index) => ({
+            ...item,
+            current_rank: index + 1,
+            previous_rank: getRank(item.username, prevRows)
+        }));
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: mergedData,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching fair ranking:', error);
+        res.status(500).send('Failed to fetch fair ranking');
+    }
+});
+
+router.get('/getInteractionsRanking', async (req, res) => {
+    try {
+        const { kategori, platform, start_date, end_date } = req.query;
+
+        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
+        const [dateRows] = await db.query(`
+        SELECT 
+          MAX(date) AS max_date,
+          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ?
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+      `, [kategori, platform, start_date, end_date]);
+
+        const { max_date, prev_date } = dateRows[0];
+
+        if (!max_date) {
+            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+        }
+
+        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
+        const [latestRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          interactions AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY interactions DESC;
+      `, [kategori, platform, max_date]);
+
+        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
+        const [prevRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          interactions AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY interactions DESC;
+      `, [kategori, platform, prev_date]);
+
+        // Helper function untuk mendapatkan peringkat berdasarkan username
+        const getRank = (username, rows) => {
+            const rank = rows.findIndex(item => item.username === username);
+            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+        };
+
+        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        const mergedData = latestRows.map((item, index) => ({
+            ...item,
+            current_rank: index + 1,
+            previous_rank: getRank(item.username, prevRows)
+        }));
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: mergedData,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching fair ranking:', error);
+        res.status(500).send('Failed to fetch fair ranking');
+    }
+});
+
+router.get('/getResponsivenessRanking', async (req, res) => {
+    try {
+        const { kategori, platform, start_date, end_date } = req.query;
+
+        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
+        const [dateRows] = await db.query(`
+        SELECT 
+          MAX(date) AS max_date,
+          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ?
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+      `, [kategori, platform, start_date, end_date]);
+
+        const { max_date, prev_date } = dateRows[0];
+
+        if (!max_date) {
+            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+        }
+
+        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
+        const [latestRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          responsiveness AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY responsiveness DESC;
+      `, [kategori, platform, max_date]);
+
+        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
+        const [prevRows] = await db.query(`
+        SELECT 
+          client_account,
+          username,
+          responsiveness AS value,
+          platform
+        FROM dailyFairScores
+        WHERE kategori = ? 
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY responsiveness DESC;
       `, [kategori, platform, prev_date]);
 
         // Helper function untuk mendapatkan peringkat berdasarkan username
