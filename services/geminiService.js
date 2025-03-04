@@ -10,7 +10,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Pastikan .e
  */
 const getFairScoreSummary = async (prompt) => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Gunakan model terbaru Gemini
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-8b" }); // Gunakan model terbaru Gemini
         const result = await model.generateContent(prompt);
         const response = result.response;
         return response.text().trim();
