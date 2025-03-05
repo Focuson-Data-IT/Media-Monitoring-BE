@@ -3,15 +3,15 @@ require('dotenv').config(); // Load environment variables from .env file
 
 // Buat koneksi ke database
 const connection = mysql.createPool({
-  host: process.env.DB_HOST,            // Host database
-  user: process.env.DB_USER,            // User database
-  password: process.env.DB_PASSWORD,    // Password database
-  database: process.env.DB_NAME,         // Nama database
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
-  // connectionLimit: 10,                  // Batas jumlah koneksi di pool
+  // connectionLimit: 10,
   // queueLimit: 0,
   // connectTimeout: 3600000,
-  timezone: '+07:00'               // Timeout koneksi (1 jam dalam milidetik)
+  timezone: '+07:00'
 });
 
 module.exports = connection;
