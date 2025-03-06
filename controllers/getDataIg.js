@@ -14,7 +14,7 @@ async function fetchUserData(username) {
 }
 
 // Fungsi helper untuk melakukan permintaan API dengan retry
-const apiRequestWithRetry = async (config, maxRetries = 1) => {
+const apiRequestWithRetry = async (config, maxRetries = 2) => {
     let attempts = 0;
     while (attempts < maxRetries) {
         try {
@@ -26,7 +26,7 @@ const apiRequestWithRetry = async (config, maxRetries = 1) => {
             if (attempts === maxRetries) throw new Error('Max retries reached. Stopping.');
         }
     }
-};
+}
 
 // Fungsi untuk mendapatkan data User dari API
 const getDataUser = async (username = null, client_account = null, kategori = null, platform = null) => {
@@ -94,7 +94,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
         while (morePosts) {
             const getPost = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1.2/posts',
+                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
                 params: {
                     username_or_id_or_url: username,
                     url_embed_safe: 'true',
@@ -118,6 +118,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
             for (const item of userPosts) {
                 const isPinned = item.is_pinned ? 1 : 0;
                 const postDate = new Date(item.taken_at * 1000).getTime();
+                const captionText = item.caption || "No Caption";
 
                 if (isPinned) {
                     const post = {
@@ -129,12 +130,12 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                         username: username,
                         created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                         thumbnail_url: item.thumbnail_url,
-                        caption: item.caption.text || '',
+                        caption: captionText.text || "No Caption",
                         post_code: item.code,
                         comments: item.comment_count,
                         likes: item.like_count,
                         media_name: item.media_name,
-                        product_type: item.media_type,
+                        product_type: item.product_type,
                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                         is_pinned: isPinned,
                         followers: followers || 0, // Ambil dari database
@@ -160,12 +161,12 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                     username: username,
                     created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     thumbnail_url: item.thumbnail_url,
-                    caption: item.caption.text || '',
+                    caption: captionText.text || "No Caption",
                     post_code: item.code,
                     comments: item.comment_count,
                     likes: item.like_count,
                     media_name: item.media_name,
-                    product_type: item.media_type,
+                    product_type: item.product_type,
                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                     is_pinned: isPinned,
                     followers: followers || 0, // Ambil dari database

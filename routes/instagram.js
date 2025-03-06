@@ -137,9 +137,10 @@ const getDateRange = async () => {
 
 // 🔹 Endpoint untuk eksekusi getComment & getChildComment sekaligus
 router.get('/getComment', async (req, res) => {
-    const { fromStart } = req.query;
-    const processFromStart = fromStart === 'false';
+    const { kategori, fromStart } = req.query;
+    const processFromStart = fromStart ? fromStart === 'true' : false;
 
+    console.info(kategori)
     console.info(fromStart)
     console.info(processFromStart)
 
@@ -163,7 +164,8 @@ router.get('/getComment', async (req, res) => {
         let mainCommentQuery = `
             SELECT unique_id_post, created_at
             FROM posts 
-            WHERE platform = "Instagram"
+            WHERE platform = "Instagram" 
+            AND kategori = ?
             AND DATE(created_at) BETWEEN ? AND ?
         `;
 
@@ -174,19 +176,20 @@ router.get('/getComment', async (req, res) => {
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                 WHERE mc.unique_id_post IS NULL
                 AND p.platform = "Instagram"
+                AND p.kategori = ?
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
         }
 
-        const [mainComments] = await db.query(mainCommentQuery, [startDate, endDate]);
+        const [mainComments] = await db.query(mainCommentQuery, [kategori, startDate, endDate]);
         console.log(`📌 Found ${mainComments.length} posts to process.`);
 
         await processQueue(mainComments, async ({ unique_id_post }) => {
             console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Instagram"`,
-                [unique_id_post]
+                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Instagram" AND kategori = ?`,
+                [unique_id_post, kategori]
             );
 
             if (userRows.length === 0) {
@@ -194,11 +197,11 @@ router.get('/getComment', async (req, res) => {
                 return;
             }
 
-            const { user_id, username, comments, client_account, kategori, platform } = userRows[0];
+            const { user_id, username, comments, client_account, platform } = userRows[0];
 
             if (comments > 0) {
                 try {
-                    await getDataIg.getDataComment(unique_id_post, user_id, username, client_account, kategori, platform);
+                    await getDataIg.getDataComment(unique_id_post, user_id, username, client_account, platform);
                     console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
                 } catch (err) {
                     console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
@@ -221,6 +224,7 @@ router.get('/getComment', async (req, res) => {
             FROM mainComments mc
             JOIN posts p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = "Instagram"
+            AND mc.kategori = ?
             AND DATE(p.created_at) BETWEEN ? AND ?
         `;
 
@@ -231,16 +235,17 @@ router.get('/getComment', async (req, res) => {
                 FROM mainComments mc
                 JOIN posts p ON mc.unique_id_post = p.unique_id_post
                 WHERE mc.platform = "Instagram"
+                AND mc.kategori = ?
                 AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
         }
 
-        const [childComments] = await db.query(childCommentQuery, [startDate, endDate]);
+        const [childComments] = await db.query(childCommentQuery, [kategori, startDate, endDate]);
         console.log(`📌 Found ${childComments.length} child comments to process.`);
 
         await processQueue(childComments, async ({
-            comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account, kategori
+            comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account
         }) => {
             console.log(`🔍 Fetching child comments for comment ID: ${comment_unique_id} on post: ${unique_id_post}...`);
 

@@ -22,24 +22,24 @@ const getDatesInRange = (startDate, endDate) => {
 };
 
 // 🔹 **Proses Data untuk Rentang Tanggal**
-const processData = async (startDate, endDate) => {
-    console.info(`[INFO] Starting batch processing from ${startDate} to ${endDate}...`);
+const processData = async (startDate, endDate, kategori) => {
+    console.info(`[INFO] Starting batch processing from ${startDate} to ${endDate} for kategori: ${kategori}...`);
 
     const dates = getDatesInRange(startDate, endDate);
 
     for (const date of dates) {
         try {
-            await processBatchForDate(date);
+            await processBatchForDate(date, kategori);
         } catch (error) {
-            console.error(`[ERROR] Failed to process batch for date ${date}:`, error);
+            console.error(`[ERROR] Failed to process batch for date ${date} in kategori ${kategori}:`, error);
         }
     }
 
-    console.info(`[INFO] Data processing completed for range ${startDate} to ${endDate}`);
+    console.info(`[INFO] Data processing completed for range ${startDate} to ${endDate} in kategori ${kategori}`);
 };
 
 // 🔹 **Ambil Data yang Perlu Diperbarui**
-const getDataForBatchProcessing = async (date) => {
+const getDataForBatchProcessing = async (date, kategori) => {
     console.info(`[INFO] Fetching data for batch processing on: ${date}`);
     const daysInMonth = getDaysInMonth(date);
 
@@ -54,7 +54,7 @@ const getDataForBatchProcessing = async (date) => {
                 SELECT COUNT(*) 
                 FROM posts 
                 WHERE client_account = dfs.client_account 
-                  AND kategori = dfs.kategori 
+                  AND kategori = ? 
                   AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -65,7 +65,7 @@ const getDataForBatchProcessing = async (date) => {
                 SELECT COUNT(*) 
                 FROM posts
                 WHERE client_account = dfs.client_account
-                  AND kategori = dfs.kategori 
+                  AND kategori = ? 
                   AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username  
                   AND DATE(created_at) = dfs.date
@@ -76,7 +76,7 @@ const getDataForBatchProcessing = async (date) => {
                 SELECT SUM(likes) 
                 FROM posts 
                 WHERE client_account = dfs.client_account 
-                  AND kategori = dfs.kategori 
+                  AND kategori = ? 
                   AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -85,7 +85,7 @@ const getDataForBatchProcessing = async (date) => {
                 SELECT COUNT(*) 
                 FROM posts 
                 WHERE client_account = dfs.client_account 
-                  AND kategori = dfs.kategori 
+                  AND kategori = ? 
                   AND platform = dfs.platform  -- ✅ Tambah filter platform
                   AND username = dfs.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -117,7 +117,7 @@ const getDataForBatchProcessing = async (date) => {
                     LEFT JOIN mainComments mc ON mc.unique_id_post = p.unique_id_post
                     LEFT JOIN childComments cc ON cc.unique_id_post = p.unique_id_post
                     WHERE p.client_account = dfs.client_account 
-                      AND p.kategori = dfs.kategori 
+                      AND p.kategori = ? 
                       AND p.platform = dfs.platform
                       AND p.username = dfs.username
                       AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -125,29 +125,31 @@ const getDataForBatchProcessing = async (date) => {
             ) AS responsiveness
 
         FROM dailyFairScores dfs
-        WHERE dfs.date = ?
+        WHERE dfs.date = ? AND dfs.kategori = ?
         
     `;
 
     const [data] = await connection.query(query, [
-        date, date, daysInMonth,
-        date, date, date, date,
-        date, date, date, date,
-        date, date
+        kategori, date, date, daysInMonth,
+        kategori,
+        kategori, date, date,
+        kategori, date, date,
+        kategori, date, date,
+        date, kategori
     ]);
 
-    console.info(`[INFO] Retrieved ${data.length} rows for date: ${date}`);
-    if (data.length > 0) console.table(data);
+    // console.info(`[INFO] Retrieved ${data.length} rows for date: ${date}`);
+    // if (data.length > 0) console.table(data);
     return data;
 };
 
 // 🔹 **Proses Batch untuk Tanggal**
-const processBatchForDate = async (date) => {
-    console.info(`[INFO] Processing batch for date: ${date}`);
-    const rows = await getDataForBatchProcessing(date);
+const processBatchForDate = async (date, kategori) => {
+    console.info(`[INFO] Processing batch for date: ${date} in kategori: ${kategori}`);
+    const rows = await getDataForBatchProcessing(date, kategori);
 
     if (rows.length === 0) {
-        console.warn(`[WARN] No data found for date: ${date}`);
+        console.warn(`[WARN] No data found for date: ${date} in kategori: ${kategori}`);
         return;
     }
 
@@ -161,13 +163,14 @@ const processBatchForDate = async (date) => {
             row.list_id, row.client_account, row.kategori, row.platform, row.username, row.date
         ];
 
-        console.info(`[INFO] Prepared update:`, update);
+        console.info(`[INFO] Prepared update for kategori: ${kategori}`, update);
         return update;
     });
 
     await batchUpdateFairScores(updates);
-    await processScoresForDate(date);
+    await processScoresForDate(date, kategori);
 };
+
 
 // 🔹 **Batch Update Data Dasar**
 const batchUpdateFairScores = async (updates) => {
@@ -248,7 +251,7 @@ const processScoresForDate = async (date) => {
             // 🔥 Hitung FAIR Score
             const fair_score = ((followers_bobot + activities_bobot + interactions_bobot + responsiveness_bobot) / 8) * 100;
 
-            console.info(`[INFO] Calculated fair_score for list_id: ${row.list_id} => ${fair_score.toFixed(2)}%`);
+            // console.info(`[INFO] Calculated fair_score for list_id: ${row.list_id} => ${fair_score.toFixed(2)}%`);
 
             updates.push([
                 followers_score, followers_bobot,
