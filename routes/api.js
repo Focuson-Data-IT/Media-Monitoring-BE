@@ -1113,8 +1113,6 @@ router.get('/getAllUsername', async (req, res) => {
 }
 );
 
-
-
 router.get('/getAllSearchUsername', async (req, res) => {
         try {
             const query = `
