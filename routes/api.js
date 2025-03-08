@@ -896,15 +896,15 @@ router.get('/getAllPost', async (req, res) => {
         const orderBy = allowedOrderByFields.includes(req.query['orderBy']) ? req.query['orderBy'] : "performa_konten";
         const direction = req.query['direction'] === "asc" ? "ASC" : "DESC";
 
-        const perPage = parseInt(req.query['perPage']) || 5;
+        const perPage = parseInt(req.query['perPage']) || 15;
         const page = parseInt(req.query['page']) || 1;
         const offset = (page - 1) * perPage;
 
-        const { kategori, platform, start_date, end_date, username } = req.query;
+        const { kategori, platform, start_date, end_date, username, media_name } = req.query;
 
-        const queryParams = [kategori, platform, start_date, end_date, username];
+        const queryParams = [kategori, platform, start_date, end_date, username, media_name];
 
-        console.info("Received Request: ", { page, perPage, offset, kategori, platform, start_date, end_date });
+        console.info("Received Request: ", { page, perPage, offset, kategori, platform, start_date, end_date, media_name });
 
         // 1️⃣ Hitung total data
         const countQuery = `
@@ -914,8 +914,9 @@ router.get('/getAllPost', async (req, res) => {
               AND platform = ?
               AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
               AND username LIKE CONCAT('%', ?, '%')
+              AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
         `;
-        const [countRows] = await db.query(countQuery, queryParams);
+        const [countRows] = await db.query(countQuery, [kategori, platform, start_date, end_date, username, media_name, media_name]);
         const total = countRows[0].total;
         const totalPages = Math.ceil(total / perPage);
         const hasMore = offset + perPage < total;
@@ -946,8 +947,9 @@ router.get('/getAllPost', async (req, res) => {
                             CASE 
                                 WHEN platform = 'Instagram' THEN 
                                     CASE 
-                                        WHEN media_name IN ('post', 'album') THEN 'post_album'
-                                        WHEN media_name = 'reel' THEN 'reel'
+                                        WHEN media_name IN ('post') THEN 'Single Post'
+                                        WHEN media_name IN ('album') THEN 'Carousel'
+                                        WHEN media_name = 'reel' THEN 'Reel'
                                         ELSE 'other'
                                     END
                                 ELSE 'TikTok'
@@ -961,8 +963,9 @@ router.get('/getAllPost', async (req, res) => {
                             CASE 
                                 WHEN platform = 'Instagram' THEN 
                                     CASE 
-                                        WHEN media_name IN ('post', 'album') THEN 'post_album'
-                                        WHEN media_name = 'reel' THEN 'reel'
+                                        WHEN media_name IN ('post') THEN 'Single Post'
+                                        WHEN media_name IN ('album') THEN 'Carousel'
+                                        WHEN media_name = 'reel' THEN 'Reel'
                                         ELSE 'other'
                                     END
                                 ELSE 'TikTok'
@@ -973,6 +976,7 @@ router.get('/getAllPost', async (req, res) => {
                   AND platform = ?
                   AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
                   AND username LIKE CONCAT('%', ?, '%')
+                  AND (media_name = ? OR ? IS NULL)
             ),
             positions AS (
                 SELECT
@@ -1002,17 +1006,24 @@ router.get('/getAllPost', async (req, res) => {
             CROSS JOIN percentile_90_calc p90;
         `;
 
-        const [percentileRows] = await db.query(percentileQuery, queryParams);
+        const [percentileRows] = await db.query(percentileQuery, [kategori, platform, start_date, end_date, username, media_name, media_name]);
         const percentile10 = percentileRows[0]?.percentile_10 || 0;
         const percentile90 = percentileRows[0]?.percentile_90 || 0;
 
         console.info(`Calculated Percentiles (Grouped): 10% = ${percentile10}, 90% = ${percentile90}`);
 
-        // 3️⃣ Hitung warna performa untuk semua data, kemudian paginasi
+        // 3️⃣ Ambil data dengan filtering media_name
         const dataQuery = `
             WITH all_data AS (
                 SELECT 
                     *,
+                    (CASE 
+                        WHEN platform = 'TikTok' AND (media_name IS NULL OR media_name = '') THEN 'Video'
+                        WHEN media_name = 'reel' THEN 'Reel'
+                        WHEN media_name IN ('post') THEN 'Single Post'
+                        WHEN media_name IN ('album') THEN 'Carousel'
+                        ELSE media_name
+                    END) AS formatted_media_name,
                     (CASE 
                         WHEN performa_konten <= ? THEN 'red'
                         WHEN performa_konten >= ? THEN 'green'
@@ -1020,19 +1031,20 @@ router.get('/getAllPost', async (req, res) => {
                     END) AS performa_color
                 FROM posts
                 WHERE kategori = ?
-                  AND platform = ?
-                  AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-                  AND username LIKE CONCAT('%', ?, '%')
+                    AND platform = ?
+                    AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+                    AND username LIKE CONCAT('%', ?, '%')
+                    AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
             )
-            SELECT *
+            SELECT all_data.*, formatted_media_name AS media_name
             FROM all_data
             ORDER BY ${orderBy} ${direction}
             LIMIT ?
             OFFSET ?;
         `;
 
-        console.info([percentile10, percentile90, kategori, platform, username, perPage, offset])
-        const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, kategori, platform, start_date, end_date, username, perPage, offset]);
+        console.info([percentile10, percentile90, kategori, platform, username, media_name, perPage, offset]);
+        const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, kategori, platform, start_date, end_date, username, media_name, media_name, perPage, offset]);
 
         // 4️⃣ Kirim respons ke frontend
         res.json({
@@ -1144,7 +1156,45 @@ router.get('/getAllSearchUsername', async (req, res) => {
     }
 );
 
+router.get('/getTotalPost', async (req, res) => {
+    try {
+        const query = `
+            SELECT username, 
+            COUNT(post_id) AS totalPosts
+            FROM posts
+            WHERE kategori = ?
+                AND platform = ?
+                AND created_at BETWEEN ? AND ?
+                AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
+                AND username LIKE CONCAT('%', ?, '%')
+            GROUP BY username
+        `;
 
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['start_date'], // Rentang awal
+            req.query['end_date'],   // Rentang akhir
+            req.query['media_name'],
+            req.query['media_name'],
+            req.query['search']
+        ];
+
+        console.info(queryParams)
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).send('Failed to fetch data');
+    }
+});
 
 router.get('/getPictureData', async (req, res) => {
     try {
