@@ -1,19 +1,19 @@
 const connection = require('../models/db');
 
-// Fungsi untuk menyimpan data user ke database
+// fungsi untuk menyimpan data user ke database
 const saveUser = async (user) => {
     const sql = `
-        INSERT INTO users (client_account, kategori, platform, username, user_id, followers, following, mediaCount, profile_pic_url) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
-            platform = VALUES(platform),
-            followers = VALUES(followers),
-            following = VALUES(following),
-            mediaCount = VALUES(mediaCount),
-            profile_pic_url = VALUES(profile_pic_url)
-    `;
+                    INSERT INTO users (client_account, kategori, platform, username, user_id, followers, following, mediaCount, profile_pic_url) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    client_account = VALUES(client_account),
+                    kategori = VALUES(kategori),
+                    platform = VALUES(platform), 
+                    followers = VALUES(followers),
+                    following = VALUES(following),
+                    mediaCount = VALUES(mediaCount),
+                    profile_pic_url = VALUES(profile_pic_url)
+                `;
     connection.query(sql, [
         user.client_account, user.kategori, user.platform,
         user.username, user.user_id, user.followers, user.following, user.mediaCount, user.profile_pic_url
@@ -28,19 +28,21 @@ const saveUser = async (user) => {
     );
 };
 
-// Fungsi untuk menyimpan data post ke database
+// fungsi untuk menyimpan data post ke database
 const savePost = async (post) => {
     const sql = `
-        INSERT INTO posts (client_account, kategori, platform, username, user_id, unique_id_post, created_at, thumbnail_url, caption, post_code, 
-            comments, likes, media_name, product_type, tagged_users, is_pinned, followers, following, playCount,
-            collectCount, shareCount, downloadCount)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO posts (
+            client_account, kategori, platform, user_id, unique_id_post, username, created_at, 
+            thumbnail_url, caption, post_code, comments, likes, media_name, product_type, 
+            tagged_users, is_pinned, followers, following, playCount, shareCount
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
             platform = VALUES(platform),
-            username = VALUES(username),
             user_id = VALUES(user_id),
+            username = VALUES(username),
             created_at = VALUES(created_at),
             thumbnail_url = VALUES(thumbnail_url),
             caption = VALUES(caption),
@@ -54,36 +56,33 @@ const savePost = async (post) => {
             followers = VALUES(followers),
             following = VALUES(following),
             playCount = VALUES(playCount),
-            collectCount = VALUES(collectCount),
-            shareCount = VALUES(shareCount),
-            downloadCount = VALUES(downloadCount)
+            shareCount = VALUES(shareCount)
     `;
     connection.query(sql, [
-        post.client_account, post.kategori, post.platform, post.username,
-        post.user_id, post.unique_id_post, post.created_at, post.thumbnail_url, post.caption, post.post_code, 
-        post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, 
-        post.followers, post.following, post.playCount, post.collectCount, post.shareCount, post.downloadCount
-    ], (err, result) => {
-        if (err) {
-            console.error(`❌ Error saving post ${post.unique_id_post} to database:`, err.message);
-        } else {
-            console.log(`✅ Saved post ${post.unique_id_post} for ${post.client_account} in kategori ${post.kategori}`);
+        post.client_account, post.kategori, post.platform,
+        post.user_id, post.unique_id_post, post.username, post.created_at, post.thumbnail_url, post.caption, post.post_code, post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, post.followers, post.following, post.playCount, post.shareCount
+    ],
+        (err, result) => {
+            if (err) {
+                console.error(`Error saving post ${post.unique_id_post} to database:`, err.message);
+            } else {
+                console.log(`Saved post ${post.unique_id_post} to database`);
+            }
         }
-    });
+    );
 };
 
-// Fungsi untuk menyimpan data comment ke database
+// fungsi untuk menyimpan data comment ke database
 const saveComment = async (comment) => {
     const sql = `
-        INSERT INTO mainComments (client_account, kategori, platform, username, user_id, unique_id_post, comment_unique_id, created_at, 
-            commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count)
+        INSERT INTO mainComments (client_account, kategori, platform, user_id, username, unique_id_post, comment_unique_id, created_at, commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
             platform = VALUES(platform),
-            username = VALUES(username),
             user_id = VALUES(user_id),
+            username = VALUES(username),
             unique_id_post = VALUES(unique_id_post),
             created_at = VALUES(created_at),
             commenter_username = VALUES(commenter_username),
@@ -93,19 +92,20 @@ const saveComment = async (comment) => {
             child_comment_count = VALUES(child_comment_count)
     `;
     connection.query(sql, [
-        comment.client_account, comment.kategori, comment.platform, comment.username,
-        comment.user_id, comment.unique_id_post, comment.comment_unique_id, comment.created_at,
-        comment.commenter_username, comment.commenter_userid, comment.comment_text, comment.comment_like_count, comment.child_comment_count
-    ], (err, result) => {
-        if (err) {
-            console.error(`❌ Error saving comment ${comment.comment_unique_id} for ${comment.client_account}:`, err.message);
-        } else {
-            console.log(`✅ Saved comment ${comment.comment_unique_id} for ${comment.client_account} in kategori ${comment.kategori}`);
+        comment.client_account, comment.kategori, comment.platform,
+        comment.user_id, comment.username, comment.unique_id_post, comment.comment_unique_id, comment.created_at, comment.commenter_username, comment.commenter_userid, comment.comment_text, comment.comment_like_count, comment.child_comment_count
+    ],
+        (err, result) => {
+            if (err) {
+                console.error(`Error saving post ${comment.unique_id_post} to database:`, err.message);
+            } else {
+                console.log(`Saved post ${comment.unique_id_post} to database`);
+            }
         }
-    });
+    );
 };
 
-// Fungsi untuk menyimpan data child comment ke database
+// fungsi untuk menyimpan data comment ke database
 const saveChildComment = async (childComment) => {
     const sql = `
         INSERT INTO childComments 
@@ -133,13 +133,44 @@ const saveChildComment = async (childComment) => {
         childComment.user_id, childComment.username,
         childComment.unique_id_post, childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at,
         childComment.child_commenter_username, childComment.child_commenter_userid, childComment.child_comment_text, childComment.child_comment_like_count
-    ], (err, result) => {
-        if (err) {
-            console.error(`❌ Error saving child comment ID ${childComment.child_comment_unique_id} for ${childComment.client_account}:`, err.message);
-        } else {
-            console.log(`✅ Saved child comment ID ${childComment.child_comment_unique_id} for ${childComment.client_account} in kategori ${childComment.kategori}`);
+    ],
+        (err, result) => {
+            if (err) {
+                console.error(`Error saving post ${childComment.unique_id_post} to database:`, err.message);
+            } else {
+                console.log(`Saved post ${childComment.unique_id_post} to database`);
+            }
         }
-    });
+    );
+};
+
+// fungsi untuk menyimpan data likes ke database
+const saveLikes = async (likes) => {
+    const sql = `
+    INSERT INTO likes (client_account, kategori, platform, post_code, user_id, username, fullname, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+        client_account = VALUES(client_account),
+        kategori = VALUES(kategori),
+        platform = VALUES(platform),
+        post_code = VALUES(post_code),
+        user_id = VALUES(user_id),
+        username = VALUES(username),
+        fullname = VALUES(fullname),
+        created_at = VALUES(created_at)
+    `;
+    connection.query(sql, [
+        likes.client_account, likes.kategori, likes.platform,
+        likes.post_code, likes.user_id, likes.username, likes.fullname, likes.created_at
+    ],
+        (err, result) => {
+            if (err) {
+                console.error(`Error saving post ${likes.post_code} to database:`, err.message);
+            } else {
+                console.log(`Saved post ${likes.post_code} to database`);
+            }
+        }
+    );
 };
 
 const saveDataPostByKeywords = async (post) => {
@@ -147,9 +178,8 @@ const saveDataPostByKeywords = async (post) => {
         INSERT INTO posts (
         client_account, kategori, platform, keywords, 
         user_id, username, unique_id_post, created_at, 
-        thumbnail_url, caption, comments, likes, 
-        playCount, collectCount, shareCount, downloadCount)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        thumbnail_url, caption, comments, likes, shareCount)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
@@ -162,16 +192,12 @@ const saveDataPostByKeywords = async (post) => {
             caption = VALUES(caption),
             comments = VALUES(comments),
             likes = VALUES(likes),
-            playCount = VALUES(playCount),
-            collectCount = VALUES(collectCount),
-            shareCount = VALUES(shareCount),
-            downloadCount = VALUES(downloadCount)
+            shareCount = VALUES(shareCount)
     `;
     connection.query(sql, [
         post.client_account, post.kategori, post.platform, post.keywords,
         post.user_id, post.username, post.unique_id_post, post.created_at,
-        post.thumbnail_url, post.caption, post.comments, post.likes,
-        post.playCount, post.collectCount, post.shareCount, post.downloadCount
+        post.thumbnail_url, post.caption, post.comments, post.likes, post.shareCount
     ], (err, result) => {
         if (err) {
             console.error(`❌ Error saving post ${post.unique_id_post} to database:`, err.message);
@@ -186,5 +212,6 @@ module.exports = {
     savePost,
     saveComment,
     saveChildComment,
+    saveLikes,
     saveDataPostByKeywords
 };

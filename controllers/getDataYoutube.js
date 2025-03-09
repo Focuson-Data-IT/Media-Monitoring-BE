@@ -1,6 +1,6 @@
 require('dotenv').config(); // Load environment variables from .env file
 const axios = require('axios');
-const save = require('./saveDataIg');
+const save = require('./saveDataYoutube');
 const db = require('../models/db'); // Database connection
 
 // Fungsi untuk mengambil data followers dan following dari database
@@ -40,8 +40,8 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
                 url_embed_safe: 'true'
             },
             headers: {
-                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY, 
-                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                'x-rapidapi-key': process.env.RAPIDAPI_YT_KEY, 
+                'x-rapidapi-host': process.env.RAPIDAPI_YT_HOST
             }
         };
 
@@ -101,8 +101,8 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
                 }
             };
 
@@ -201,8 +201,8 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
                 }
             };
 
@@ -263,8 +263,8 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
                 }
             };
 
@@ -317,8 +317,8 @@ const getDataLikes = async (post_code = null, created_at = null, client_account 
                 code_or_id_or_url: post_code,
             },
             headers: {
-                'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
             }
         };
 
@@ -351,85 +351,144 @@ const getDataLikes = async (post_code = null, created_at = null, client_account 
     }
 };
 
-const getDataPostByKeyword = async (client_account = null, kategori = null, platform = null, keyword = null) => {
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const getDataPostByKeyword = async (client_account = null, kategori = null, platform = null, keyword = null, start_date = null, end_date = null) => {
     try {
-        let paginationToken = null;
+        let nextPageToken = null;
         let hasMore = true;
         let pageCount = 0;
         let totalFetched = 0;
-        const maxTotalResults = 250; // Maksimal ambil 250 post
-        
+        const maxResultsPerPage = 50;
+        const maxTotalResults = 150; // Batas maksimal 150 video
+        const maxRequestsPerSecond = 5; // Batas 5 request per detik
+
+        const startDateTime = new Date(start_date).toISOString();
+        const endDateTime = new Date(end_date).toISOString();
+
         while (hasMore && totalFetched < maxTotalResults) {
+            console.log(`Fetching page ${pageCount + 1}...`);
+
+            // Fetch daftar video
             const getPost = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/hashtag',
+                url: 'https://youtube-v311.p.rapidapi.com/search/',
                 params: {
-                    hashtag: keyword,
-                    feed_type: 'top',
-                    url_embed_safe: 'true',
-                    ...(paginationToken && { pagination_token: paginationToken }) // Perbaikan logic pagination
+                    part: 'snippet',
+                    maxResults: maxResultsPerPage,
+                    order: 'relevance',
+                    publishedAfter: startDateTime,
+                    publishedBefore: endDateTime,
+                    q: keyword,
+                    regionCode: 'ID',
+                    relevanceLanguage: 'id',
+                    safeSearch: 'none',
+                    type: 'video',
+                    ...(nextPageToken && { pageToken: nextPageToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
                 }
             };
 
-            const response = await apiRequestWithRetry(getPost);
+            await delay(200); // Tambahkan delay untuk mengontrol rate limit
+            const response = await axios.request(getPost);
 
-            if (!response || !response.data || !response.data.data) {
-                console.error(`❌ Error: Invalid response structure for keyword "${keyword}"`);
-                break; // Stop looping jika response tidak sesuai
+            if (!response || !response.data || !response.data.items) {
+                throw new Error('Response does not contain video data');
             }
 
-            const items = response.data.data.items;
-            if (!items || items.length === 0) {
-                console.log(`⚠️ No more data found for keyword "${keyword}"`);
-                break; // Stop jika tidak ada item yang ditemukan
-            }
-
+            const items = response.data.items;
             totalFetched += items.length;
 
-            for (const item of items) {
-                try {
-                    const postDate = new Date(item.taken_at * 1000).toISOString().slice(0, 19).replace('T', ' ');
-                    const captionText = item.caption?.text || "No Caption";
+            // Ambil video ID untuk fetch statistik
+            const videoIds = items.map(item => item.id.videoId).filter(Boolean);
+            console.info('Fetching statistics for videos:', videoIds);
 
-                    const dataPost = {
-                        client_account: client_account,
-                        kategori: kategori,
-                        platform: platform,
-                        keyword: keyword,
-                        user_id: item.user?.id || "",
-                        username: item.user?.username || "Unknown",
-                        unique_id_post: item.id,
-                        post_code: item.code,
-                        created_at: postDate,
-                        thumbnail_url: item.thumbnail_url || "",
-                        caption: captionText,
-                        comments: item.comment_count || 0,
-                        likes: item.like_count || 0,
-                        media_name: item.media_name || "Unknown",
-                        product_type: item.product_type || "Unknown",
-                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                        playCount: item.play_count || 0,
-                        shareCount: item.share_count || item.reshare_count || 0,
+            // **Batas Maksimum 5 Request per Detik**
+            let statsResponses = [];
+            for (let i = 0; i < videoIds.length; i += maxRequestsPerSecond) {
+                const batch = videoIds.slice(i, i + maxRequestsPerSecond);
+
+                console.log(`Fetching statistics for batch: ${batch}`);
+
+                const batchResponses = await Promise.allSettled(batch.map(async videoId => {
+                    const statsRequest = {
+                        method: 'GET',
+                        url: 'https://youtube-v311.p.rapidapi.com/videos/',
+                        params: {
+                            part: 'snippet,contentDetails,statistics',
+                            id: videoId
+                        },
+                        headers: {
+                            'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                            'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
+                        }
                     };
+                    return axios.request(statsRequest);
+                }));
 
-                    await save.saveDataPostByKeywords(dataPost);
-                } catch (error) {
-                    console.error(`⚠️ Error processing post ID ${item.id}: ${error.message}`);
-                }
+                statsResponses.push(...batchResponses);
+                await delay(1000); // Tunggu 1 detik sebelum batch berikutnya
             }
 
-            paginationToken = response.data.pagination_token; // Perbaikan: Sesuaikan dengan format API
-            hasMore = !!paginationToken; // Stop jika paginationToken tidak ada
+            // Mapping data video & statistik
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const statsResponse = statsResponses[i];
 
+                let videoStats = {
+                    thumbnail_url: item.snippet?.thumbnails?.standard?.url || item.snippet?.thumbnails?.default?.url || '',
+                    title: item.snippet?.title || "No Title",
+                    caption: item.snippet?.description || "No Description",
+                    likeCount: 0,
+                    commentCount: 0,
+                    viewCount: 0,
+                    favoriteCount: 0,
+                    shareCount: 0
+                };
+
+                if (statsResponse.status === 'fulfilled' && statsResponse.value.data.items?.length > 0) {
+                    const stats = statsResponse.value.data.items[0]?.statistics || {};
+                    videoStats.likeCount = parseInt(stats.likeCount || 0);
+                    videoStats.commentCount = parseInt(stats.commentCount || 0);
+                    videoStats.viewCount = parseInt(stats.viewCount || 0);
+                    videoStats.favoriteCount = parseInt(stats.favoriteCount || 0);
+                    videoStats.shareCount = parseInt(stats.shareCount || 0);
+                }
+
+                const dataPost = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
+                    keywords: keyword,
+                    user_id: item.snippet.channelId,
+                    username: item.snippet.channelTitle,
+                    unique_id_post: item.id.videoId,
+                    created_at: new Date(item.snippet.publishedAt).toISOString().slice(0, 19).replace('T', ' '),
+                    thumbnail_url: videoStats.thumbnail_url,
+                    title: videoStats.title,
+                    caption: videoStats.caption,
+                    comments: videoStats.commentCount,
+                    playCount: videoStats.viewCount,
+                    collectCount: videoStats.favoriteCount,
+                    likes: videoStats.likeCount,
+                    shareCount: videoStats.shareCount
+                };
+
+                await save.saveDataPostByKeywords(dataPost);
+            }
+
+            // Update token halaman berikutnya
+            nextPageToken = response.data.nextPageToken;
+            hasMore = !!nextPageToken && totalFetched < maxTotalResults;
             pageCount++;
-            console.log(`✅ Processed Page ${pageCount} - Total Posts Fetched: ${totalFetched}`);
+
+            console.log(`✅ Page ${pageCount} processed. Total videos fetched: ${totalFetched}`);
         }
 
-        console.log("🎉 Done fetching Instagram posts.");
+        console.log("✅ Finished fetching YouTube videos.");
     } catch (error) {
         console.error(`❌ Error fetching data for keyword "${keyword}":`, error.message);
     }

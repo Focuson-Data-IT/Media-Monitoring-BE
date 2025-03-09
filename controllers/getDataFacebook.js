@@ -1,6 +1,6 @@
 require('dotenv').config(); // Load environment variables from .env file
 const axios = require('axios');
-const save = require('./saveDataIg');
+const save = require('./saveDataFacebook');
 const db = require('../models/db'); // Database connection
 
 // Fungsi untuk mengambil data followers dan following dari database
@@ -40,8 +40,8 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
                 url_embed_safe: 'true'
             },
             headers: {
-                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY, 
-                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                'x-rapidapi-key': process.env.RAPIDAPI_FB_KEY, 
+                'x-rapidapi-host': process.env.RAPIDAPI_FB_HOST
             }
         };
 
@@ -101,8 +101,8 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_FB_HOST
                 }
             };
 
@@ -201,8 +201,8 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_FB_HOST
                 }
             };
 
@@ -263,8 +263,8 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                     ...(paginationToken && { pagination_token: paginationToken })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_FB_HOST
                 }
             };
 
@@ -317,8 +317,8 @@ const getDataLikes = async (post_code = null, created_at = null, client_account 
                 code_or_id_or_url: post_code,
             },
             headers: {
-                'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
+                'X-RapidAPI-Host': process.env.RAPIDAPI_FB_HOST
             }
         };
 
@@ -351,87 +351,67 @@ const getDataLikes = async (post_code = null, created_at = null, client_account 
     }
 };
 
-const getDataPostByKeyword = async (client_account = null, kategori = null, platform = null, keyword = null) => {
+const getDataPostByKeyword = async (client_account = null, kategori = null, platform = null, keyword = null, start_date = null, end_date = null) => {
     try {
-        let paginationToken = null;
+
+        let cursor = null;
         let hasMore = true;
-        let pageCount = 0;
-        let totalFetched = 0;
-        const maxTotalResults = 250; // Maksimal ambil 250 post
+        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
         
-        while (hasMore && totalFetched < maxTotalResults) {
+        while (hasMore) {
             const getPost = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/hashtag',
+                url: 'https://facebook-scraper3.p.rapidapi.com/search/posts',
                 params: {
-                    hashtag: keyword,
-                    feed_type: 'top',
-                    url_embed_safe: 'true',
-                    ...(paginationToken && { pagination_token: paginationToken }) // Perbaikan logic pagination
+                    query: keyword,
+                    start_date: start_date,
+                    end_date: end_date,
+                    ...(cursor && { cursor: cursor })
                 },
                 headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_FB_HOST
                 }
             };
 
-            const response = await apiRequestWithRetry(getPost);
+            const response = await axios.request(getPost);
 
-            if (!response || !response.data || !response.data.data) {
-                console.error(`❌ Error: Invalid response structure for keyword "${keyword}"`);
-                break; // Stop looping jika response tidak sesuai
+            if (!response || !response.data) {
+                throw new Error('Response does not contain user data');
             }
 
-            const items = response.data.data.items;
-            if (!items || items.length === 0) {
-                console.log(`⚠️ No more data found for keyword "${keyword}"`);
-                break; // Stop jika tidak ada item yang ditemukan
-            }
-
-            totalFetched += items.length;
+            const items = response.data.results;
 
             for (const item of items) {
-                try {
-                    const postDate = new Date(item.taken_at * 1000).toISOString().slice(0, 19).replace('T', ' ');
-                    const captionText = item.caption?.text || "No Caption";
+                const postDate = new Date(item.timestamp * 1000).getTime();
+                const dataPost = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
+                    keywords: keyword,
+                    user_id: item.author.id,
+                    username: item.author.name,
+                    unique_id_post: item.post_id,
+                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                    thumbnail_url: item.video_thumbnail || item.image_thumbnail,
+                    caption: item.message || '',
+                    comments: item.comments_count,
+                    likes: item.reactions.like,
+                    shareCount: item.reshare_count || 0,
+                };
 
-                    const dataPost = {
-                        client_account: client_account,
-                        kategori: kategori,
-                        platform: platform,
-                        keyword: keyword,
-                        user_id: item.user?.id || "",
-                        username: item.user?.username || "Unknown",
-                        unique_id_post: item.id,
-                        post_code: item.code,
-                        created_at: postDate,
-                        thumbnail_url: item.thumbnail_url || "",
-                        caption: captionText,
-                        comments: item.comment_count || 0,
-                        likes: item.like_count || 0,
-                        media_name: item.media_name || "Unknown",
-                        product_type: item.product_type || "Unknown",
-                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                        playCount: item.play_count || 0,
-                        shareCount: item.share_count || item.reshare_count || 0,
-                    };
-
-                    await save.saveDataPostByKeywords(dataPost);
-                } catch (error) {
-                    console.error(`⚠️ Error processing post ID ${item.id}: ${error.message}`);
-                }
+                await save.saveDataPostByKeywords(dataPost);
             }
 
-            paginationToken = response.data.pagination_token; // Perbaikan: Sesuaikan dengan format API
-            hasMore = !!paginationToken; // Stop jika paginationToken tidak ada
-
-            pageCount++;
-            console.log(`✅ Processed Page ${pageCount} - Total Posts Fetched: ${totalFetched}`);
+            cursor = response.data.cursor;
+            hasMorePage = response.data.cursor ? true : false; // Cek apakah masih ada halaman selanjutnya
+            if (hasMorePage == false) hasMore = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
+            
         }
-
-        console.log("🎉 Done fetching Instagram posts.");
     } catch (error) {
-        console.error(`❌ Error fetching data for keyword "${keyword}":`, error.message);
+        console.error(`Error fetching data for keyword ${keyword}:`, error.message);
     }
 };
 

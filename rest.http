@@ -95,11 +95,11 @@ GET http://localhost:7770/instagram/getPost?kategori=prokopim_bekasikab
 ### Get TikTok User Post
 GET http://localhost:7770/tiktok/getPost?kategori=disparbud
 
-### Get Instagram User Post
+### Get Instagram User Comment
 GET http://localhost:7770/instagram/getComment?kategori=bkkbn_jabar
 
-### Get TikTok User Post
-GET http://localhost:7770/tiktok/getComment
+### Get TikTok User Comment
+GET http://localhost:7770/tiktok/getComment?kategori=kdm
 
 ### STEP 2
 
@@ -212,3 +212,15 @@ GET http://localhost:7770/api/getTotalPost?&platform=TikTok&kategori=disparbud&s
 
 ###
 GET http://localhost:7770/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
+
+###
+GET http://localhost:7770/tiktok/getDataPostByKeywords?kategori=kdm
+
+###
+GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=kdm
+
+###
+GET http://localhost:7770/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
+
+###
+GET http://localhost:7770/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09

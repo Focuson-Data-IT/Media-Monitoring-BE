@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const getDataIg = require('../controllers/getDataIg');
+const getDataYoutube = require('../controllers/getDataYoutube');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
 
@@ -63,16 +63,16 @@ const processQueue = async (items, processFunction) => {
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
-    // Fetch data for Instagram
+    // Fetch data for Youtube
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Instagram" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Youtube" AND kategori = ?', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
                 console.info('Fetching data for user:' + row.username);
         
                 // Panggil fungsi getDataUser
-                await getDataIg.getDataUser(
+                await getDataYoutube.getDataUser(
                     row.username,
                     row.client_account,
                     row.kategori,
@@ -95,13 +95,13 @@ router.get('/getData', async (req, res) => {
 // Eksekusi getPost berdasarkan semua username di listAkun
 router.get('/getPost', async (req, res) => {
     const { kategori } = req.query;
-    // Fetch data for Instagram
+    // Fetch data for Youtube
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Instagram" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Youtube" AND kategori = ?', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
-            await getDataIg.getDataPost(
+            await getDataYoutube.getDataPost(
                 row.username,
                 row.client_account,
                 row.kategori,
@@ -164,7 +164,7 @@ router.get('/getComment', async (req, res) => {
         let mainCommentQuery = `
             SELECT unique_id_post, created_at
             FROM posts 
-            WHERE platform = "Instagram" 
+            WHERE platform = "Youtube" 
             AND kategori = ?
             AND DATE(created_at) BETWEEN ? AND ?
         `;
@@ -175,7 +175,7 @@ router.get('/getComment', async (req, res) => {
                 FROM posts p
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                 WHERE mc.unique_id_post IS NULL
-                AND p.platform = "Instagram"
+                AND p.platform = "Youtube"
                 AND p.kategori = ?
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
@@ -188,7 +188,7 @@ router.get('/getComment', async (req, res) => {
             console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Instagram" AND kategori = ?`,
+                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Youtube" AND kategori = ?`,
                 [unique_id_post, kategori]
             );
 
@@ -201,7 +201,7 @@ router.get('/getComment', async (req, res) => {
 
             if (comments > 0) {
                 try {
-                    await getDataIg.getDataComment(unique_id_post, user_id, username, client_account, platform);
+                    await getDataYoutube.getDataComment(unique_id_post, user_id, username, client_account, platform);
                     console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
                 } catch (err) {
                     console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
@@ -223,7 +223,7 @@ router.get('/getComment', async (req, res) => {
             mc.child_comment_count, mc.client_account, mc.kategori, p.created_at
             FROM mainComments mc
             JOIN posts p ON mc.unique_id_post = p.unique_id_post
-            WHERE mc.platform = "Instagram"
+            WHERE mc.platform = "Youtube"
             AND mc.kategori = ?
             AND DATE(p.created_at) BETWEEN ? AND ?
         `;
@@ -234,7 +234,7 @@ router.get('/getComment', async (req, res) => {
                 mc.child_comment_count, mc.client_account, mc.kategori, p.created_at
                 FROM mainComments mc
                 JOIN posts p ON mc.unique_id_post = p.unique_id_post
-                WHERE mc.platform = "Instagram"
+                WHERE mc.platform = "Youtube"
                 AND mc.kategori = ?
                 AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
                 AND DATE(p.created_at) BETWEEN ? AND ?
@@ -251,7 +251,7 @@ router.get('/getComment', async (req, res) => {
 
             if (child_comment_count > 0) {
                 try {
-                    await getDataIg.getDataChildComment(
+                    await getDataYoutube.getDataChildComment(
                         unique_id_post, 
                         user_id, 
                         username, 
@@ -285,7 +285,7 @@ router.get('/getComment', async (req, res) => {
 // Eksekusi getLikes count
 router.get('/getLikes', async (req, res) => {
     try {
-        let query = 'SELECT * FROM posts WHERE platform = "Instagram"';
+        let query = 'SELECT * FROM posts WHERE platform = "Youtube"';
 
         const [rows] = await db.query(query);
 
@@ -294,13 +294,13 @@ router.get('/getLikes', async (req, res) => {
             const userQuery = `
                 SELECT created_at
                 FROM posts
-                WHERE post_code = ? AND platform = "Instagram"
+                WHERE post_code = ? AND platform = "Youtube"
             `;
             const [userRows] = await db.query(userQuery, [post_code]);
             const { created_at } = userRows[0];
             try {
                 console.log(`Fetching likes for post: ${post_code}...`);
-                await getDataIg.getDataLikes(post_code, created_at);
+                await getDataYoutube.getDataLikes(post_code, created_at);
                 console.log(`Likes for post ${post_code} have been fetched and saved.`);
             } catch (err) {
                 console.error(`Error fetching likes for post ${post_code}:`, err.message);
@@ -315,23 +315,25 @@ router.get('/getLikes', async (req, res) => {
 });
 
 router.get('/getDataPostByKeywords', async (req, res) => {
-    const { kategori } = req.query;
+    const { kategori, start_date, end_date } = req.query;
     // Fetch data for TikTok
     try {
         const [rows] = await db.query(`
             SELECT * FROM listKeywords 
             WHERE 
-            platform = "Instagram" 
+            platform = "Youtube" 
             AND kategori = ? 
             `, [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for keyword: ${row.keyword}...`);
-            await getDataIg.getDataPostByKeyword(
+            await getDataYoutube.getDataPostByKeyword(
                 row.client_account,
                 row.kategori,
                 row.platform,
-                row.keyword
+                row.keyword,
+                start_date,
+                end_date
             );
             console.log(`Posts for keywords ${row.keyword} have been fetched and saved.`);
         });

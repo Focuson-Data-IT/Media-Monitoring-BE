@@ -70,6 +70,7 @@ const getDataPost = async (client_account = null, kategori = null, platform = nu
 
         let cursor = null;
         let hasMore = true;
+        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
         const endDateObj = new Date(endDate).getTime();
 
         while (hasMore) {
@@ -164,6 +165,8 @@ const getDataPost = async (client_account = null, kategori = null, platform = nu
             cursor = response.data.data.cursor;
             hasMorePage = response.data.data.hasMore;
             if (hasMorePage == false) hasMore = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
         }
     } catch (error) {
         console.error(`Error fetching data for user ${username}:`, error.message);
@@ -175,6 +178,7 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
     try {
         let cursor = 0;
         let hasMore = true;
+        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
 
         while (hasMore) {
             const getComment = {
@@ -224,6 +228,8 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
             cursor = response.data.data.cursor;
             hasMorePage = response.data.data.hasMore;
             if (hasMorePage == false) hasMore = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
         }
     } catch (error) {
         console.error(`Error fetching data for ${unique_id_post}:`, error.message);
@@ -235,6 +241,7 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
     try {
         let cursor = 0;
         let hasMore = true;
+        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
 
         while (hasMore) {
             const getChildComment = {
@@ -285,9 +292,77 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
             cursor = response.data.data.cursor;
             hasMorePage = response.data.data.hasMore;
             if (hasMorePage == false) hasMore = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
         }
     } catch (error) {
         console.error(`Error fetching data for ${unique_id_post}:`, error.message);
+    }
+};
+
+const getDataPostByKeyword = async (client_account = null, kategori = null, platform = null, keyword = null) => {
+    try {
+
+        let cursor = null;
+        let hasMore = true;
+        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
+        
+        while (hasMore) {
+            const getPost = {
+                method: 'GET',
+                url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/searchVideoListByKeywords',
+                params: {
+                    keywords: keyword,
+                    count: 30,
+                    ...(cursor && { cursor: cursor })
+                },
+                headers: {
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
+                }
+            };
+
+            const response = await apiRequestWithRetry(getPost);
+
+            if (!response || !response.data) {
+                throw new Error('Response does not contain user data');
+            }
+
+            const items = response.data.data.videos;
+
+            for (const item of items) {
+                const postDate = new Date(item.create_time * 1000).getTime();
+                const dataPost = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
+                    keywords: keyword,
+                    user_id: item.author.id,
+                    username: item.author.unique_id,
+                    unique_id_post: item.video_id,
+                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                    thumbnail_url: item.cover,
+                    caption: item.title || '',
+                    comments: item.comment_count,
+                    likes: item.digg_count,
+                    playCount: item.play_count || 0,
+                    collectCount: item.collect_count || 0,
+                    shareCount: item.share_count || 0,
+                    downloadCount: item.download_count || 0,
+                };
+
+                await save.saveDataPostByKeywords(dataPost);
+            }
+
+            cursor = response.data.data.cursor;
+            hasMorePage = response.data.data.hasMore;
+            if (hasMorePage == false) hasMore = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
+            
+        }
+    } catch (error) {
+        console.error(`Error fetching data for keyword ${keyword}:`, error.message);
     }
 };
 
@@ -295,5 +370,6 @@ module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
-    getDataChildComment
+    getDataChildComment,
+    getDataPostByKeyword
 };

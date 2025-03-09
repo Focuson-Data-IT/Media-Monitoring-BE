@@ -97,6 +97,8 @@ router.post('/exportPosts', async (req, res) => {
         worksheet.columns = [
             { header: "Username", key: "username", width: 20 },
             { header: "Created At", key: "created_at", width: 15 },
+            { header: "Link", key: "link", width: 15 },
+            { header: "Caption", key: "caption", width: 20 },
             { header: "Followers", key: "followers", width: 10 },
             { header: "Following", key: "following", width: 10 },
             { header: "Likes", key: "likes", width: 10 },
@@ -113,9 +115,37 @@ router.post('/exportPosts', async (req, res) => {
 
         // **Masukkan Data ke dalam Excel**
         dataRows.forEach(row => {
+            let platformLink = "";
+        
+            // Cek platform dan buat link sesuai format masing-masing
+            switch (row.platform) {
+                case "TikTok":
+                    platformLink = `https://www.tiktok.com/@${row.username}/video/${row.unique_id_post}`;
+                    break;
+                case "Instagram":
+                    if (row.media_name === "reel") {
+                        platformLink = `https://www.instagram.com/reel/${row.post_code}`;
+                    } else {
+                        platformLink = `https://www.instagram.com/p/${row.post_code}`;
+                    }
+                    break;
+                case "Facebook":
+                    platformLink = `https://www.facebook.com/${row.username}/posts/${row.unique_id_post}`;
+                    break;
+                case "Youtube":
+                    platformLink = `https://www.youtube.com/watch?v=${row.unique_id_post}`;
+                    break;
+                default:
+                    platformLink = ""; // Jika platform tidak dikenali, kosongkan link
+            }
+        
+            // Tambahkan data ke worksheet
             worksheet.addRow({
+                platform: row.platform, // Tambahkan platform sebagai kolom
                 username: row.username,
                 created_at: moment(row.created_at).tz("Asia/Jakarta").format("YYYY-MM-DD"),
+                link: platformLink,  // Gunakan link yang sudah diformat sesuai platform
+                caption: row.caption,
                 followers: row.followers,
                 following: row.following,
                 likes: row.likes,
@@ -126,10 +156,10 @@ router.post('/exportPosts', async (req, res) => {
                 downloadCount: row.downloadCount,
                 media_name: row.media_name,
                 performa_konten: row.performa_konten,
-                percentile_10: percentile10, // Ditambahkan sebagai kolom baru
-                percentile_90: percentile90  // Ditambahkan sebagai kolom baru
+                percentile_10: percentile10, // Kolom tambahan
+                percentile_90: percentile90  // Kolom tambahan
             });
-        });
+        });        
 
         // **Gaya Header**
         worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };

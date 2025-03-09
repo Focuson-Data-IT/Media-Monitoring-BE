@@ -12,6 +12,8 @@ const accounts = require('./routes/accounts');
 const data = require('./routes/data');
 const instagram = require('./routes/instagram');
 const tiktok = require('./routes/tiktok');
+const youtube = require('./routes/youtube');
+const facebook = require('./routes/facebook');
 const insights = require('./routes/insights');
 const file = require('./routes/file');
 
@@ -35,6 +37,8 @@ app.use('/accounts', logMiddleware, accounts);
 app.use('/data', logMiddleware, data);
 app.use('/instagram', logMiddleware, instagram);
 app.use('/tiktok', logMiddleware, tiktok);
+app.use('/youtube', logMiddleware, youtube);
+app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
 app.use('/file', logMiddleware, file)
 
