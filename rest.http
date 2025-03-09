@@ -203,3 +203,12 @@ Content-Type: application/json
   "start_date": "2025-02-01",
   "end_date": "2025-02-28"
 }
+
+###
+GET http://localhost:7770/api/getAllSearchUsername?&platform=TikTok&kategori=disparbud&search=dispara.indramayu
+
+###
+GET http://localhost:7770/api/getTotalPost?&platform=TikTok&kategori=disparbud&search=disparbudmajalengka&start_date=2025-02-01&end_date=2025-02-28
+
+###
+GET http://localhost:7770/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
