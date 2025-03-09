@@ -98,6 +98,7 @@ router.post('/exportPosts', async (req, res) => {
             { header: "Username", key: "username", width: 20 },
             { header: "Created At", key: "created_at", width: 15 },
             { header: "Link", key: "link", width: 15 },
+            { header: "Title", key: "title", width: 20 },
             { header: "Caption", key: "caption", width: 20 },
             { header: "Followers", key: "followers", width: 10 },
             { header: "Following", key: "following", width: 10 },
@@ -145,6 +146,7 @@ router.post('/exportPosts', async (req, res) => {
                 username: row.username,
                 created_at: moment(row.created_at).tz("Asia/Jakarta").format("YYYY-MM-DD"),
                 link: platformLink,  // Gunakan link yang sudah diformat sesuai platform
+                title: row.title,
                 caption: row.caption,
                 followers: row.followers,
                 following: row.following,
