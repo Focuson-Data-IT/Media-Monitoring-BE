@@ -138,28 +138,17 @@ const getDateRange = async () => {
 
 // 🔹 Endpoint untuk eksekusi getComment & getChildComment sekaligus
 router.get('/getComment', async (req, res) => {
-    const { kategori, fromStart } = req.query;
+    const { kategori, fromStart, unique_id_post } = req.query;
     const processFromStart = fromStart ? fromStart === 'true' : false;
 
-    console.info(kategori)
-    console.info(fromStart)
-    console.info(processFromStart)
-
     try {
-        const dateRange = await getDateRange();
-        if (!dateRange) {
-            return res.status(500).json({ message: 'Gagal mendapatkan rentang tanggal dari database.' });
-        }
-
         console.info(fromStart)
         console.info(processFromStart)
-        console.info(dateRange)
-
-        const { startDate, endDate } = dateRange;
 
         // ================================
         // 🔹 Step 1: Proses Main Comments
         // ================================
+
         console.log('🚀 Starting to fetch main comments...');
 
         let mainCommentQuery = `
@@ -167,7 +156,7 @@ router.get('/getComment', async (req, res) => {
             FROM posts 
             WHERE platform = "Youtube" 
             AND kategori = ?
-            AND DATE(created_at) BETWEEN ? AND ?
+            AND unique_id_post = ?
         `;
 
         if (!processFromStart) {
@@ -178,11 +167,11 @@ router.get('/getComment', async (req, res) => {
                 WHERE mc.unique_id_post IS NULL
                 AND p.platform = "Youtube"
                 AND p.kategori = ?
-                AND DATE(p.created_at) BETWEEN ? AND ?
+                AND p.unique_id_post = ?
             `;
         }
 
-        const [mainComments] = await db.query(mainCommentQuery, [kategori, startDate, endDate]);
+        const [mainComments] = await db.query(mainCommentQuery, [kategori, unique_id_post]);
         console.log(`📌 Found ${mainComments.length} posts to process.`);
 
         await processQueue(mainComments, async ({ unique_id_post }) => {
@@ -213,66 +202,6 @@ router.get('/getComment', async (req, res) => {
         });
 
         console.log('✅ Main comments processing completed.');
-
-        // ================================
-        // 🔹 Step 2: Proses Child Comments
-        // ================================
-        console.log('🚀 Starting to fetch child comments...');
-
-        let childCommentQuery = `
-            SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform,
-            mc.child_comment_count, mc.client_account, mc.kategori, p.created_at
-            FROM mainComments mc
-            JOIN posts p ON mc.unique_id_post = p.unique_id_post
-            WHERE mc.platform = "Youtube"
-            AND mc.kategori = ?
-            AND DATE(p.created_at) BETWEEN ? AND ?
-        `;
-
-        if (!processFromStart) {
-            childCommentQuery = `
-                SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform,
-                mc.child_comment_count, mc.client_account, mc.kategori, p.created_at
-                FROM mainComments mc
-                JOIN posts p ON mc.unique_id_post = p.unique_id_post
-                WHERE mc.platform = "Youtube"
-                AND mc.kategori = ?
-                AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
-                AND DATE(p.created_at) BETWEEN ? AND ?
-            `;
-        }
-
-        const [childComments] = await db.query(childCommentQuery, [kategori, startDate, endDate]);
-        console.log(`📌 Found ${childComments.length} child comments to process.`);
-
-        await processQueue(childComments, async ({
-            comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account
-        }) => {
-            console.log(`🔍 Fetching child comments for comment ID: ${comment_unique_id} on post: ${unique_id_post}...`);
-
-            if (child_comment_count > 0) {
-                try {
-                    await getDataYoutube.getDataChildComment(
-                        unique_id_post, 
-                        user_id, 
-                        username, 
-                        comment_unique_id, 
-                        client_account, 
-                        kategori, 
-                        platform
-                    );
-                    console.log(`✅ Child comments for comment ID ${comment_unique_id} on post ${unique_id_post} have been fetched and saved.`);
-                } catch (err) {
-                    console.error(`❌ Error fetching child comments for comment ID ${comment_unique_id}:`, err.message);
-                }
-            } else {
-                console.log(`ℹ️ No child comments for comment ID ${comment_unique_id}.`);
-            }
-        });
-
-        console.log('✅ Child comments processing completed.');
-
-        res.send('✅ Data getComment and getChildComment for all users have been fetched and saved.');
 
     } catch (error) {
         console.error('❌ Error executing getComment and getChildComment:', error.message);
@@ -317,7 +246,7 @@ router.get('/getLikes', async (req, res) => {
 
 router.get('/getDataPostByKeywords', async (req, res) => {
     const { kategori, start_date, end_date } = req.query;
-    // Fetch data for TikTok
+    // Fetch data for Youtube
     try {
         const [rows] = await db.query(`
             SELECT * FROM listKeywords 
@@ -343,6 +272,101 @@ router.get('/getDataPostByKeywords', async (req, res) => {
     } catch (error) {
         console.error('Error executing getDataPostByKeywords:', error.message);
         res.status(500).send(`Error executing getDataPostByKeywords: ${error.message}`);
+    }
+});
+
+// 🔹 Endpoint untuk eksekusi getComment & getChildComment sekaligus
+router.post('/getCommentv2', async (req, res) => {
+    try {
+        const { kategori, fromStart, unique_id_post } = req.body;
+        const processFromStart = fromStart ? fromStart === 'true' : false;
+
+        console.info(`Kategori: ${kategori}`);
+        console.info(`Post Codes: ${unique_id_post}`);
+        console.info(`Process From Start: ${processFromStart}`);
+
+        if (!Array.isArray(unique_id_post) || unique_id_post.length === 0) {
+            return res.status(400).json({ error: "Invalid unique_id_post format. It should be a non-empty list." });
+        }
+
+        console.log(`🚀 Starting to fetch main comments for ${unique_id_post.length} posts...`);
+
+        // ================================
+        // 🔹 Step 1: Proses Main Comments
+        // ================================
+        for (const code of unique_id_post) {
+            console.log(`🔍 Processing unique_id_post: ${code}`);
+
+            let mainCommentQuery = `
+                SELECT unique_id_post, created_at, kategori
+                FROM posts 
+                WHERE platform = "Youtube" 
+                AND kategori = ?
+                AND unique_id_post = ?
+            `;
+
+            if (!processFromStart) {
+                mainCommentQuery = `
+                    SELECT p.unique_id_post, p.created_at, p.kategori
+                    FROM posts p
+                    LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
+                    WHERE mc.unique_id_post IS NULL
+                    AND p.platform = "Youtube"
+                    AND p.kategori = ?
+                    AND p.unique_id_post = ?
+                `;
+            }
+
+            const [mainComments] = await db.query(mainCommentQuery, [kategori, code]);
+
+            console.log(`📌 Found ${mainComments.length} posts to process.`);
+
+            await processQueue(mainComments, async ({ unique_id_post, kategori }) => {
+                console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
+
+                const [userRows] = await db.query(
+                    `SELECT user_id, username, comments, client_account, platform 
+                        FROM posts 
+                        WHERE unique_id_post = ? 
+                        AND platform = "Youtube" 
+                        AND kategori = ?`,
+                    [unique_id_post, kategori]
+                );
+
+                if (userRows.length === 0) {
+                    console.log(`🚫 Post ${unique_id_post} not found in database.`);
+                    return;
+                }
+
+                const { user_id, username, comments, client_account, platform } = userRows[0];
+
+                if (comments > 0) {
+                    try {
+                        await getDataYoutube.getDataComment(
+                            unique_id_post, 
+                            user_id, 
+                            username, 
+                            client_account, 
+                            kategori, 
+                            platform
+                        );
+                        console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
+                    } catch (err) {
+                        console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
+                    }
+                } else {
+                    console.log(`ℹ️ No comments for post ${unique_id_post}.`);
+                }
+            });
+        }
+
+        console.log('✅ Main comments processing completed.');
+
+        res.status(200).json({ message: "✅ Data getComment and getChildComment processed successfully." });
+
+    } catch (error) {
+        console.error("❌ Error in /getCommentv2 route:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
