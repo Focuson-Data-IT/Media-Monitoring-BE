@@ -483,4 +483,39 @@ router.post('/getCommentv2', async (req, res) => {
     }
 });
 
+router.post('/getPostDataByCode', async (req, res) => {
+    const { kategori, post_code, client_account, platform } = req.body;
+
+    try {
+        console.info(`Kategori: ${kategori}`);
+        console.info(`Post Codes: ${post_code}`);
+        console.info(`Client Account: ${client_account}`);
+        console.info(`Platform: ${platform}`);
+
+        // Fungsi untuk memproses post_code
+        const processPostCode = async (code) => {
+            await getDataIg.getDataPostByCode(
+                code,
+                client_account,
+                kategori,
+                platform
+            );
+        };
+
+        // Periksa apakah post_code adalah array atau satuan
+        if (Array.isArray(post_code)) {
+            for (const code of post_code) {
+                await processPostCode(code);
+            }
+        } else {
+            await processPostCode(post_code);
+        }
+
+        res.send('Data getDataPostByCode for all specified post codes have been fetched and saved.');
+    } catch (error) {
+        console.error("❌ Error in /getPostDataByCode route:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 module.exports = router;
