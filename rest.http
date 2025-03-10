@@ -258,14 +258,24 @@ GET http://localhost:7770/youtube/getDataPostByKeywords?kategori=kdm&start_date=
 GET http://localhost:7770/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
 
 ###
-POST http://localhost:7770/instagram/getCommentv2
+POST http://localhost:7770/youtube/getCommentv2
 Content-Type: application/json
 
 {
     "kategori": "kdm",
-    "post_code": [
-        "DG7vJ-kAGKw",
-        "DG9qctdM8Jb"
+    "fromStart": "true",
+    "unique_id_post": [
+        "fCBzUwoMSW8"
+    ]
+}
+###
+POST http://localhost:7770/youtube/getCommentv3
+Content-Type: application/json
+
+{
+    "kategori": "kdm",
+    "unique_id_post": [
+        "fCBzUwoMSW8"
     ]
 }
 
@@ -333,4 +343,4 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:7770/youtube/update-followers-kdm
+GET http://localhost:7770/tiktok/update-followers-kdm

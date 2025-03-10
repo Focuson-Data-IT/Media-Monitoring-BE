@@ -72,7 +72,7 @@ const chunkArray = (array, size) => {
 
 router.get('/update-followers-kdm', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Instagram"');
+        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Instagram" AND followers IS NULL');
 
         if (!rows.length) {
             return res.send('No users found in the database.');

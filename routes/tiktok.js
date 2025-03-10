@@ -78,7 +78,7 @@ const chunkArray = (array, size) => {
 
 router.get('/update-followers-kdm', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "TikTok"');
+        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "TikTok" AND followers IS NULL');
 
         if (!rows.length) {
             return res.send('No users found in the database.');
@@ -98,7 +98,7 @@ router.get('/update-followers-kdm', async (req, res) => {
                         method: 'GET',
                         url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
                         params: {
-                            username_or_id_or_url: `@${row.username}`
+                            unique_id: `@${row.username}`
                         },
                         headers: {
                             'x-rapidapi-key': process.env.RAPIDAPI_TIKTOK_KEY,
@@ -109,15 +109,15 @@ router.get('/update-followers-kdm', async (req, res) => {
                     const response = await axios.request(getUser);
 
                     if (response.data?.data) {
-                        const userData = response.data.data;
+                        const userData = response.data;
 
                         const follower = userData.data.stats.followerCount;
                         const following = userData.data.stats.followingCount;
 
                         console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
 
-                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE post_id = ?`;
-                        await db.query(updateQuery, [follower, following, row.post_id]);
+                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE username = ?`;
+                        await db.query(updateQuery, [follower, following, row.username]);
                     }
                 } catch (error) {
                     console.error(`Error fetching/updating data for ${row.username}:`, error.message);

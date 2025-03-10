@@ -410,7 +410,7 @@ router.post('/getCommentv2', async (req, res) => {
 
                 if (comments > 0) {
                     try {
-                        await getDataYoutube.getDataComment(
+                        await getDataYoutube.getDataComment2(
                             unique_id_post, 
                             user_id, 
                             username, 
@@ -434,6 +434,44 @@ router.post('/getCommentv2', async (req, res) => {
 
     } catch (error) {
         console.error("❌ Error in /getCommentv2 route:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+router.post('/getCommentv3', async (req, res) => {
+    try {
+        const { kategori, unique_id_post } = req.body;
+
+        console.info(`Kategori: ${kategori}`);
+        console.info(`Post Codes: ${unique_id_post}`);
+
+        if (!Array.isArray(unique_id_post) || unique_id_post.length === 0) {
+            return res.status(400).json({ error: "Invalid unique_id_post format. It should be a non-empty list." });
+        }
+
+        console.log(`🚀 Starting to fetch comments for ${unique_id_post.length} posts...`);
+
+        for (const code of unique_id_post) {
+            console.log(`🔍 Fetching comments for post: ${code}...`);
+            try {
+                await getDataYoutube.getDataComment2(
+                    code,
+                    null,
+                    null,
+                    "kdm@focuson.id",
+                    kategori, 
+                    "Youtube" // platform
+                );
+                console.log(`✅ Comments for post ${code} have been fetched and saved.`);
+            } catch (err) {
+                console.error(`❌ Error fetching comments for post ${code}:`, err.message);
+            }
+        }
+
+        console.log('✅ Comments fetching process completed.');
+        res.status(200).json({ message: "✅ Comments fetched successfully." });
+    } catch (error) {
+        console.error("❌ Error in /getCommentv3 route:", error.message);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
