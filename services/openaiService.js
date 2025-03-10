@@ -6,7 +6,6 @@ const openai = new OpenAI({
   organization: process.env.ORGANIZATION_ID,
   project: process.env.PROJECT_ID
 });
-
 /**
  * Fungsi untuk mengirim prompt ke OpenAI dan mendapatkan responsenya.
  * @param {string} prompt - Prompt yang dikirim ke OpenAI.
