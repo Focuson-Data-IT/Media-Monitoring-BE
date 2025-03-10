@@ -68,10 +68,17 @@ const processQueue = async (items, processFunction) => {
     console.log('All items in the queue have been processed.');
 };
 
+const chunkArray = (array, size) => {
+    const chunkedArr = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunkedArr.push(array.slice(i, i + size));
+    }
+    return chunkedArr;
+};
 
 router.get('/update-followers-kdm', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Instafram"');
+        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "TikTok"');
 
         if (!rows.length) {
             return res.send('No users found in the database.');
@@ -89,23 +96,23 @@ router.get('/update-followers-kdm', async (req, res) => {
 
                     const getUser = {
                         method: 'GET',
-                        url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                        url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
                         params: {
-                            username_or_id_or_url: row.username,
-                            include_about: 'true',
-                            url_embed_safe: 'true'
+                            username_or_id_or_url: `@${row.username}`
                         },
                         headers: {
-                            'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
-                            'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                            'x-rapidapi-key': process.env.RAPIDAPI_TIKTOK_KEY,
+                            'x-rapidapi-host': process.env.RAPIDAPI_TIKTOK_HOST
                         }
                     };
 
                     const response = await axios.request(getUser);
 
                     if (response.data?.data) {
-                        const follower = response.data.data.stats.followerCount;
-                        const following = response.data.data.stats.followingCount;
+                        const userData = response.data.data;
+
+                        const follower = userData.data.stats.followerCount;
+                        const following = userData.data.stats.followingCount;
 
                         console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
 

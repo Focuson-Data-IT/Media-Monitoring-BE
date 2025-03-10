@@ -129,7 +129,6 @@ router.get('/update-followers-kdm', async (req, res) => {
     }
 });
 
-
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
