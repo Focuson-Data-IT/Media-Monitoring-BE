@@ -320,31 +320,31 @@ router.get('/getDataPostByKeywords', async (req, res) => {
 
 router.post('/getCommentv2', async (req, res) => {
     try {
-        const { kategori, fromStart, post_code } = req.body;
+        const { kategori, fromStart, unique_id_post } = req.body;
         const processFromStart = fromStart ? fromStart === 'true' : false;
 
         console.info(`Kategori: ${kategori}`);
-        console.info(`Post Codes: ${post_code}`);
+        console.info(`Post Codes: ${unique_id_post}`);
         console.info(`Process From Start: ${processFromStart}`);
 
-        if (!Array.isArray(post_code) || post_code.length === 0) {
-            return res.status(400).json({ error: "Invalid post_code format. It should be a non-empty list." });
+        if (!Array.isArray(unique_id_post) || unique_id_post.length === 0) {
+            return res.status(400).json({ error: "Invalid unique_id_post format. It should be a non-empty list." });
         }
 
-        console.log(`🚀 Starting to fetch main comments for ${post_code.length} posts...`);
+        console.log(`🚀 Starting to fetch main comments for ${unique_id_post.length} posts...`);
 
         // ================================
         // 🔹 Step 1: Proses Main Comments
         // ================================
-        for (const code of post_code) {
-            console.log(`🔍 Processing post_code: ${code}`);
+        for (const code of unique_id_post) {
+            console.log(`🔍 Processing unique_id_post: ${code}`);
 
             let mainCommentQuery = `
                 SELECT unique_id_post, created_at, kategori
                 FROM posts 
-                WHERE platform = "Instagram" 
+                WHERE platform = "TikTok" 
                 AND kategori = ?
-                AND post_code = ?
+                AND unique_id_post = ?
             `;
 
             if (!processFromStart) {
@@ -353,9 +353,9 @@ router.post('/getCommentv2', async (req, res) => {
                     FROM posts p
                     LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                     WHERE mc.unique_id_post IS NULL
-                    AND p.platform = "Instagram"
+                    AND p.platform = "TikTok"
                     AND p.kategori = ?
-                    AND p.post_code = ?
+                    AND p.unique_id_post = ?
                 `;
             }
 
@@ -370,7 +370,7 @@ router.post('/getCommentv2', async (req, res) => {
                     `SELECT user_id, username, comments, client_account, platform 
                         FROM posts 
                         WHERE unique_id_post = ? 
-                        AND platform = "Instagram" 
+                        AND platform = "TikTok" 
                         AND kategori = ?`,
                     [unique_id_post, kategori]
                 );
@@ -384,7 +384,7 @@ router.post('/getCommentv2', async (req, res) => {
 
                 if (comments > 0) {
                     try {
-                        await getDataIg.getDataComment(
+                        await getDataTiktok.getDataComment(
                             unique_id_post, 
                             user_id, 
                             username, 
@@ -414,12 +414,12 @@ router.post('/getCommentv2', async (req, res) => {
             mc.child_comment_count, mc.client_account, mc.kategori
             FROM mainComments mc
             LEFT JOIN posts p ON mc.unique_id_post = p.unique_id_post
-            WHERE mc.platform = "Instagram"
+            WHERE mc.platform = "TikTok"
             AND mc.kategori = ?
-            AND p.post_code IN (?)
+            AND p.unique_id_post IN (?)
         `;
 
-        const [childComments] = await db.query(childCommentQuery, [kategori, post_code]);
+        const [childComments] = await db.query(childCommentQuery, [kategori, unique_id_post]);
 
         console.log(`📌 Found ${childComments.length} child comments to process.`);
 
@@ -430,7 +430,7 @@ router.post('/getCommentv2', async (req, res) => {
 
             if (child_comment_count > 0) {
                 try {
-                    await getDataIg.getDataChildComment(
+                    await getDataTiktok.getDataChildComment(
                         unique_id_post,
                         user_id,
                         username,
