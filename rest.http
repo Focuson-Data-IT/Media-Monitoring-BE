@@ -264,7 +264,8 @@ Content-Type: application/json
 {
     "kategori": "kdm",
     "post_code": [
-        
+        "DG7vJ-kAGKw",
+        "DG9qctdM8Jb"
     ]
 }
 
@@ -313,3 +314,21 @@ Content-Type: application/json
         
     ]
 }
+
+###
+POST http://localhost:7770/instagram/getPostDataByCode
+Content-Type: application/json
+
+{
+    "kategori": "kdm",
+    "platform": "Instagram",
+    "client_account": "kdm@focuson.id",
+    "post_code": [
+        "DG7vJ-kAGKw",
+        "DG8V5CUS4Pw",
+        "DG9qctdM8Jb",
+        "DG9-NsxN0Bv",
+        "DG-KRL9xIzq"
+    ]
+}
+

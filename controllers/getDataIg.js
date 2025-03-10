@@ -40,7 +40,7 @@ const getDataUser = async (username = null, client_account = null, kategori = nu
                 url_embed_safe: 'true'
             },
             headers: {
-                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY, 
+                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
                 'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
             }
         };
@@ -371,7 +371,7 @@ const getDataPostByKeyword = async (client_account = null, kategori = null, plat
         let pageCount = 0;
         let totalFetched = 0;
         const maxTotalResults = 250; // Maksimal ambil 250 post
-        
+
         while (hasMore && totalFetched < maxTotalResults) {
             const getPost = {
                 method: 'GET',
@@ -448,11 +448,74 @@ const getDataPostByKeyword = async (client_account = null, kategori = null, plat
     }
 };
 
+const getDataPostByCode = async (post_code = null, client_account = null, kategori = null, platform = null) => {
+    try {
+
+        const getPost = {
+            method: 'GET',
+            url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/post_info',
+            params: {
+                code_or_id_or_url: post_code,
+                url_embed_safe: 'true',
+                include_insights: 'true'
+            },
+            headers: {
+                'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
+                'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+            }
+        };
+
+        const response = await apiRequestWithRetry(getPost);
+
+        if (!response || !response.data) {
+            throw new Error('Response does not contain user data');
+        }
+
+        const item = response.data.data;
+
+        const isPinned = item.is_pinned ? 1 : 0;
+            const postDate = new Date(item.taken_at * 1000).getTime();
+            const captionText = item.caption || "No Caption";
+            const metrics = item.metrics;
+
+            const post = {
+                client_account: client_account,
+                kategori: kategori,
+                platform: platform,
+                user_id: item.user.id,
+                username: item.user.full_name,
+                unique_id_post: item.id,
+                created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                thumbnail_url: item.thumbnail_url,
+                caption: captionText.text || "No Caption",
+                post_code: item.code,
+                comments: metrics.comment_count || 0,
+                likes: metrics.like_count || 0,
+                playCount: metrics.play_count || 0,
+                shareCount: metrics.share_count || 0,
+                media_name: item.media_name,
+                product_type: item.product_type,
+                tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
+                is_pinned: isPinned,
+                // followers: followers || 0, // Ambil dari database
+                // following: following || 0,  // Ambil dari database
+            };
+
+            await save.savePost(post);
+
+            console.log("Done fetching Instagram posts. for " + post_code);
+
+    } catch (error) {
+        console.error(`Error fetching data for user :`, error.message);
+    }
+};
+
 module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
     getDataChildComment,
     getDataLikes,
-    getDataPostByKeyword
+    getDataPostByKeyword,
+    getDataPostByCode
 };
