@@ -179,8 +179,15 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
         let cursor = 0;
         let hasMore = true;
         let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
+        limitPage = 20;
 
         while (hasMore) {
+
+            if (limitPage > 0 && pageCount >= limitPage) {
+                console.log(`⏹️ Stopping at page limit (${limitPage}) for post ${unique_id_post}`);
+                break;
+            }
+
             const getComment = {
                 method: 'GET',
                 url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getCommentListByVideo',
@@ -242,8 +249,15 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
         let cursor = 0;
         let hasMore = true;
         let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
+        limitPage = 2;
 
         while (hasMore) {
+
+            if (limitPage > 0 && pageCount >= limitPage) {
+                console.log(`⏹️ Stopping at page limit (${limitPage}) for child comments on post ${unique_id_post}`);
+                break;
+            }
+            
             const getChildComment = {
                 method: 'GET',
                 url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getReplyListByCommentId',

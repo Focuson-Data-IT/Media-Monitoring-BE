@@ -208,7 +208,7 @@ router.get('/getComment', async (req, res) => {
 
             if (comments > 0) {
                 try {
-                    await getDataTiktok.getDataComment(unique_id_post, user_id, username, client_account, platform);
+                    await getDataTiktok.getDataComment(unique_id_post, user_id, username, client_account, kategori, platform);
                     console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
                 } catch (err) {
                     console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
@@ -315,6 +315,145 @@ router.get('/getDataPostByKeywords', async (req, res) => {
     } catch (error) {
         console.error('Error executing getDataPostByKeywords:', error.message);
         res.status(500).send(`Error executing getDataPostByKeywords: ${error.message}`);
+    }
+});
+
+router.post('/getCommentv2', async (req, res) => {
+    try {
+        const { kategori, fromStart, post_code } = req.body;
+        const processFromStart = fromStart ? fromStart === 'true' : false;
+
+        console.info(`Kategori: ${kategori}`);
+        console.info(`Post Codes: ${post_code}`);
+        console.info(`Process From Start: ${processFromStart}`);
+
+        if (!Array.isArray(post_code) || post_code.length === 0) {
+            return res.status(400).json({ error: "Invalid post_code format. It should be a non-empty list." });
+        }
+
+        console.log(`🚀 Starting to fetch main comments for ${post_code.length} posts...`);
+
+        // ================================
+        // 🔹 Step 1: Proses Main Comments
+        // ================================
+        for (const code of post_code) {
+            console.log(`🔍 Processing post_code: ${code}`);
+
+            let mainCommentQuery = `
+                SELECT unique_id_post, created_at, kategori
+                FROM posts 
+                WHERE platform = "Instagram" 
+                AND kategori = ?
+                AND post_code = ?
+            `;
+
+            if (!processFromStart) {
+                mainCommentQuery = `
+                    SELECT p.unique_id_post, p.created_at, p.kategori
+                    FROM posts p
+                    LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
+                    WHERE mc.unique_id_post IS NULL
+                    AND p.platform = "Instagram"
+                    AND p.kategori = ?
+                    AND p.post_code = ?
+                `;
+            }
+
+            const [mainComments] = await db.query(mainCommentQuery, [kategori, code]);
+
+            console.log(`📌 Found ${mainComments.length} posts to process.`);
+
+            await processQueue(mainComments, async ({ unique_id_post, kategori }) => {
+                console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
+
+                const [userRows] = await db.query(
+                    `SELECT user_id, username, comments, client_account, platform 
+                        FROM posts 
+                        WHERE unique_id_post = ? 
+                        AND platform = "Instagram" 
+                        AND kategori = ?`,
+                    [unique_id_post, kategori]
+                );
+
+                if (userRows.length === 0) {
+                    console.log(`🚫 Post ${unique_id_post} not found in database.`);
+                    return;
+                }
+
+                const { user_id, username, comments, client_account, platform } = userRows[0];
+
+                if (comments > 0) {
+                    try {
+                        await getDataIg.getDataComment(
+                            unique_id_post, 
+                            user_id, 
+                            username, 
+                            client_account, 
+                            kategori, 
+                            platform
+                        );
+                        console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
+                    } catch (err) {
+                        console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
+                    }
+                } else {
+                    console.log(`ℹ️ No comments for post ${unique_id_post}.`);
+                }
+            });
+        }
+
+        console.log('✅ Main comments processing completed.');
+
+        // ================================
+        // 🔹 Step 2: Proses Child Comments
+        // ================================
+        console.log('🚀 Starting to fetch child comments...');
+
+        let childCommentQuery = `
+            SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform,
+            mc.child_comment_count, mc.client_account, mc.kategori
+            FROM mainComments mc
+            LEFT JOIN posts p ON mc.unique_id_post = p.unique_id_post
+            WHERE mc.platform = "Instagram"
+            AND mc.kategori = ?
+            AND p.post_code IN (?)
+        `;
+
+        const [childComments] = await db.query(childCommentQuery, [kategori, post_code]);
+
+        console.log(`📌 Found ${childComments.length} child comments to process.`);
+
+        await processQueue(childComments, async ({
+            comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account
+        }) => {
+            console.log(`🔍 Fetching child comments for comment ID: ${comment_unique_id} on post: ${unique_id_post}...`);
+
+            if (child_comment_count > 0) {
+                try {
+                    await getDataIg.getDataChildComment(
+                        unique_id_post,
+                        user_id,
+                        username,
+                        comment_unique_id,
+                        client_account,
+                        kategori,
+                        platform
+                    );
+                    console.log(`✅ Child comments for comment ID ${comment_unique_id} on post ${unique_id_post} have been fetched and saved.`);
+                } catch (err) {
+                    console.error(`❌ Error fetching child comments for comment ID ${comment_unique_id}:`, err.message);
+                }
+            } else {
+                console.log(`ℹ️ No child comments for comment ID ${comment_unique_id}.`);
+            }
+        });
+
+        console.log('✅ Child comments processing completed.');
+        res.status(200).json({ message: "✅ Data getComment and getChildComment processed successfully." });
+
+    } catch (error) {
+        console.error("❌ Error in /getCommentv2 route:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
