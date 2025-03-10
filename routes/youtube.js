@@ -3,6 +3,7 @@ const router = express.Router();
 const getDataYoutube = require('../controllers/getDataYoutube');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
+const axios = require("axios");
 
 let requestCount = 0;
 const maxRequestsPerMinute = 200;

@@ -1,4 +1,8 @@
 ###
+GET http://localhost:7770/instagram/update-followers-kdm
+Content-Type: application/json
+
+###
 GET http://localhost:7770/api/v1/labeling
 Content-Type: application/json
 
@@ -11,7 +15,7 @@ GET http://localhost:7770/api/v1/comments-coding
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/reply-coding
+GET http://localhost:7770/api/v1/reply-coding/api/v1/comments-coding
 Content-Type: application/json
 
 ###

@@ -26,7 +26,7 @@ router.get('/v1/labeling', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM news WHERE label IS NULL`;
+        const query = `SELECT * FROM news WHERE label IS NULL AND kategori = 'kdm'`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -44,8 +44,6 @@ router.get('/v1/labeling', async(req, res) => {
             if (labels != "" && labels != null && labels != "No Label") {
                 await Promise.all(chunk.map((v, i) => {
                     const updateQuery = `UPDATE news SET label = ? WHERE id = ?`;
-                    console.info(labels)
-                    console.info(labels[i])
                     return db.query(updateQuery, [labels[i] || labels[0] || "No Label", v.id]);
                 }));
             }
@@ -321,7 +319,7 @@ router.get('/v1/reply-sentiment', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM childComments WHERE sentiment IS NULL AND kategori = 'kdm'`;
+        const query = `SELECT * FROM childComments WHERE sentiment IS NULL AND kategori = 'kdm' ORDER BY child_comment_id DESC`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
