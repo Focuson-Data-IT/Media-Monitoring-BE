@@ -3,8 +3,8 @@ const OpenAI = require('openai');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // Pastikan .env berisi OPENAI_API_KEY
-  organization: 'org-JlOSSUvSn9C8DtVAQtLlVVI9',
-  project: 'proj_bU478f0cDiMQUvoUZTONAAuY'
+  organization: process.env.ORGANIZATION_ID,
+  project: process.env.PROJECT_ID
 });
 
 /**
