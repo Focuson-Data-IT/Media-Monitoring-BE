@@ -2,6 +2,7 @@ require('dotenv').config(); // Load environment variables from .env file
 const axios = require('axios');
 const save = require('./saveDataYoutube');
 const db = require('../models/db'); // Database connection
+const { text } = require('express');
 
 // Fungsi untuk mengambil data followers dan following dari database
 async function fetchUserData(username) {
@@ -188,17 +189,24 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
 
 const getDataComment = async (unique_id_post = null, user_id = null, username = null, client_account = null, kategori = null, platform = null) => {
     try {
-        let paginationToken = null;
-        let moreComments = true;
+        console.info(unique_id_post, user_id, username, client_account, kategori, platform);
 
-        while (moreComments) {
+        let nextPageToken = null;
+        let moreComments = true;
+        let pageCount = 0;
+        const limitPage = 20;
+
+        while (moreComments && pageCount < limitPage) {
             const getComment = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments',
+                url: 'https://youtube-v311.p.rapidapi.com/commentThreads/',
                 params: {
-                    code_or_id_or_url: unique_id_post,
-                    sort_by: 'popular',
-                    ...(paginationToken && { pagination_token: paginationToken })
+                    part: 'snippet,replies',
+                    videoId: unique_id_post,
+                    maxResults: '100',
+                    order: 'relevance',
+                    textFormat: 'plainText',
+                    ...(nextPageToken && { pageToken: nextPageToken }) // 🔹 Perbaikan dari `nextPageToken` ke `pageToken`
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
@@ -208,102 +216,71 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 
             const response = await apiRequestWithRetry(getComment);
 
-            if (!response.data || !response.data.data.items) {
+            if (!response.data || !response.data.items || response.data.items.length === 0) {
                 moreComments = false;
                 break;
             }
 
-            const userComment = response.data.data.items;
+            const userComment = response.data.items;
+            let mainCommentsBatch = [];
+            let childCommentsBatch = [];
 
             for (const item of userComment) {
-                // Simpan data comment utama
-                const comment = {
+                const data = item.snippet.topLevelComment;
+                const itemsChild = item.replies?.comments || []; // 🔹 Perbaikan: Jika `item.replies` undefined, return array kosong
+                const snippet = data.snippet;
+
+                // 🔹 Simpan data main comment
+                mainCommentsBatch.push({
                     client_account: client_account,
                     kategori: kategori,
                     platform: platform,
                     user_id: user_id,
                     username: username,
                     unique_id_post: unique_id_post,
-                    comment_unique_id: item.id,
-                    created_at: new Date(item.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                    commenter_username: item.user.username,
-                    commenter_userid: item.user.id,
-                    comment_text: item.text,
-                    comment_like_count: item.like_count,
-                    child_comment_count: item.child_comment_count
-                };
+                    comment_unique_id: data.id,
+                    created_at: new Date(snippet.publishedAt).toISOString().slice(0, 19).replace('T', ' '),
+                    commenter_username: snippet.authorDisplayName,
+                    commenter_userid: snippet.authorChannelId?.value || "Unknown", // 🔹 Gunakan `?.` untuk menghindari error
+                    comment_text: snippet.textDisplay,
+                    comment_like_count: snippet.likeCount,
+                    child_comment_count: item.totalReplyCount
+                });
 
-                await save.saveComment(comment);
-
-            }
-
-            paginationToken = response.data.pagination_token;
-            if (!paginationToken) moreComments = false;
-        }
-    } catch (error) {
-        console.error(`Error fetching data for ${unique_id_post}:`, error.message);
-    }
-};
-
-const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null) => {
-    
-    console.info(unique_id_post, client_account, kategori, comment_unique_id, user_id, username, platform);
-
-    try {
-        let paginationToken = null;
-        let moreComments = true;
-
-        while (moreComments) {
-            const getChildComment = {
-                method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments_thread',
-                params: {
-                    code_or_id_or_url: unique_id_post,
-                    comment_id: comment_unique_id,
-                    ...(paginationToken && { pagination_token: paginationToken })
-                },
-                headers: {
-                    'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
-                    'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
+                // 🔹 Simpan data child comments
+                for (const itemChild of itemsChild) {
+                    const snippetChild = itemChild.snippet;
+                    childCommentsBatch.push({
+                        client_account: client_account,
+                        kategori: kategori,
+                        platform: platform,
+                        user_id: user_id,
+                        username: username,
+                        unique_id_post: unique_id_post,
+                        parent_comment_unique_id: data.id, // Parent comment ID
+                        child_comment_unique_id: itemChild.id, // Unique ID dari child comment
+                        created_at: new Date(snippetChild.publishedAt).toISOString().slice(0, 19).replace('T', ' '),
+                        child_commenter_username: snippetChild.authorDisplayName,
+                        child_commenter_userid: snippetChild.authorChannelId?.value || "Unknown", // 🔹 Gunakan `?.` agar aman
+                        child_comment_text: snippetChild.textDisplay,
+                        child_comment_like_count: snippetChild.likeCount
+                    });
                 }
-            };
-
-            const response = await apiRequestWithRetry(getChildComment);
-
-            if (!response.data || !response.data.data.items) {
-                moreComments = false;
-                break;
             }
 
-            const userComment = response.data.data.items;
+            // 🔹 Simpan data secara paralel untuk meningkatkan performa
+            await Promise.all([
+                save.saveComment(mainCommentsBatch),
+                save.saveChildComment(childCommentsBatch)
+            ]);
 
-            for (const child of userComment) {
-                // Simpan data comment utama
-                const childComment = {
-                    client_account: client_account,
-                    kategori: kategori,
-                    platform: platform,
-                    user_id: user_id,
-                    username: username,
-                    unique_id_post: unique_id_post,
-                    parent_comment_unique_id: comment_unique_id, // Parent comment ID
-                    comment_unique_id: child.id, // Unique ID dari child comment
-                    created_at: new Date(child.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                    commenter_username: child.user.username,
-                    commenter_userid: child.user.id,
-                    comment_text: child.text,
-                    comment_like_count: child.comment_like_count
-                };
-
-                await save.saveChildComment(childComment);
-
-            }
-
-            paginationToken = response.data.pagination_token;
-            if (!paginationToken) moreComments = false;
+            nextPageToken = response.data.nextPageToken;
+            if (!nextPageToken) moreComments = false;
+            pageCount++;
+            console.log(`✅ Processed page ${pageCount}`);
         }
     } catch (error) {
-        console.error(`Error fetching data for comment ${comment_unique_id} on post ${unique_id_post}:`, error.message);
+        console.error(`❌ Error fetching data for ${unique_id_post}:`, error.message);
     }
 };
 
@@ -498,7 +475,7 @@ module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
-    getDataChildComment,
+    // getDataChildComment,
     getDataLikes,
     getDataPostByKeyword
 };

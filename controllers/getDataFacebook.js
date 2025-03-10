@@ -87,7 +87,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
         const data = await response.json();
         const endDate = new Date(data.startDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).split('T')[0];
 
-        let paginationToken = null;
+        let cursor = null;
         let morePosts = true;
         const endDateObj = new Date(endDate).getTime();
 
@@ -98,7 +98,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                 params: {
                     username_or_id_or_url: username,
                     url_embed_safe: 'true',
-                    ...(paginationToken && { pagination_token: paginationToken })
+                    ...(cursor && { cursor: cursor })
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
@@ -178,8 +178,8 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
                 await save.savePost(post);
             }
 
-            paginationToken = response.data.pagination_token;
-            if (!paginationToken) morePosts = false;
+            cursor = response.data.cursor;
+            if (!cursor) morePosts = false;
         }
     } catch (error) {
         console.error(`Error fetching data for user ${username}:`, error.message);
@@ -188,17 +188,24 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
 
 const getDataComment = async (unique_id_post = null, user_id = null, username = null, client_account = null, kategori = null, platform = null) => {
     try {
-        let paginationToken = null;
+        let cursor = null;
         let moreComments = true;
+        let pageCount = 0;
+        limitPage = 20;
 
         while (moreComments) {
+            
+            if (limitPage > 0 && pageCount >= limitPage) {
+                console.log(`⏹️ Stopping at page limit (${limitPage}) for child comments on post ${unique_id_post}`);
+                break;
+            }
+
             const getComment = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments',
+                url: 'https://facebook-scraper3.p.rapidapi.com/post/comments',
                 params: {
-                    code_or_id_or_url: unique_id_post,
-                    sort_by: 'popular',
-                    ...(paginationToken && { pagination_token: paginationToken })
+                    post_id: unique_id_post,
+                    ...(cursor && { cursor: cursor })
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
@@ -208,12 +215,12 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 
             const response = await apiRequestWithRetry(getComment);
 
-            if (!response.data || !response.data.data.items) {
+            if (!response.data || !response.data.results) {
                 moreComments = false;
                 break;
             }
 
-            const userComment = response.data.data.items;
+            const userComment = response.data.results;
 
             for (const item of userComment) {
                 // Simpan data comment utama
@@ -224,43 +231,55 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                     user_id: user_id,
                     username: username,
                     unique_id_post: unique_id_post,
-                    comment_unique_id: item.id,
-                    created_at: new Date(item.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                    commenter_username: item.user.username,
-                    commenter_userid: item.user.id,
-                    comment_text: item.text,
-                    comment_like_count: item.like_count,
-                    child_comment_count: item.child_comment_count
+                    comment_unique_id: item.legacy_comment_id,
+                    created_at: new Date(item.created_time * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                    commenter_username: item.author.name,
+                    commenter_userid: item.author.id,
+                    comment_text: item.message,
+                    comment_like_count: item.reactions_count,
+                    child_comment_count: item.replies_count,
+                    expansion_token: item.expansion_token
                 };
 
                 await save.saveComment(comment);
 
             }
 
-            paginationToken = response.data.pagination_token;
-            if (!paginationToken) moreComments = false;
+            cursor = response.data.cursor;
+            if (!cursor) moreComments = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
         }
     } catch (error) {
         console.error(`Error fetching data for ${unique_id_post}:`, error.message);
     }
 };
 
-const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null) => {
+const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null, expansion_token = null) => {
     
     console.info(unique_id_post, client_account, kategori, comment_unique_id, user_id, username, platform);
 
     try {
-        let paginationToken = null;
+        let cursor = null;
         let moreComments = true;
+        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
+        limitPage = 5;
 
         while (moreComments) {
+            
+            if (limitPage > 0 && pageCount >= limitPage) {
+                console.log(`⏹️ Stopping at page limit (${limitPage}) for post ${unique_id_post}`);
+                break;
+            }
+
             const getChildComment = {
                 method: 'GET',
-                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments_thread',
+                url: 'https://facebook-scraper3.p.rapidapi.com/post/comments_nested',
                 params: {
-                    code_or_id_or_url: unique_id_post,
+                    post_id: unique_id_post,
                     comment_id: comment_unique_id,
-                    ...(paginationToken && { pagination_token: paginationToken })
+                    expansion_token: expansion_token,
+                    ...(cursor && { cursor: cursor })
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
@@ -270,12 +289,12 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
 
             const response = await apiRequestWithRetry(getChildComment);
 
-            if (!response.data || !response.data.data.items) {
+            if (!response.data || !response.data.results) {
                 moreComments = false;
                 break;
             }
 
-            const userComment = response.data.data.items;
+            const userComment = response.data.results;
 
             for (const child of userComment) {
                 // Simpan data comment utama
@@ -287,20 +306,22 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                     username: username,
                     unique_id_post: unique_id_post,
                     parent_comment_unique_id: comment_unique_id, // Parent comment ID
-                    comment_unique_id: child.id, // Unique ID dari child comment
-                    created_at: new Date(child.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                    commenter_username: child.user.username,
-                    commenter_userid: child.user.id,
-                    comment_text: child.text,
-                    comment_like_count: child.comment_like_count
+                    comment_unique_id: child.legacy_comment_id, // Unique ID dari child comment
+                    created_at: new Date(child.created_time * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                    commenter_username: child.author.username,
+                    commenter_userid: child.author.id,
+                    comment_text: child.message,
+                    comment_like_count: child.reactions_count
                 };
 
                 await save.saveChildComment(childComment);
 
             }
 
-            paginationToken = response.data.pagination_token;
-            if (!paginationToken) moreComments = false;
+            cursor = response.data.cursor;
+            if (!cursor) moreComments = false;
+            pageCount++; // Tambahkan penghitung halaman
+            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
         }
     } catch (error) {
         console.error(`Error fetching data for comment ${comment_unique_id} on post ${unique_id_post}:`, error.message);

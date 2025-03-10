@@ -231,10 +231,52 @@ Content-Type: application/json
 
 {
     "kategori": "kdm",
-    "fromStart": "true",
     "post_code": [
-        "DG76DjRPB-m",
-        "DGVw_RjvgVi",
-        "DGk9xx6SsMh"
+        
+    ]
+}
+
+###
+POST http://localhost:7770/tiktok/getCommentv2
+Content-Type: application/json
+
+{
+    "kategori": "kdm",
+    "fromStart": "true",
+    "unique_id_post": [
+        "7479455197517892871",
+        "7469768342795062535",
+        "7465988942794460434",
+        "7475969309525773623",
+        "7467421508596485382"
+    ]
+}
+
+###
+POST http://localhost:7770/facebook/getCommentv2
+Content-Type: application/json
+
+{
+    "kategori": "kdm",
+    "fromStart": "true",
+    "unique_id_post": [
+        "1087274276759343",
+        "1405192157513638"
+    ]
+}
+
+###
+POST http://localhost:7770/youtube/getCommentv2
+Content-Type: application/json
+
+{
+    "kategori": "kdm",
+    "fromStart": "true",
+    "unique_id_post": [
+        "Rzjw9WxbGGA",
+        "fCBzUwoMSW8",
+        "_MnQdqGIJbw",
+        "V04VmKn6-G0"
+        
     ]
 }
