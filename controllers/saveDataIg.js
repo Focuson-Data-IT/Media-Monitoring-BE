@@ -173,10 +173,54 @@ const saveLikes = async (likes) => {
     );
 };
 
+const saveDataPostByKeywords = async (post) => {
+    const sql = `
+        INSERT INTO posts (
+        client_account, kategori, platform, keywords, 
+        user_id, username, unique_id_post, post_code, created_at, 
+        thumbnail_url, caption, comments, likes,
+        media_name, product_type, tagged_users, 
+        playCount, shareCount)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            client_account = VALUES(client_account),
+            kategori = VALUES(kategori),
+            platform = VALUES(platform),
+            keywords = VALUES(keywords),
+            user_id = VALUES(user_id),
+            username = VALUES(username),
+            created_at = VALUES(created_at),
+            thumbnail_url = VALUES(thumbnail_url),
+            caption = VALUES(caption),
+            comments = VALUES(comments),
+            likes = VALUES(likes),
+            media_name = VALUES(media_name),
+            product_type = VALUES(product_type),
+            tagged_users = VALUES(tagged_users),
+            playCount = VALUES(playCount),
+            shareCount = VALUES(shareCount)
+    `;
+    connection.query(sql, [
+        post.client_account, post.kategori, post.platform, post.keywords,
+        post.user_id, post.username, post.unique_id_post, post.post_code, post.created_at,
+        post.thumbnail_url, post.caption, post.comments, post.likes,
+        post.media_name, post.product_type, post.tagged_users,
+        post.playCount, post.shareCount
+        
+    ], (err, result) => {
+        if (err) {
+            console.error(`❌ Error saving post ${post.unique_id_post} to database:`, err.message);
+        } else {
+            console.log(`✅ Saved post ${post.unique_id_post} for ${post.client_account} in kategori ${post.kategori}`);
+        }
+    });
+};
+
 module.exports = {
     saveUser,
     savePost,
     saveComment,
     saveChildComment,
-    saveLikes
+    saveLikes,
+    saveDataPostByKeywords
 };
