@@ -3,6 +3,7 @@ const router = express.Router();
 const getDataTiktok = require('../controllers/getDataTiktok');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
+const axios = require("axios");
 
 let requestCount = 0;
 const maxRequestsPerMinute = 240;
@@ -66,6 +67,66 @@ const processQueue = async (items, processFunction) => {
 
     console.log('All items in the queue have been processed.');
 };
+
+
+router.get('/update-followers-kdm', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Instafram"');
+
+        if (!rows.length) {
+            return res.send('No users found in the database.');
+        }
+
+        const batchSize = 5; // Jumlah row yang diproses per batch
+        const rowBatches = chunkArray(rows, batchSize);
+
+        for (const batch of rowBatches) {
+            console.info(`Processing batch of ${batch.length} users...`);
+
+            await Promise.all(batch.map(async (row) => {
+                try {
+                    console.info('Fetching data for user: ' + row.username);
+
+                    const getUser = {
+                        method: 'GET',
+                        url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                        params: {
+                            username_or_id_or_url: row.username,
+                            include_about: 'true',
+                            url_embed_safe: 'true'
+                        },
+                        headers: {
+                            'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                            'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                        }
+                    };
+
+                    const response = await axios.request(getUser);
+
+                    if (response.data?.data) {
+                        const follower = response.data.data.stats.followerCount;
+                        const following = response.data.data.stats.followingCount;
+
+                        console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
+
+                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE post_id = ?`;
+                        await db.query(updateQuery, [follower, following, row.post_id]);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching/updating data for ${row.username}:`, error.message);
+                }
+            }));
+
+            // Tambahkan delay opsional jika ingin menghindari rate limit API
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antara batch
+        }
+
+        res.send('Data followers & following berhasil diperbarui untuk semua pengguna.');
+    } catch (error) {
+        console.error('Error executing update:', error.message);
+        res.status(500).send(`Error executing update: ${error.message}`);
+    }
+});
 
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {

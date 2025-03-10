@@ -4,6 +4,7 @@ const getDataIg = require('../controllers/getDataIg');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 const async = require('async');
 const cliProgress = require('cli-progress'); // Import cli-progress
+const axios = require('axios');
 
 let requestCount = 0;
 const maxRequestsPerMinute = 200;
@@ -14,9 +15,9 @@ const delay = 6000;
 
 const trackRequests = async () => {
     requestCount++;
-    console.log(`Global request count: ${requestCount}`);
+    // console.log(`Global request count: ${requestCount}`);
     if (requestCount >= maxRequestsPerMinute) {
-        console.log(`Reached ${maxRequestsPerMinute} requests. Resting globally for ${delay / 1000} seconds...`);
+        // console.log(`Reached ${maxRequestsPerMinute} requests. Resting globally for ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         requestCount = 0;
     }
@@ -39,7 +40,7 @@ const processQueue = async (items, processFunction) => {
 
             // Jika thread mencapai batas, istirahatkan
             if (threadRequestCount >= threadRequestLimit) {
-                console.log(`Thread reached ${threadRequestLimit} requests. Resting thread for ${threadRestTime / 1000} seconds...`);
+                // console.log(`Thread reached ${threadRequestLimit} requests. Resting thread for ${threadRestTime / 1000} seconds...`);
                 await new Promise(resolve => setTimeout(resolve, threadRestTime));
                 threadRequestCount = 0; // Reset untuk thread
             }
@@ -60,6 +61,74 @@ const processQueue = async (items, processFunction) => {
 
     console.log('All items in the queue have been processed.');
 };
+
+const chunkArray = (array, size) => {
+    const chunkedArr = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunkedArr.push(array.slice(i, i + size));
+    }
+    return chunkedArr;
+};
+
+router.get('/update-followers-kdm', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Instagram"');
+
+        if (!rows.length) {
+            return res.send('No users found in the database.');
+        }
+
+        const batchSize = 5; // Jumlah row yang diproses per batch
+        const rowBatches = chunkArray(rows, batchSize);
+
+        for (const batch of rowBatches) {
+            console.info(`Processing batch of ${batch.length} users...`);
+
+            await Promise.all(batch.map(async (row) => {
+                try {
+                    console.info('Fetching data for user: ' + row.username);
+
+                    const getUser = {
+                        method: 'GET',
+                        url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                        params: {
+                            username_or_id_or_url: row.username,
+                            include_about: 'true',
+                            url_embed_safe: 'true'
+                        },
+                        headers: {
+                            'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                            'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                        }
+                    };
+
+                    const response = await axios.request(getUser);
+
+                    if (response.data?.data) {
+                        const follower = response.data.data.follower_count;
+                        const following = response.data.data.following_count;
+
+                        console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
+
+                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE username = ?`;
+                        await db.query(updateQuery, [follower, following, row.username]);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching/updating data for ${row.username}:`, error.message);
+                }
+            }));
+
+            // Tambahkan delay opsional jika ingin menghindari rate limit API
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antara batch
+        }
+
+        res.send('Data followers & following berhasil diperbarui untuk semua pengguna.');
+    } catch (error) {
+        console.error('Error executing update:', error.message);
+        res.status(500).send(`Error executing update: ${error.message}`);
+    }
+});
+
 
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
