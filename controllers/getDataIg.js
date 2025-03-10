@@ -190,8 +190,15 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
     try {
         let paginationToken = null;
         let moreComments = true;
+        let pageCount = 0;
+        limitPage = 20;
 
         while (moreComments) {
+            if (limitPage > 0 && pageCount >= limitPage) {
+                console.log(`⏹️ Stopping at page limit (${limitPage}) for post ${unique_id_post}`);
+                break;
+            }
+
             const getComment = {
                 method: 'GET',
                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments',
@@ -225,7 +232,7 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                     username: username,
                     unique_id_post: unique_id_post,
                     comment_unique_id: item.id,
-                    created_at: new Date(item.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                    created_at: new Date(item.created_at * 1000).toISOString().slice(0, 19).replace('T', ' '),
                     commenter_username: item.user.username,
                     commenter_userid: item.user.id,
                     comment_text: item.text,
@@ -234,26 +241,31 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                 };
 
                 await save.saveComment(comment);
-
             }
 
             paginationToken = response.data.pagination_token;
+            pageCount++;
+
             if (!paginationToken) moreComments = false;
         }
     } catch (error) {
-        console.error(`Error fetching data for ${unique_id_post}:`, error.message);
+        console.error(`❌ Error fetching data for ${unique_id_post}:`, error.message);
     }
 };
 
-const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null) => {
-    
-    console.info(unique_id_post, client_account, kategori, comment_unique_id, user_id, username, platform);
-
+const getDataChildComment = async (unique_id_post = null, user_id = null, username = null, comment_unique_id = null, client_account = null, kategori = null, platform = null) => {
     try {
         let paginationToken = null;
         let moreComments = true;
+        let pageCount = 0;
+        limitPage = 2;
 
         while (moreComments) {
+            if (limitPage > 0 && pageCount >= limitPage) {
+                console.log(`⏹️ Stopping at page limit (${limitPage}) for child comments on post ${unique_id_post}`);
+                break;
+            }
+
             const getChildComment = {
                 method: 'GET',
                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/comments_thread',
@@ -278,7 +290,7 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
             const userComment = response.data.data.items;
 
             for (const child of userComment) {
-                // Simpan data comment utama
+                // Simpan data child comment
                 const childComment = {
                     client_account: client_account,
                     kategori: kategori,
@@ -286,24 +298,25 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                     user_id: user_id,
                     username: username,
                     unique_id_post: unique_id_post,
-                    parent_comment_unique_id: comment_unique_id, // Parent comment ID
-                    comment_unique_id: child.id, // Unique ID dari child comment
-                    created_at: new Date(child.created_at * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                    commenter_username: child.user.username,
-                    commenter_userid: child.user.id,
-                    comment_text: child.text,
-                    comment_like_count: child.comment_like_count
+                    comment_unique_id: comment_unique_id,
+                    child_comment_unique_id: child.id,
+                    created_at: new Date(child.created_at * 1000).toISOString().slice(0, 19).replace('T', ' '),
+                    child_commenter_username: child.user.username,
+                    child_commenter_userid: child.user.id,
+                    child_comment_text: child.text,
+                    child_comment_like_count: child.comment_like_count
                 };
 
                 await save.saveChildComment(childComment);
-
             }
 
             paginationToken = response.data.pagination_token;
+            pageCount++;
+
             if (!paginationToken) moreComments = false;
         }
     } catch (error) {
-        console.error(`Error fetching data for comment ${comment_unique_id} on post ${unique_id_post}:`, error.message);
+        console.error(`❌ Error fetching data for comment ${comment_unique_id} on post ${unique_id_post}:`, error.message);
     }
 };
 
