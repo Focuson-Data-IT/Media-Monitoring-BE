@@ -245,7 +245,7 @@ router.get('/getLikes', async (req, res) => {
 
 router.get('/getDataPostByKeywords', async (req, res) => {
     const { kategori, start_date, end_date } = req.query;
-    // Fetch data for TikTok
+    // Fetch data for Youtube
     try {
         const [rows] = await db.query(`
             SELECT * FROM listKeywords 
@@ -281,91 +281,91 @@ router.post('/getCommentv2', async (req, res) => {
         const processFromStart = fromStart ? fromStart === 'true' : false;
 
         console.info(`Kategori: ${kategori}`);
-        console.info(`Post Code(s): ${Array.isArray(unique_id_post) ? unique_id_post.join(', ') : unique_id_post}`);
+        console.info(`Post Codes: ${unique_id_post}`);
         console.info(`Process From Start: ${processFromStart}`);
+
+        if (!Array.isArray(unique_id_post) || unique_id_post.length === 0) {
+            return res.status(400).json({ error: "Invalid unique_id_post format. It should be a non-empty list." });
+        }
+
+        console.log(`🚀 Starting to fetch main comments for ${unique_id_post.length} posts...`);
 
         // ================================
         // 🔹 Step 1: Proses Main Comments
         // ================================
+        for (const code of unique_id_post) {
+            console.log(`🔍 Processing unique_id_post: ${code}`);
 
-        console.log('🚀 Starting to fetch main comments...');
-
-        let mainCommentQuery = `
-            SELECT unique_id_post, created_at
-            FROM posts 
-            WHERE platform = "Youtube" 
-            AND kategori = ?
-            AND unique_id_post IN (?)
-        `;
-
-        if (!processFromStart) {
-            mainCommentQuery = `
-                SELECT p.unique_id_post, p.created_at
-                FROM posts p
-                LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
-                WHERE mc.unique_id_post IS NULL
-                AND p.platform = "Youtube"
-                AND p.kategori = ?
-                AND p.unique_id_post IN (?)
-            `;
-        }
-
-        const [mainComments] = await db.query(mainCommentQuery, [kategori, unique_id_post]);
-
-        if (mainComments.length === 0) {
-            console.log("🚫 No matching posts found in the database.");
-            return res.status(200).json({ message: "No posts found to process." });
-        }
-
-        console.log(`📌 Found ${mainComments.length} posts to process.`);
-
-        await processQueue(mainComments, async ({ unique_id_post }) => {
-            console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
-
-            const [userRows] = await db.query(`
-                SELECT user_id, username, comments, client_account, kategori, platform 
+            let mainCommentQuery = `
+                SELECT unique_id_post, created_at, kategori
                 FROM posts 
-                WHERE unique_id_post = ? 
-                AND platform = "Youtube" 
-                AND kategori = ?`,
-                [unique_id_post, kategori]
-            );
+                WHERE platform = "Youtube" 
+                AND kategori = ?
+                AND unique_id_post = ?
+            `;
 
-            if (userRows.length === 0) {
-                console.log(`🚫 Post ${unique_id_post} not found in database.`);
-                return;
+            if (!processFromStart) {
+                mainCommentQuery = `
+                    SELECT p.unique_id_post, p.created_at, p.kategori
+                    FROM posts p
+                    LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
+                    WHERE mc.unique_id_post IS NULL
+                    AND p.platform = "Youtube"
+                    AND p.kategori = ?
+                    AND p.unique_id_post = ?
+                `;
             }
 
-            const { user_id, username, comments, client_account, platform } = userRows[0];
+            const [mainComments] = await db.query(mainCommentQuery, [kategori, code]);
 
-            if (comments > 0) {
-                try {
-                    await getDataYoutube.getDataComment(
-                        unique_id_post,
-                        user_id, 
-                        username, 
-                        client_account, 
-                        kategori,
-                        platform
-                    );
-                    console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
-                } catch (err) {
-                    console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
+            console.log(`📌 Found ${mainComments.length} posts to process.`);
+
+            await processQueue(mainComments, async ({ unique_id_post, kategori }) => {
+                console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
+
+                const [userRows] = await db.query(
+                    `SELECT user_id, username, comments, client_account, platform 
+                        FROM posts 
+                        WHERE unique_id_post = ? 
+                        AND platform = "Youtube" 
+                        AND kategori = ?`,
+                    [unique_id_post, kategori]
+                );
+
+                if (userRows.length === 0) {
+                    console.log(`🚫 Post ${unique_id_post} not found in database.`);
+                    return;
                 }
-            } else {
-                console.log(`ℹ️ No comments for post ${unique_id_post}.`);
-            }
-        });
+
+                const { user_id, username, comments, client_account, platform } = userRows[0];
+
+                if (comments > 0) {
+                    try {
+                        await getDataYoutube.getDataComment(
+                            unique_id_post, 
+                            user_id, 
+                            username, 
+                            client_account, 
+                            kategori, 
+                            platform
+                        );
+                        console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
+                    } catch (err) {
+                        console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
+                    }
+                } else {
+                    console.log(`ℹ️ No comments for post ${unique_id_post}.`);
+                }
+            });
+        }
 
         console.log('✅ Main comments processing completed.');
-        res.status(200).json({ message: "✅ Data getComment processed successfully." });
+
+        res.status(200).json({ message: "✅ Data getComment and getChildComment processed successfully." });
 
     } catch (error) {
-        console.error('❌ Error executing getComment:', error.message);
-        res.status(500).json({
-            message: 'Terjadi kesalahan saat menjalankan proses getComment.',
-            error: error.message,
-        });
+        console.error("❌ Error in /getCommentv2 route:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
