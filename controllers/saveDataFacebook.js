@@ -75,8 +75,8 @@ const savePost = async (post) => {
 // fungsi untuk menyimpan data comment ke database
 const saveComment = async (comment) => {
     const sql = `
-        INSERT INTO mainComments (client_account, kategori, platform, user_id, username, unique_id_post, comment_unique_id, created_at, commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO mainComments (client_account, kategori, platform, user_id, username, unique_id_post, comment_unique_id, created_at, commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count, expansion_token)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
             kategori = VALUES(kategori),
@@ -89,11 +89,13 @@ const saveComment = async (comment) => {
             commenter_userid = VALUES(commenter_userid),
             comment_text = VALUES(comment_text),
             comment_like_count = VALUES(comment_like_count),
-            child_comment_count = VALUES(child_comment_count)
+            child_comment_count = VALUES(child_comment_count),
+            expansion_token = VALUES(expansion_token)
     `;
     connection.query(sql, [
         comment.client_account, comment.kategori, comment.platform,
-        comment.user_id, comment.username, comment.unique_id_post, comment.comment_unique_id, comment.created_at, comment.commenter_username, comment.commenter_userid, comment.comment_text, comment.comment_like_count, comment.child_comment_count
+        comment.user_id, comment.username, comment.unique_id_post, comment.comment_unique_id, comment.created_at, comment.commenter_username, comment.commenter_userid, comment.comment_text, comment.comment_like_count, comment.child_comment_count,
+        comment.expansion_token
     ],
         (err, result) => {
             if (err) {

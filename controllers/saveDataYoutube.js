@@ -75,7 +75,11 @@ const savePost = async (post) => {
 // fungsi untuk menyimpan data comment ke database
 const saveComment = async (comment) => {
     const sql = `
-        INSERT INTO mainComments (client_account, kategori, platform, user_id, username, unique_id_post, comment_unique_id, created_at, commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count)
+        INSERT INTO mainComments (
+        client_account, kategori, platform, 
+        user_id, username, unique_id_post, 
+        comment_unique_id, created_at, commenter_username, 
+        commenter_userid, comment_text, comment_like_count, child_comment_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
@@ -110,8 +114,10 @@ const saveChildComment = async (childComment) => {
     const sql = `
         INSERT INTO childComments 
         (client_account, kategori, platform, 
-        user_id, username, unique_id_post, comment_unique_id, child_comment_unique_id, created_at, 
-        child_commenter_username, child_commenter_userid, child_comment_text, child_comment_like_count)
+        user_id, username, unique_id_post, 
+        comment_unique_id, child_comment_unique_id, 
+        created_at, child_commenter_username, child_commenter_userid, 
+        child_comment_text, child_comment_like_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             client_account = VALUES(client_account),
@@ -130,9 +136,9 @@ const saveChildComment = async (childComment) => {
 
     connection.query(sql, [
         childComment.client_account, childComment.kategori, childComment.platform,
-        childComment.user_id, childComment.username,
-        childComment.unique_id_post, childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at,
-        childComment.child_commenter_username, childComment.child_commenter_userid, childComment.child_comment_text, childComment.child_comment_like_count
+        childComment.user_id, childComment.username, childComment.unique_id_post, 
+        childComment.comment_unique_id, childComment.child_comment_unique_id, childComment.created_at, childComment.child_commenter_username, 
+        childComment.child_commenter_userid, childComment.child_comment_text, childComment.child_comment_like_count
     ],
         (err, result) => {
             if (err) {
