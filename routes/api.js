@@ -139,7 +139,7 @@ router.get('/v1/comments-coding', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM mainComments WHERE label IS NULL AND kategori = 'kdm'`;
+        const query = `SELECT * FROM mainComments WHERE label IS NULL AND kategori = 'kdm' ORDER BY commenter_username ASC`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
