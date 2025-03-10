@@ -2,7 +2,7 @@
 const OpenAI = require('openai');
 
 const openai = new OpenAI({
-  apiKey: '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', // Pastikan .env berisi OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY, // Pastikan .env berisi OPENAI_API_KEY
   organization: 'org-JlOSSUvSn9C8DtVAQtLlVVI9',
   project: 'proj_bU478f0cDiMQUvoUZTONAAuY'
 });
