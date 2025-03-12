@@ -61,12 +61,80 @@ const processQueue = async (items, processFunction) => {
     console.log('All items in the queue have been processed.');
 };
 
+const chunkArray = (array, size) => {
+    const chunkedArr = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunkedArr.push(array.slice(i, i + size));
+    }
+    return chunkedArr;
+};
+
+router.get('/update-followers-kdm', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM posts WHERE FIND_IN_SET("kdm", kategori) AND platform = "Youtube"');
+
+        if (!rows.length) {
+            return res.send('No users found in the database.');
+        }
+
+        const batchSize = 5; // Jumlah row yang diproses per batch
+        const rowBatches = chunkArray(rows, batchSize);
+
+        for (const batch of rowBatches) {
+            console.info(`Processing batch of ${batch.length} users...`);
+
+            await Promise.all(batch.map(async (row) => {
+                try {
+                    console.info('Fetching data for user: ' + row.username);
+
+                    const getUser = {
+                        method: 'GET',
+                        url: 'https://youtube-v311.p.rapidapi.com/channels/',
+                        params: {
+                            part: 'snippet,statistics',
+                            id: row.user_id,
+                            maxResults: '50'
+                        },
+                        headers: {
+                            'x-rapidapi-key': process.env.RAPIDAPI_YT_KEY,
+                            'x-rapidapi-host': process.env.RAPIDAPI_YT_HOST
+                        }
+                    };
+
+                    const response = await axios.request(getUser);
+
+                    if (response.data?.data) {
+                        const userData = response.data.items || null ;
+
+                        const follower = userData.statistics.subscriberCount;
+
+                        console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
+
+                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE post_id = ?`;
+                        await db.query(updateQuery, [follower, following, row.post_id]);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching/updating data for ${row.username}:`, error.message);
+                }
+            }));
+
+            // Tambahkan delay opsional jika ingin menghindari rate limit API
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antara batch
+        }
+
+        res.send('Data followers & following berhasil diperbarui untuk semua pengguna.');
+    } catch (error) {
+        console.error('Error executing update:', error.message);
+        res.status(500).send(`Error executing update: ${error.message}`);
+    }
+});
+
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for Youtube
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Youtube" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Youtube" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
@@ -98,7 +166,7 @@ router.get('/getPost', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for Youtube
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Youtube" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Youtube" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -155,7 +223,7 @@ router.get('/getComment', async (req, res) => {
             SELECT unique_id_post, created_at
             FROM posts 
             WHERE platform = "Youtube" 
-            AND kategori = ?
+            AND FIND_IN_SET(?, kategori)
             AND unique_id_post = ?
         `;
 
@@ -166,7 +234,7 @@ router.get('/getComment', async (req, res) => {
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                 WHERE mc.unique_id_post IS NULL
                 AND p.platform = "Youtube"
-                AND p.kategori = ?
+                AND FIND_IN_SET(?, p.kategori)
                 AND p.unique_id_post = ?
             `;
         }
@@ -178,7 +246,7 @@ router.get('/getComment', async (req, res) => {
             console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Youtube" AND kategori = ?`,
+                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Youtube" AND FIND_IN_SET(?, kategori)`,
                 [unique_id_post, kategori]
             );
 
@@ -252,7 +320,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             SELECT * FROM listKeywords 
             WHERE 
             platform = "Youtube" 
-            AND kategori = ? 
+            AND FIND_IN_SET(?, kategori) 
             `, [kategori]);
 
         await processQueue(rows, async (row) => {
@@ -301,7 +369,7 @@ router.post('/getCommentv2', async (req, res) => {
                 SELECT unique_id_post, created_at, kategori
                 FROM posts 
                 WHERE platform = "Youtube" 
-                AND kategori = ?
+                AND FIND_IN_SET(?, kategori)
                 AND unique_id_post = ?
             `;
 
@@ -312,7 +380,7 @@ router.post('/getCommentv2', async (req, res) => {
                     LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                     WHERE mc.unique_id_post IS NULL
                     AND p.platform = "Youtube"
-                    AND p.kategori = ?
+                    AND FIND_IN_SET(?, p.kategori)
                     AND p.unique_id_post = ?
                 `;
             }
@@ -329,7 +397,7 @@ router.post('/getCommentv2', async (req, res) => {
                         FROM posts 
                         WHERE unique_id_post = ? 
                         AND platform = "Youtube" 
-                        AND kategori = ?`,
+                        AND FIND_IN_SET(?, kategori)`,
                     [unique_id_post, kategori]
                 );
 
@@ -342,7 +410,7 @@ router.post('/getCommentv2', async (req, res) => {
 
                 if (comments > 0) {
                     try {
-                        await getDataYoutube.getDataComment(
+                        await getDataYoutube.getDataComment2(
                             unique_id_post, 
                             user_id, 
                             username, 
@@ -366,6 +434,44 @@ router.post('/getCommentv2', async (req, res) => {
 
     } catch (error) {
         console.error("❌ Error in /getCommentv2 route:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+router.post('/getCommentv3', async (req, res) => {
+    try {
+        const { kategori, unique_id_post, client_account, platform } = req.body;
+
+        console.info(`Kategori: ${kategori}`);
+        console.info(`Post Codes: ${unique_id_post}`);
+
+        if (!Array.isArray(unique_id_post) || unique_id_post.length === 0) {
+            return res.status(400).json({ error: "Invalid unique_id_post format. It should be a non-empty list." });
+        }
+
+        console.log(`🚀 Starting to fetch comments for ${unique_id_post.length} posts...`);
+
+        for (const code of unique_id_post) {
+            console.log(`🔍 Fetching comments for post: ${code}...`);
+            try {
+                await getDataYoutube.getDataComment2(
+                    code,
+                    null,
+                    null,
+                    client_account,
+                    kategori, 
+                    platform // platform
+                );
+                console.log(`✅ Comments for post ${code} have been fetched and saved.`);
+            } catch (err) {
+                console.error(`❌ Error fetching comments for post ${code}:`, err.message);
+            }
+        }
+
+        console.log('✅ Comments fetching process completed.');
+        res.status(200).json({ message: "✅ Comments fetched successfully." });
+    } catch (error) {
+        console.error("❌ Error in /getCommentv3 route:", error.message);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });

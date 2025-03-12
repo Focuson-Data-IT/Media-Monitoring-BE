@@ -60,12 +60,71 @@ const processQueue = async (items, processFunction) => {
     console.log('All items in the queue have been processed.');
 };
 
+router.get('/update-followers-kdm', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM posts WHERE FIND_IN_SET("kdm", kategori) AND platform = "Facebook"');
+
+        if (!rows.length) {
+            return res.send('No users found in the database.');
+        }
+
+        const batchSize = 5; // Jumlah row yang diproses per batch
+        const rowBatches = chunkArray(rows, batchSize);
+
+        for (const batch of rowBatches) {
+            console.info(`Processing batch of ${batch.length} users...`);
+
+            await Promise.all(batch.map(async (row) => {
+                try {
+                    console.info('Fetching data for user: ' + row.username);
+
+                    const getUser = {
+                        method: 'GET',
+                        url: 'https://facebook-scraper3.p.rapidapi.com/profile/details_id',
+                        params: {
+                            profile_id: row.username
+                        },
+                        headers: {
+                            'x-rapidapi-key': process.env.RAPIDAPI_TIKTOK_KEY,
+                            'x-rapidapi-host': process.env.RAPIDAPI_TIKTOK_HOST
+                        }
+                    };
+
+                    const response = await axios.request(getUser);
+
+                    if (response.data?.data) {
+                        const userData = response.data.data;
+
+                        const follower = userData.data.stats.followerCount;
+                        const following = userData.data.stats.followingCount;
+
+                        console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
+
+                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE post_id = ?`;
+                        await db.query(updateQuery, [follower, following, row.post_id]);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching/updating data for ${row.username}:`, error.message);
+                }
+            }));
+
+            // Tambahkan delay opsional jika ingin menghindari rate limit API
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antara batch
+        }
+
+        res.send('Data followers & following berhasil diperbarui untuk semua pengguna.');
+    } catch (error) {
+        console.error('Error executing update:', error.message);
+        res.status(500).send(`Error executing update: ${error.message}`);
+    }
+});
+
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for Facebook
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Facebook" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Facebook" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
@@ -97,7 +156,7 @@ router.get('/getPost', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for Facebook
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Facebook" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Facebook" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -165,7 +224,7 @@ router.get('/getComment', async (req, res) => {
             SELECT unique_id_post, created_at
             FROM posts 
             WHERE platform = "Facebook" 
-            AND kategori = ?
+            AND FIND_IN_SET(?, kategori)
             AND DATE(created_at) BETWEEN ? AND ?
         `;
 
@@ -176,7 +235,7 @@ router.get('/getComment', async (req, res) => {
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                 WHERE mc.unique_id_post IS NULL
                 AND p.platform = "Facebook"
-                AND p.kategori = ?
+                AND FIND_IN_SET(?, p.kategori)
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
         }
@@ -188,7 +247,7 @@ router.get('/getComment', async (req, res) => {
             console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Facebook" AND kategori = ?`,
+                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Facebook" AND FIND_IN_SET(?, kategori)`,
                 [unique_id_post, kategori]
             );
 
@@ -224,7 +283,7 @@ router.get('/getComment', async (req, res) => {
             FROM mainComments mc
             JOIN posts p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = "Facebook"
-            AND mc.kategori = ?
+            AND FIND_IN_SET(?, mc.kategori)
             AND DATE(p.created_at) BETWEEN ? AND ?
         `;
 
@@ -235,7 +294,7 @@ router.get('/getComment', async (req, res) => {
                 FROM mainComments mc
                 JOIN posts p ON mc.unique_id_post = p.unique_id_post
                 WHERE mc.platform = "Facebook"
-                AND mc.kategori = ?
+                AND FIND_IN_SET(?, mc.kategori)
                 AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
@@ -322,7 +381,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             SELECT * FROM listKeywords 
             WHERE 
             platform = "Facebook" 
-            AND kategori = ? 
+            AND FIND_IN_SET(?, kategori) 
             `, [kategori]);
 
         await processQueue(rows, async (row) => {
@@ -370,7 +429,7 @@ router.post('/getCommentv2', async (req, res) => {
                 SELECT unique_id_post, created_at, kategori
                 FROM posts 
                 WHERE platform = "Facebook" 
-                AND kategori = ?
+                AND FIND_IN_SET(?, kategori)
                 AND unique_id_post = ?
             `;
 
@@ -381,7 +440,7 @@ router.post('/getCommentv2', async (req, res) => {
                     LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                     WHERE mc.unique_id_post IS NULL
                     AND p.platform = "Facebook"
-                    AND p.kategori = ?
+                    AND FIND_IN_SET(?, p.kategori)
                     AND p.unique_id_post = ?
                 `;
             }
@@ -398,7 +457,7 @@ router.post('/getCommentv2', async (req, res) => {
                         FROM posts 
                         WHERE unique_id_post = ? 
                         AND platform = "Facebook" 
-                        AND kategori = ?`,
+                        AND FIND_IN_SET(?, kategori)`,
                     [unique_id_post, kategori]
                 );
 
@@ -442,7 +501,7 @@ router.post('/getCommentv2', async (req, res) => {
             FROM mainComments mc
             LEFT JOIN posts p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = "Facebook"
-            AND mc.kategori = ?
+            AND FIND_IN_SET(?, mc.kategori)
             AND p.unique_id_post IN (?)
         `;
 

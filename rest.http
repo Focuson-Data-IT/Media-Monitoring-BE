@@ -116,19 +116,19 @@ Content-Type: application/json
 - prokopim_bekasikab (Instagram)
 
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=prokopim_bekasikab
+GET http://localhost:7770/instagram/getData?kategori=disparbud_ambassador
 
 ### Get Tiktok User Data
 GET http://localhost:7770/tiktok/getData?kategori=disparbud
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=prokopim_bekasikab
+GET http://localhost:7770/instagram/getPost?kategori=kdm
 
 ### Get TikTok User Post
 GET http://localhost:7770/tiktok/getPost?kategori=disparbud
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=bkkbn_jabar
+GET http://localhost:7770/instagram/getComment?kategori=kdm_media
 
 ### Get TikTok User Comment
 GET http://localhost:7770/tiktok/getComment?kategori=kdm
@@ -144,7 +144,7 @@ Content-Type: application/json
 
 {
   "start_date": "2025-01-01",
-  "kategori": "prokopim_bekasikab"
+  "kategori": "opdbekasikab"
 }
 
 ### Proses Performa Konten
@@ -175,7 +175,7 @@ GET http://localhost:7770/api/getFairSummary?username=smilingbogorcity&month=202
 ### Daily Data // Growth Metrics
 ### Instagram
 ### GET Daily Followers
-GET http://localhost:7770/api/getDailyFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7770/api/getDailyFollowers?kategori=opdbekasikab&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET Daily Likes
 GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
@@ -237,7 +237,7 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:7770/api/getAllSearchUsername?&platform=TikTok&kategori=disparbud&search=dispara.indramayu
+GET http://localhost:7770/api/getAllSearchUsername?&platform=Instagram&kategori=prokopim_bekasikab&search=pemkabbekasi
 
 ###
 GET http://localhost:7770/api/getTotalPost?&platform=TikTok&kategori=disparbud&search=disparbudmajalengka&start_date=2025-02-01&end_date=2025-02-28
@@ -258,14 +258,24 @@ GET http://localhost:7770/youtube/getDataPostByKeywords?kategori=kdm&start_date=
 GET http://localhost:7770/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
 
 ###
-POST http://localhost:7770/instagram/getCommentv2
+POST http://localhost:7770/youtube/getCommentv2
 Content-Type: application/json
 
 {
     "kategori": "kdm",
-    "post_code": [
-        "DG7vJ-kAGKw",
-        "DG9qctdM8Jb"
+    "fromStart": "true",
+    "unique_id_post": [
+        "fCBzUwoMSW8"
+    ]
+}
+###
+POST http://localhost:7770/youtube/getCommentv3
+Content-Type: application/json
+
+{
+    "kategori": "kdm",
+    "unique_id_post": [
+        "OkwWcOtJGvQ"
     ]
 }
 
@@ -277,10 +287,6 @@ Content-Type: application/json
     "kategori": "kdm",
     "fromStart": "true",
     "unique_id_post": [
-        "7479455197517892871",
-        "7469768342795062535",
-        "7465988942794460434",
-        "7475969309525773623",
         "7467421508596485382"
     ]
 }
@@ -332,3 +338,5 @@ Content-Type: application/json
     ]
 }
 
+###
+GET http://localhost:7770/tiktok/update-followers-kdm

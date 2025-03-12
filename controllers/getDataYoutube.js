@@ -223,9 +223,11 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 
             const userComment = response.data.items;
 
+            console.info('Response:', userComment);
+
             for (const item of userComment) {
                 const data = item.snippet.topLevelComment;
-                const snippet = data.snippet;
+                const snippet = data.snippet || null;
 
                 const comment = {
                     client_account: client_account,
@@ -274,6 +276,117 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                         }
                         catch (error) {
                             console.error(`Error saving child comment ${itemChild.id} to database:`, error.message);
+                        }
+                    }
+                } else {
+                    console.log(`ℹ️ No child comments found for comment ID ${data.id}`);
+                }
+            }
+
+            nextPageToken = response.data.nextPageToken;
+            if (!nextPageToken) moreComments = false;
+            pageCount++;
+            console.log(`✅ Processed page ${pageCount}`);
+        }
+    } catch (error) {
+        console.error(`❌ Error fetching data for ${unique_id_post}:`, error.message);
+    }
+};
+
+const getDataComment2 = async (unique_id_post = null, user_id = null, username = null, client_account = null, kategori = null, platform = null) => {
+    try {
+        console.info(unique_id_post, client_account, kategori, platform);
+
+        let nextPageToken = null;
+        let moreComments = true;
+        let pageCount = 0;
+        const limitPage = 20;
+
+        while (moreComments && pageCount < limitPage) {
+            const getComment = {
+                method: 'GET',
+                url: 'https://youtube-v311.p.rapidapi.com/commentThreads/',
+                params: {
+                    part: 'snippet,replies',
+                    videoId: unique_id_post,
+                    maxResults: '100',
+                    order: 'relevance',
+                    textFormat: 'plainText',
+                    ...(nextPageToken && { pageToken: nextPageToken }) // 🔹 Perbaikan dari `nextPageToken` ke `pageToken`
+                },
+                headers: {
+                    'X-RapidAPI-Key': process.env.RAPIDAPI_YT_KEY,
+                    'X-RapidAPI-Host': process.env.RAPIDAPI_YT_HOST
+                }
+            };
+
+            const response = await apiRequestWithRetry(getComment);
+
+            // if (!response.data) {
+            //     moreComments = false;
+            //     break;
+            // }
+
+            const userComment = response.data.items;
+
+            console.info('Response:', userComment);
+
+            for (const item of userComment) {
+                const data = item.snippet.topLevelComment;
+                const snippet = data.snippet || null;
+            
+                const comment = {
+                    client_account: client_account,
+                    kategori: kategori,
+                    platform: platform,
+                    user_id: user_id || null,
+                    username: username || null,
+                    unique_id_post: unique_id_post,
+                    comment_unique_id: data.id,
+                    created_at: new Date(snippet.publishedAt).toISOString().slice(0, 19).replace('T', ' '),
+                    commenter_username: snippet.authorDisplayName,
+                    commenter_userid: snippet.authorChannelId?.value || "Unknown",
+                    comment_text: snippet.textDisplay,
+                    comment_like_count: snippet.likeCount,
+                    child_comment_count: item.totalReplyCount
+                };
+            
+                console.info(`Attempting to save comment: ${JSON.stringify(comment)}`);
+            
+                try {
+                    await save.saveComment(comment);
+                    console.info(`Successfully saved comment: ${comment.comment_unique_id}`);
+                } catch (error) {
+                    console.error(`Error saving comment ${comment.comment_unique_id} to database:`, error.message);
+                }
+            
+                // 🔹 Cek apakah ada replies.comments sebelum melakukan iterasi
+                if (item.replies && Array.isArray(item.replies.comments)) {
+                    for (const itemChild of item.replies.comments) {
+                        const snippetChild = itemChild.snippet;
+                        const childComment = {
+                            client_account: client_account,
+                            kategori: kategori,
+                            platform: platform,
+                            user_id: user_id || null,
+                            username: username || null,
+                            unique_id_post: unique_id_post,
+                            comment_unique_id: data.id, // Parent comment ID
+                            child_comment_unique_id: itemChild.id, // Unique ID dari child comment
+                            created_at: new Date(snippetChild.publishedAt).toISOString().slice(0, 19).replace('T', ' '),
+                            child_commenter_username: snippetChild.authorDisplayName,
+                            child_commenter_userid: snippetChild.authorChannelId?.value || "Unknown",
+                            child_comment_text: snippetChild.textDisplay,
+                            child_comment_like_count: snippetChild.likeCount
+                        };
+            
+                        console.info(`Attempting to save child comment: ${JSON.stringify(childComment)}`);
+            
+                        try {
+                            await save.saveChildComment(childComment);
+                            console.info(`Successfully saved child comment: ${childComment.child_comment_unique_id}`);
+                        } catch (error) {
+                            console.error(`Error saving child comment ${childComment.child_comment_unique_id} to database:`, error.message);
                         }
                     }
                 } else {
@@ -482,6 +595,7 @@ module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
+    getDataComment2,
     // getDataChildComment,
     getDataLikes,
     getDataPostByKeyword

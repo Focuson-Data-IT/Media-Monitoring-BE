@@ -8,9 +8,17 @@ const saveListAkun = async (listAkun) => {
         INSERT INTO listAkun (client_account, platform, kategori, username)
         values (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
             platform = VALUES(platform),
-            kategori = VALUES(kategori),
+            kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             username = VALUES(username)
     `;
         connection.query(sql, [
@@ -62,26 +70,55 @@ const saveDataUser = async () => {
             }
         }
 
-        const insertSql = `
-            INSERT INTO dailyFairScores (list_id, client_account, kategori, platform, username, date)
+        const insertSqlDaily = `
+            INSERT INTO fairScoresDaily (list_id, client_account, kategori, platform, username, date)
             VALUES ?
             ON DUPLICATE KEY UPDATE
-                client_account = VALUES(client_account),
-                kategori = VALUES(kategori),
+                client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
+                platform = VALUES(platform),
+                username = VALUES(username),
+                date = VALUES(date);
+        `;
+
+        const insertSqlMonthly = `
+            INSERT INTO fairScoresMonthly (list_id, client_account, kategori, platform, username, date)
+            VALUES ?
+            ON DUPLICATE KEY UPDATE
+                client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
                 platform = VALUES(platform),
                 username = VALUES(username),
                 date = VALUES(date);
         `;
 
         // Eksekusi query dengan batch insert
-        const [result] = await connection.query(insertSql, [batchValues]);
+        const [resultDaily] = await connection.query(insertSqlDaily, [batchValues]);
+        const [resultMonthly] = await connection.query(insertSqlMonthly, [batchValues]);
 
-        console.log(`All data has been saved successfully. Rows affected: ${result.affectedRows}`);
+        console.log(`All data has been saved successfully. Daily Rows affected: ${resultDaily.affectedRows}`);
+        console.log(`All data has been saved successfully. Monthly Rows affected: ${resultMonthly.affectedRows}`);
     } catch (error) {
-        console.error("Error saving user data to dailyFairScores:", error.message);
+        console.error("Error saving user data to fairScoresDaily:", error.message);
+        console.error("Error saving user data to fairScoresMonthly:", error.message);
     }
 };
-
 
 module.exports = {
     saveListAkun,
