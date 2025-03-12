@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const saveData = require('../controllers/saveData');
-const fairScore = require('../controllers/fairScore');
+const fairScoreDaily = require('../controllers/fairScoreDaily');
+const fairScoreMonthly = require('../controllers/fairScoreMonthly');
+
 
 // Endpoint untuk memasukan data dari listAkun ke dalam tabel dailyFairScores
 router.post('/addDataUser', async (req, res) => {
@@ -25,7 +27,8 @@ router.post('/processData', async (req, res) => {
         }
 
         console.info(`Starting to process data for kategori: ${kategori}...`);
-        await fairScore.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
+        await fairScoreDaily.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
+        await fairScoreMonthly.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
 
         res.json({ success: true, message: `Data berhasil diproses untuk kategori: ${kategori} dan disimpan ke dailyFairScores.` });
     } catch (error) {

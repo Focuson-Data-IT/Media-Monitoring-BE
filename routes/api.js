@@ -3,360 +3,6 @@ const router = express.Router();
 const db = require('../models/db');
 const cliProgress = require('cli-progress');
 const { generateFairSummary } = require('../services/fairSummaryService');
-const { getNewsLabeling, getCoding, getSentiment } = require('../services/openaiService');
-
-router.get('/v1/labeling', async(req, res) => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const chunkArray = (arr, size) => {
-        return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-        );
-    };
-
-    const getNewsLabelingBatch = async (prompts) => {
-        try {
-            const response = await getNewsLabeling(prompts);
-
-            return response?.split("\n").map(line => line.replace(/^-\s*/, ''));
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            return [];
-        }
-    };
-
-    try {
-        const query = `SELECT * FROM news WHERE label IS NULL AND kategori = 'kdm'`;
-        const [result] = await db.query(query);
-
-        if (result.length === 0) {
-            return res.status(200).json({ message: "No news to process" });
-        }
-
-        const newsChunks = chunkArray(result, 5); // Proses 5 berita sekaligus
-
-        for (const chunk of newsChunks) {
-            const prompts = chunk.map(v => `- ${v.title}`).join("\n");
-
-            const labels = await getNewsLabelingBatch(prompts);
-
-            // Simpan hasil ke database menggunakan Promise.all
-            if (labels != "" && labels != null && labels != "No Label") {
-                await Promise.all(chunk.map((v, i) => {
-                    const updateQuery = `UPDATE news SET label = ? WHERE id = ?`;
-                    return db.query(updateQuery, [labels[i] || labels[0] || "No Label", v.id]);
-                }));
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay untuk menghindari rate limit
-        }
-
-        res.status(200).json({ message: "Labeling completed" });
-
-    } catch (error) {
-        console.error("Batch processing error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-})
-
-router.get('/v1/post-labeling', async(req, res) => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const chunkArray = (arr, size) => {
-        return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-        );
-    };
-
-    const getNewsLabelingBatch = async (prompts) => {
-        try {
-            const response = await getNewsLabeling(prompts);
-
-            return response?.split("\n").map(line => line.replace(/^-\s*/, ''));
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            return [];
-        }
-    };
-
-    try {
-        const query = `SELECT * FROM posts WHERE label IS NULL AND kategori = 'kdm' ORDER BY post_id DESC`;
-        const [result] = await db.query(query);
-
-        if (result.length === 0) {
-            return res.status(200).json({ message: "No news to process" });
-        }
-
-        const newsChunks = chunkArray(result, 5); // Proses 5 berita sekaligus
-
-        for (const chunk of newsChunks) {
-            const prompts = chunk.map(v => `- ${v.caption}`).join("\n");
-
-            const labels = await getNewsLabelingBatch(prompts);
-
-            // Simpan hasil ke database menggunakan Promise.all
-            if (labels != "" && labels != null && labels != "No Label") {
-                await Promise.all(chunk.map((v, i) => {
-                    const updateQuery = `UPDATE posts SET label = ? WHERE post_id = ?`;
-                    console.info(labels)
-                    console.info(labels[i])
-                    return db.query(updateQuery, [labels[i] || labels[0] || "No Label", v.post_id]);
-                }));
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay untuk menghindari rate limit
-        }
-
-        res.status(200).json({ message: "Labeling completed" });
-
-    } catch (error) {
-        console.error("Batch processing error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-})
-
-router.get('/v1/comments-coding', async(req, res) => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const chunkArray = (arr, size) => {
-        return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-        );
-    };
-
-    const getNewsLabelingBatch = async (prompts) => {
-        try {
-            const response = await getCoding(prompts);
-
-            console.info(response);
-            return response?.split("\n")
-                .map(line => line.replace(/^-\s*/, ''))
-                .filter(line => line.trim() !== "");
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            return [];
-        }
-    };
-
-    try {
-        const query = `SELECT * FROM mainComments WHERE label IS NULL AND kategori = 'kdm' ORDER BY commenter_username ASC`;
-        const [result] = await db.query(query);
-
-        if (result.length === 0) {
-            return res.status(200).json({ message: "No news to process" });
-        }
-
-        const newsChunks = chunkArray(result, 5); // Proses 5 berita sekaligus
-
-        for (const chunk of newsChunks) {
-            const prompts = chunk.map(v => `- ${v.comment_text}`).join("\n");
-
-            const labels = await getNewsLabelingBatch(prompts);
-            // console.info(typeof labels)
-            console.info(labels)
-
-            // Simpan hasil ke database menggunakan Promise.all
-            if (labels != "" && labels != null) {
-                await Promise.all(chunk.map((v, i) => {
-                    const updateQuery = `UPDATE mainComments SET label = ? WHERE main_comment_id = ?`;
-                    // return null;
-                    return db.query(updateQuery, [labels[i] || "No Label", v.main_comment_id]);
-                }));
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay untuk menghindari rate limit
-        }
-
-        res.status(200).json({ message: "Labeling completed" });
-
-    } catch (error) {
-        console.error("Batch processing error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-})
-
-router.get('/v1/reply-coding', async(req, res) => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const chunkArray = (arr, size) => {
-        return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-        );
-    };
-
-    const getNewsLabelingBatch = async (prompts) => {
-        try {
-            const response = await getCoding(prompts);
-
-            console.info(response);
-            return response?.split("\n")
-                .map(line => line.replace(/^-\s*/, ''))
-                .filter(line => line.trim() !== "");
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            return [];
-        }
-    };
-
-    try {
-        const query = `SELECT * FROM childComments WHERE label IS NULL AND kategori = 'kdm'`;
-        const [result] = await db.query(query);
-
-        if (result.length === 0) {
-            return res.status(200).json({ message: "No news to process" });
-        }
-
-        const newsChunks = chunkArray(result, 5); // Proses 5 berita sekaligus
-
-        for (const chunk of newsChunks) {
-            const prompts = chunk.map(v => `- ${v.child_comment_text}`).join("\n");
-
-            const labels = await getNewsLabelingBatch(prompts);
-            // console.info(typeof labels)
-            console.info(labels)
-
-            // Simpan hasil ke database menggunakan Promise.all
-            if (labels != "" && labels != null) {
-                await Promise.all(chunk.map((v, i) => {
-                    const updateQuery = `UPDATE childComments SET label = ? WHERE child_comment_id = ?`;
-                    // return null;
-                    return db.query(updateQuery, [labels[i] || "No Label", v.child_comment_id]);
-                }));
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay untuk menghindari rate limit
-        }
-
-        res.status(200).json({ message: "Labeling completed" });
-
-    } catch (error) {
-        console.error("Batch processing error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-})
-
-router.get('/v1/comments-sentiment', async(req, res) => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const chunkArray = (arr, size) => {
-        return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-        );
-    };
-
-    const getNewsLabelingBatch = async (prompts) => {
-        try {
-            const response = await getSentiment(prompts);
-
-            console.info(response);
-            return response?.split("\n")
-                .map(line => line.replace(/^-\s*/, ''))
-                .filter(line => line.trim() !== "");
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            return [];
-        }
-    };
-
-    try {
-        const query = `SELECT * FROM mainComments WHERE sentiment IS NULL AND kategori = 'kdm'`;
-        const [result] = await db.query(query);
-
-        if (result.length === 0) {
-            return res.status(200).json({ message: "No news to process" });
-        }
-
-        const newsChunks = chunkArray(result, 5); // Proses 5 berita sekaligus
-
-        for (const chunk of newsChunks) {
-            const prompts = chunk.map(v => `- ${v.comment_text}`).join("\n");
-
-            const labels = await getNewsLabelingBatch(prompts);
-            // console.info(typeof labels)
-            console.info(labels)
-
-            // Simpan hasil ke database menggunakan Promise.all
-            if (labels != "" && labels != null) {
-                await Promise.all(chunk.map((v, i) => {
-                    const updateQuery = `UPDATE mainComments SET sentiment = ? WHERE main_comment_id = ?`;
-                    // return null;
-                    return db.query(updateQuery, [labels[i] || "No Label", v.main_comment_id]);
-                }));
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay untuk menghindari rate limit
-        }
-
-        res.status(200).json({ message: "Labeling completed" });
-
-    } catch (error) {
-        console.error("Batch processing error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-})
-
-router.get('/v1/reply-sentiment', async(req, res) => {
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    const chunkArray = (arr, size) => {
-        return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-        );
-    };
-
-    const getNewsLabelingBatch = async (prompts) => {
-        try {
-            const response = await getSentiment(prompts);
-
-            console.info(response);
-            return response?.split("\n")
-                .map(line => line.replace(/^-\s*/, ''))
-                .filter(line => line.trim() !== "");
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            return [];
-        }
-    };
-
-    try {
-        const query = `SELECT * FROM childComments WHERE sentiment IS NULL AND kategori = 'kdm' ORDER BY child_comment_id DESC`;
-        const [result] = await db.query(query);
-
-        if (result.length === 0) {
-            return res.status(200).json({ message: "No news to process" });
-        }
-
-        const newsChunks = chunkArray(result, 5); // Proses 5 berita sekaligus
-
-        for (const chunk of newsChunks) {
-            const prompts = chunk.map(v => `- ${v.child_comment_text}`).join("\n");
-
-            const labels = await getNewsLabelingBatch(prompts);
-            // console.info(typeof labels)
-            console.info(labels)
-
-            // Simpan hasil ke database menggunakan Promise.all
-            if (labels != "" && labels != null) {
-                await Promise.all(chunk.map((v, i) => {
-                    const updateQuery = `UPDATE childComments SET sentiment = ? WHERE child_comment_id = ?`;
-                    // return null;
-                    return db.query(updateQuery, [labels[i] || "No Label", v.child_comment_id]);
-                }));
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay untuk menghindari rate limit
-        }
-
-        res.status(200).json({ message: "Labeling completed" });
-
-    } catch (error) {
-        console.error("Batch processing error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-})
-
-
-
 
 router.post('/prosesPerformaKonten', async (req, res) => {
     try {
@@ -516,9 +162,9 @@ router.get('/getFollowers', async (req, res) => {
                 platform,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
-                dailyFairScores
+                fairScoresDaily
                 WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
@@ -558,9 +204,9 @@ router.get('/getDailyActivities', async (req, res) => {
                 nilai_aktifitas AS value,
                 platform,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
@@ -597,12 +243,12 @@ router.get('/getActivities', async (req, res) => {
             activities AS value, -- Langsung ambil nilai activities dari tanggal terbaru
             platform,
             MAX(activities) OVER () AS max_value -- Mengambil nilai activities tertinggi dari tanggal terbaru
-        FROM dailyFairScores
-        WHERE kategori = ?
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
             AND platform = ?
             AND DATE(date) = (
                 SELECT MAX(date) 
-                FROM dailyFairScores 
+                FROM fairScoresDaily 
                 WHERE kategori = ? 
                 AND platform = ? 
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
@@ -642,9 +288,9 @@ router.get('/getDailyInteractions', async (req, res) => {
                 interactions AS value,
                 platform,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
@@ -681,13 +327,13 @@ router.get('/getInteractions', async (req, res) => {
             interactions AS value, -- Langsung ambil nilai interactions dari tanggal terbaru
             platform,
             MAX(interactions) OVER () AS max_value -- Mengambil nilai interactions tertinggi dari tanggal terbaru
-        FROM dailyFairScores
-        WHERE kategori = ?
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
             AND platform = ?
             AND DATE(date) = (
                 SELECT MAX(date) 
-                FROM dailyFairScores 
-                WHERE kategori = ? 
+                FROM fairScoresDaily 
+                FIND_IN_SET(?, kategori)
                 AND platform = ? 
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         )
@@ -726,9 +372,9 @@ router.get('/getDailyResponsiveness', async (req, res) => {
                 responsiveness AS value,
                 platform,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
@@ -765,13 +411,13 @@ router.get('/getResponsiveness', async (req, res) => {
             responsiveness AS value, -- Langsung ambil nilai responsiveness dari tanggal terbaru
             platform,
             MAX(responsiveness) OVER () AS max_value -- Mengambil nilai responsiveness tertinggi dari tanggal terbaru
-        FROM dailyFairScores
-        WHERE kategori = ?
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
             AND platform = ?
             AND DATE(date) = (
                 SELECT MAX(date) 
-                FROM dailyFairScores 
-                WHERE kategori = ? 
+                FROM fairScoresDaily 
+                WHERE FIND_IN_SET(?, kategori)
                 AND platform = ? 
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         )
@@ -810,9 +456,9 @@ router.get('/getFairScores', async (req, res) => {
                 fair_score AS value,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date,
                 platform
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 AND is_render = 1
@@ -848,8 +494,8 @@ router.get('/getFairRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -867,8 +513,8 @@ router.get('/getFairRanking', async (req, res) => {
           username,
           fair_score AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY fair_score DESC;
@@ -881,8 +527,8 @@ router.get('/getFairRanking', async (req, res) => {
           username,
           fair_score AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY fair_score DESC;
@@ -922,8 +568,8 @@ router.get('/getFollowersRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -941,8 +587,8 @@ router.get('/getFollowersRanking', async (req, res) => {
           username,
           followers AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY followers DESC;
@@ -955,8 +601,8 @@ router.get('/getFollowersRanking', async (req, res) => {
           username,
           followers AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY followers DESC;
@@ -996,8 +642,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -1015,8 +661,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
           username,
           activities AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY activities DESC;
@@ -1029,8 +675,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
           username,
           activities AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY activities DESC;
@@ -1070,8 +716,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -1089,8 +735,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
           username,
           interactions AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY interactions DESC;
@@ -1103,8 +749,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
           username,
           interactions AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY interactions DESC;
@@ -1144,8 +790,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -1163,8 +809,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           username,
           responsiveness AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY responsiveness DESC;
@@ -1177,8 +823,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           username,
           responsiveness AS value,
           platform
-        FROM dailyFairScores
-        WHERE kategori = ? 
+        FROM fairScoresDaily
+        WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY responsiveness DESC;
@@ -1209,14 +855,14 @@ router.get('/getResponsivenessRanking', async (req, res) => {
     }
 });
 
-// Endpoint untuk mengambil data dari tabel dailyFairScores
+// Endpoint untuk mengambil data dari tabel fairScoresDaily
 router.get('/getAllData', async (req, res) => {
     try {
         const query = `
             SELECT *
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY DATE(date) DESC
         `;
@@ -1264,7 +910,7 @@ router.get('/getAllPost', async (req, res) => {
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM posts
-            WHERE kategori = ?
+            WHERE FIND_IN_SET(?, kategori)
               AND platform = ?
               AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
               AND username LIKE CONCAT('%', ?, '%')
@@ -1326,7 +972,7 @@ router.get('/getAllPost', async (req, res) => {
                             END
                     ) AS total_rows
                 FROM posts
-                WHERE kategori = ?
+                WHERE FIND_IN_SET(?, kategori)
                   AND platform = ?
                   AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
                   AND username LIKE CONCAT('%', ?, '%')
@@ -1384,7 +1030,7 @@ router.get('/getAllPost', async (req, res) => {
                         ELSE 'yellow'
                     END) AS performa_color
                 FROM posts
-                WHERE kategori = ?
+                WHERE FIND_IN_SET(?, kategori)
                     AND platform = ?
                     AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
                     AND username LIKE CONCAT('%', ?, '%')
@@ -1425,7 +1071,7 @@ router.get('/getAllUsers', async (req, res) => {
             SELECT *
             FROM users
             WHERE
-                kategori = ?
+                FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND username = ?
         `;
@@ -1455,7 +1101,7 @@ router.get('/getAllUsername', async (req, res) => {
         const query = `
             SELECT DISTINCT username
             FROM users
-            WHERE kategori = ?
+            WHERE FIND_IN_SET(?, kategori)
                 AND platform = ?
         `;
 
@@ -1484,7 +1130,7 @@ router.get('/getAllSearchUsername', async (req, res) => {
             const query = `
             SELECT DISTINCT username
             FROM users
-            WHERE kategori = ?
+            WHERE FIND_IN_SET(?, kategori)
                 AND platform = ?
             AND username LIKE CONCAT('%', ?, '%')
         `;
@@ -1516,7 +1162,7 @@ router.get('/getTotalPost', async (req, res) => {
             SELECT username, 
             COUNT(post_id) AS totalPosts
             FROM posts
-            WHERE kategori = ?
+            WHERE FIND_IN_SET(?, kategori)
                 AND platform = ?
                 AND created_at BETWEEN ? AND ?
                 AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
@@ -1556,7 +1202,7 @@ router.get('/getPictureData', async (req, res) => {
         SElECT *
         from users
         WHERE
-        kategori = ?
+        FIND_IN_SET(?, kategori)
         AND platform = ?
         AND username = ?
         `;
@@ -1591,9 +1237,9 @@ router.get('/getDailyFollowers', async (req, res) => {
             followers AS value,
             platform,
             CONVERT_TZ(date, '+00:00', '+07:00') AS date
-        FROM dailyFairScores
+        FROM fairScoresDaily
         WHERE
-            kategori = ?
+            FIND_IN_SET(?, kategori)
             AND platform = ?
             AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         ORDER BY
@@ -1632,7 +1278,7 @@ router.get('/getDailyLikes', async (req, res) => {
             DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
         FROM posts p
         WHERE
-            p.kategori = ?
+            FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
         GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
@@ -1672,7 +1318,7 @@ router.get('/getDailyViews', async (req, res) => {
             DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
         FROM posts p
         WHERE
-            p.kategori = ?
+            FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
         GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
@@ -1711,7 +1357,7 @@ router.get('/getDailyComments', async (req, res) => {
             DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
         FROM posts p
         WHERE
-            p.kategori = ?
+            FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
         GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
@@ -1750,7 +1396,7 @@ router.get('/getDailySaves', async (req, res) => {
             DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
         FROM posts p
         WHERE
-            p.kategori = ?
+            FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
         GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
@@ -1789,7 +1435,7 @@ router.get('/getDailyShares', async (req, res) => {
             DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
         FROM posts p
         WHERE
-            p.kategori = ?
+            FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
         GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
@@ -1866,8 +1512,9 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔍 Cari MAX(date) dengan konversi ke UTC+7
         const [maxDateResult] = await db.query(
             `SELECT MAX((CONVERT_TZ(date, '+00:00', '+07:00'))) AS maxDate
-             FROM dailyFairScores 
-             WHERE kategori = ? AND LOWER(platform) = LOWER(?) 
+             FROM fairScoresDaily 
+             WHERE FIND_IN_SET(?, kategori)
+             AND LOWER(platform) = LOWER(?) 
              AND DATE(CONVERT_TZ(date, '+00:00', '+07:00')) BETWEEN DATE(?) AND DATE(?)`,
             [kategori, platform, startDate, endDate]
         );
@@ -1882,8 +1529,9 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔍 Ambil semua data untuk tanggal MAX dengan konversi timezone
         const [allRows] = await db.query(
             `SELECT *, CONVERT_TZ(date, '+00:00', '+07:00') AS local_date
-             FROM dailyFairScores
-             WHERE kategori = ? AND LOWER(platform) = LOWER(?) AND CONVERT_TZ(date, '+00:00', '+07:00') = ?`,
+             FROM fairScoresDaily
+             WHERE FIND_IN_SET(?, kategori)
+             AND LOWER(platform) = LOWER(?) AND CONVERT_TZ(date, '+00:00', '+07:00') = ?`,
             [kategori, platform, maxDate]
         );
 
@@ -1935,7 +1583,7 @@ router.get('/getGrowthData', async (req, res) => {
         const [followersResult] = await connection.query(
             `
             SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
             `,
@@ -1948,7 +1596,7 @@ router.get('/getGrowthData', async (req, res) => {
         const [postsResult] = await connection.query(
             `
             SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, nilai_aktifitas AS posts
-            FROM dailyFairScores
+            FROM fairScoresDaily
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
             `,

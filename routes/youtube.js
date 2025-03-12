@@ -71,7 +71,7 @@ const chunkArray = (array, size) => {
 
 router.get('/update-followers-kdm', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Youtube"');
+        const [rows] = await db.query('SELECT * FROM posts WHERE FIND_IN_SET("kdm", kategori) AND platform = "Youtube"');
 
         if (!rows.length) {
             return res.send('No users found in the database.');
@@ -134,7 +134,7 @@ router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for Youtube
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Youtube" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "Youtube" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
@@ -166,7 +166,7 @@ router.get('/getPost', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for Youtube
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Youtube" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "Youtube" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -223,7 +223,7 @@ router.get('/getComment', async (req, res) => {
             SELECT unique_id_post, created_at
             FROM posts 
             WHERE platform = "Youtube" 
-            AND kategori = ?
+            AND FIND_IN_SET(?, kategori)
             AND unique_id_post = ?
         `;
 
@@ -234,7 +234,7 @@ router.get('/getComment', async (req, res) => {
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                 WHERE mc.unique_id_post IS NULL
                 AND p.platform = "Youtube"
-                AND p.kategori = ?
+                AND FIND_IN_SET(?, p.kategori)
                 AND p.unique_id_post = ?
             `;
         }
@@ -246,7 +246,7 @@ router.get('/getComment', async (req, res) => {
             console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Youtube" AND kategori = ?`,
+                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "Youtube" AND FIND_IN_SET(?, kategori)`,
                 [unique_id_post, kategori]
             );
 
@@ -320,7 +320,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             SELECT * FROM listKeywords 
             WHERE 
             platform = "Youtube" 
-            AND kategori = ? 
+            AND FIND_IN_SET(?, kategori) 
             `, [kategori]);
 
         await processQueue(rows, async (row) => {
@@ -369,7 +369,7 @@ router.post('/getCommentv2', async (req, res) => {
                 SELECT unique_id_post, created_at, kategori
                 FROM posts 
                 WHERE platform = "Youtube" 
-                AND kategori = ?
+                AND FIND_IN_SET(?, kategori)
                 AND unique_id_post = ?
             `;
 
@@ -380,7 +380,7 @@ router.post('/getCommentv2', async (req, res) => {
                     LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                     WHERE mc.unique_id_post IS NULL
                     AND p.platform = "Youtube"
-                    AND p.kategori = ?
+                    AND FIND_IN_SET(?, p.kategori)
                     AND p.unique_id_post = ?
                 `;
             }
@@ -397,7 +397,7 @@ router.post('/getCommentv2', async (req, res) => {
                         FROM posts 
                         WHERE unique_id_post = ? 
                         AND platform = "Youtube" 
-                        AND kategori = ?`,
+                        AND FIND_IN_SET(?, kategori)`,
                     [unique_id_post, kategori]
                 );
 
@@ -440,7 +440,7 @@ router.post('/getCommentv2', async (req, res) => {
 
 router.post('/getCommentv3', async (req, res) => {
     try {
-        const { kategori, unique_id_post } = req.body;
+        const { kategori, unique_id_post, client_account, platform } = req.body;
 
         console.info(`Kategori: ${kategori}`);
         console.info(`Post Codes: ${unique_id_post}`);
@@ -458,9 +458,9 @@ router.post('/getCommentv3', async (req, res) => {
                     code,
                     null,
                     null,
-                    "kdm@focuson.id",
+                    client_account,
                     kategori, 
-                    "Youtube" // platform
+                    platform // platform
                 );
                 console.log(`✅ Comments for post ${code} have been fetched and saved.`);
             } catch (err) {

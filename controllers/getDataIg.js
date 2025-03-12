@@ -258,7 +258,7 @@ const getDataChildComment = async (unique_id_post = null, user_id = null, userna
         let paginationToken = null;
         let moreComments = true;
         let pageCount = 0;
-        limitPage = 2;
+        limitPage = 10;
 
         while (moreComments) {
             if (limitPage > 0 && pageCount >= limitPage) {
