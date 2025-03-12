@@ -2,31 +2,44 @@ const connection = require('../models/db');
 
 // fungsi untuk menyimpan data user ke database
 const saveUser = async (user) => {
+    const kategoriString = Array.isArray(user.kategori) ? user.kategori.join(',') : user.kategori;
+    const clientAccountString = Array.isArray(user.client_account) ? user.client_account.join(',') : user.client_account;
+
     const sql = `
                     INSERT INTO users (client_account, kategori, platform, username, user_id, followers, following, mediaCount, profile_pic_url) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
-                    client_account = VALUES(client_account),
-                    kategori = VALUES(kategori),
+                    client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
                     platform = VALUES(platform), 
                     followers = VALUES(followers),
                     following = VALUES(following),
                     mediaCount = VALUES(mediaCount),
                     profile_pic_url = VALUES(profile_pic_url)
                 `;
+
     connection.query(sql, [
-        user.client_account, user.kategori, user.platform,
+        clientAccountString, kategoriString, user.platform,
         user.username, user.user_id, user.followers, user.following, user.mediaCount, user.profile_pic_url
     ],
         (err, result) => {
             if (err) {
                 console.error(`Error saving user ${user.username} to database:`, err.message);
             } else {
-                console.log(`Saved user ${user.username}, ${user.kategori}, untuk platform ${user.platform} to database`);
+                console.log(`Saved user ${user.username} dengan kategori ${kategoriString} untuk platform ${user.platform} to database`);
             }
         }
     );
 };
+
 
 // fungsi untuk menyimpan data post ke database
 const savePost = async (post) => {
@@ -38,8 +51,16 @@ const savePost = async (post) => {
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             user_id = VALUES(user_id),
             username = VALUES(username),
@@ -78,8 +99,16 @@ const saveComment = async (comment) => {
         INSERT INTO mainComments (client_account, kategori, platform, user_id, username, unique_id_post, comment_unique_id, created_at, commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             user_id = VALUES(user_id),
             username = VALUES(username),
@@ -114,8 +143,16 @@ const saveChildComment = async (childComment) => {
         child_commenter_username, child_commenter_userid, child_comment_text, child_comment_like_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             user_id = VALUES(user_id),
             username = VALUES(username),
@@ -150,8 +187,16 @@ const saveLikes = async (likes) => {
     INSERT INTO likes (client_account, kategori, platform, post_code, user_id, username, fullname, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
-        client_account = VALUES(client_account),
-        kategori = VALUES(kategori),
+        client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
         platform = VALUES(platform),
         post_code = VALUES(post_code),
         user_id = VALUES(user_id),
@@ -183,8 +228,16 @@ const saveDataPostByKeywords = async (post) => {
         playCount, shareCount)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             keywords = VALUES(keywords),
             user_id = VALUES(user_id),

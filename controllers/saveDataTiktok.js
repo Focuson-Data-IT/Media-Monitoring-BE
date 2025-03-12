@@ -6,8 +6,16 @@ const saveUser = async (user) => {
         INSERT INTO users (client_account, kategori, platform, username, user_id, followers, following, mediaCount, profile_pic_url) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             followers = VALUES(followers),
             following = VALUES(following),
@@ -36,8 +44,16 @@ const savePost = async (post) => {
             collectCount, shareCount, downloadCount)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             username = VALUES(username),
             user_id = VALUES(user_id),
@@ -79,8 +95,16 @@ const saveComment = async (comment) => {
             commenter_username, commenter_userid, comment_text, comment_like_count, child_comment_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             username = VALUES(username),
             user_id = VALUES(user_id),
@@ -114,8 +138,16 @@ const saveChildComment = async (childComment) => {
         child_commenter_username, child_commenter_userid, child_comment_text, child_comment_like_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             user_id = VALUES(user_id),
             username = VALUES(username),
@@ -151,8 +183,16 @@ const saveDataPostByKeywords = async (post) => {
         playCount, collectCount, shareCount, downloadCount)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = VALUES(client_account),
-            kategori = VALUES(kategori),
+            client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
             platform = VALUES(platform),
             keywords = VALUES(keywords),
             user_id = VALUES(user_id),

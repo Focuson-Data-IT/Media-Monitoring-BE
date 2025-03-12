@@ -44,19 +44,19 @@ const getDataForBatchProcessing = async (date, kategori) => {
     const daysInMonth = getDaysInMonth(date);
 
     const query = `
-                SELECT dfs.list_id, dfs.client_account, dfs.kategori, dfs.platform, dfs.username, dfs.date,
+                SELECT fsm.list_id, fsm.client_account, fsm.kategori, fsm.platform, fsm.username, fsm.date,
         
             -- ✅ Followers dengan filter platform
-            (SELECT followers FROM users WHERE users.username = dfs.username AND users.platform = dfs.platform LIMIT 1) AS followers,
+            (SELECT followers FROM users WHERE users.username = fsm.username AND users.platform = fsm.platform LIMIT 1) AS followers,
         
             -- ✅ Activities (rata-rata posting per hari)
             (
                 SELECT COUNT(*) 
                 FROM posts 
-                WHERE client_account = dfs.client_account 
+                WHERE client_account = fsm.client_account 
                   AND kategori = ? 
-                  AND platform = dfs.platform  -- ✅ Tambah filter platform
-                  AND username = dfs.username 
+                  AND platform = fsm.platform  -- ✅ Tambah filter platform
+                  AND username = fsm.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) / ? AS activities,
         
@@ -64,30 +64,30 @@ const getDataForBatchProcessing = async (date, kategori) => {
             (
                 SELECT COUNT(*) 
                 FROM posts
-                WHERE client_account = dfs.client_account
+                WHERE client_account = fsm.client_account
                   AND kategori = ? 
-                  AND platform = dfs.platform  -- ✅ Tambah filter platform
-                  AND username = dfs.username  
-                  AND DATE(created_at) = dfs.date
+                  AND platform = fsm.platform  -- ✅ Tambah filter platform
+                  AND username = fsm.username  
+                  AND DATE(created_at) = fsm.date
             ) AS nilai_aktifitas,
         
             -- ✅ Interactions (rata-rata likes per postingan)
             (
                 SELECT SUM(likes) 
                 FROM posts 
-                WHERE client_account = dfs.client_account 
+                WHERE client_account = fsm.client_account 
                   AND kategori = ? 
-                  AND platform = dfs.platform  -- ✅ Tambah filter platform
-                  AND username = dfs.username 
+                  AND platform = fsm.platform  -- ✅ Tambah filter platform
+                  AND username = fsm.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) /
             (
                 SELECT COUNT(*) 
                 FROM posts 
-                WHERE client_account = dfs.client_account 
+                WHERE client_account = fsm.client_account 
                   AND kategori = ? 
-                  AND platform = dfs.platform  -- ✅ Tambah filter platform
-                  AND username = dfs.username 
+                  AND platform = fsm.platform  -- ✅ Tambah filter platform
+                  AND username = fsm.username 
                   AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
             ) AS interactions,
         
@@ -104,28 +104,28 @@ const getDataForBatchProcessing = async (date, kategori) => {
                         (
                             SELECT COUNT(*)
                             FROM mainComments mc_reply
-                            WHERE mc_reply.commenter_username = dfs.username
+                            WHERE mc_reply.commenter_username = fsm.username
                               AND mc_reply.unique_id_post = p.unique_id_post
                         ) +
                         (
                             SELECT COUNT(*)
                             FROM childComments cc_reply
-                            WHERE cc_reply.child_commenter_username = dfs.username
+                            WHERE cc_reply.child_commenter_username = fsm.username
                               AND cc_reply.unique_id_post = p.unique_id_post
                         ) AS reply_count
                     FROM posts p
                     LEFT JOIN mainComments mc ON mc.unique_id_post = p.unique_id_post
                     LEFT JOIN childComments cc ON cc.unique_id_post = p.unique_id_post
-                    WHERE p.client_account = dfs.client_account 
+                    WHERE p.client_account = fsm.client_account 
                       AND p.kategori = ? 
-                      AND p.platform = dfs.platform
-                      AND p.username = dfs.username
+                      AND p.platform = fsm.platform
+                      AND p.username = fsm.username
                       AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
                 ) AS comment_summary
             ) AS responsiveness
 
-        FROM dailyFairScores dfs
-        WHERE dfs.date = ? AND dfs.kategori = ?
+        FROM fairScoresMonthly fsm
+        WHERE fsm.date = ? AND fsm.kategori = ?
         
     `;
 
@@ -179,9 +179,9 @@ const batchUpdateFairScores = async (updates) => {
         return;
     }
 
-    console.info(`[INFO] Updating ${updates.length} rows in dailyFairScores...`);
+    console.info(`[INFO] Updating ${updates.length} rows in fairScoresMonthly...`);
     const updateSql = `
-        INSERT INTO dailyFairScores (
+        INSERT INTO fairScoresMonthly (
             followers, activities, nilai_aktifitas, interactions, responsiveness,
             list_id, client_account, kategori, platform, username, date
         ) VALUES ?
@@ -211,7 +211,7 @@ const processScoresForDate = async (date) => {
                MAX(activities) AS max_activities,
                MAX(interactions) AS max_interactions, 
                MAX(responsiveness) AS max_responsiveness
-        FROM dailyFairScores
+        FROM fairScoresMonthly
         WHERE date = ?
         GROUP BY kategori, platform;
     `;
@@ -229,7 +229,7 @@ const processScoresForDate = async (date) => {
     for (const { kategori, platform, max_followers, max_activities, max_interactions, max_responsiveness } of maxValues) {
         const [rows] = await connection.query(`
             SELECT list_id, followers, activities, interactions, responsiveness
-            FROM dailyFairScores
+            FROM fairScoresMonthly
             WHERE kategori = ? AND platform = ? AND date = ?
         `, [kategori, platform, date]);
 
@@ -276,7 +276,7 @@ const batchUpdateScores = async (updates) => {
     console.info(`[INFO] Updating fair scores, scores, and weights for ${updates.length} rows...`);
 
     const updateSql = `
-        UPDATE dailyFairScores
+        UPDATE fairScoresMonthly
         SET 
             followers_score = ?, followers_bobot = ?,
             activities_score = ?, activities_bobot = ?,

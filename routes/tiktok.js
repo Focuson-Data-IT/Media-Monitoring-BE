@@ -68,10 +68,17 @@ const processQueue = async (items, processFunction) => {
     console.log('All items in the queue have been processed.');
 };
 
+const chunkArray = (array, size) => {
+    const chunkedArr = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunkedArr.push(array.slice(i, i + size));
+    }
+    return chunkedArr;
+};
 
 router.get('/update-followers-kdm', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts WHERE kategori = "kdm" AND platform = "Instafram"');
+        const [rows] = await db.query('SELECT * FROM posts WHERE FIND_IN_SET("kdm", kategori) AND platform = "TikTok" AND followers IS NULL');
 
         if (!rows.length) {
             return res.send('No users found in the database.');
@@ -89,28 +96,28 @@ router.get('/update-followers-kdm', async (req, res) => {
 
                     const getUser = {
                         method: 'GET',
-                        url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                        url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
                         params: {
-                            username_or_id_or_url: row.username,
-                            include_about: 'true',
-                            url_embed_safe: 'true'
+                            unique_id: `@${row.username}`
                         },
                         headers: {
-                            'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
-                            'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                            'x-rapidapi-key': process.env.RAPIDAPI_TIKTOK_KEY,
+                            'x-rapidapi-host': process.env.RAPIDAPI_TIKTOK_HOST
                         }
                     };
 
                     const response = await axios.request(getUser);
 
                     if (response.data?.data) {
-                        const follower = response.data.data.stats.followerCount;
-                        const following = response.data.data.stats.followingCount;
+                        const userData = response.data;
+
+                        const follower = userData.data.stats.followerCount;
+                        const following = userData.data.stats.followingCount;
 
                         console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
 
-                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE post_id = ?`;
-                        await db.query(updateQuery, [follower, following, row.post_id]);
+                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE username = ?`;
+                        await db.query(updateQuery, [follower, following, row.username]);
                     }
                 } catch (error) {
                     console.error(`Error fetching/updating data for ${row.username}:`, error.message);
@@ -133,7 +140,7 @@ router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for TikTok
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "TikTok" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "TikTok" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             try {
@@ -165,7 +172,7 @@ router.get('/getPost', async (req, res) => {
     const { kategori } = req.query;
     // Fetch data for TikTok
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok" AND kategori = ?', [kategori]);
+        const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok" AND FIND_IN_SET(?, kategori)', [kategori]);
 
         await processQueue(rows, async (row) => {
             console.log(`Fetching posts for user: ${row.username}...`);
@@ -233,7 +240,7 @@ router.get('/getComment', async (req, res) => {
             SELECT unique_id_post, created_at
             FROM posts 
             WHERE platform = "TikTok" 
-            AND kategori = ?
+            AND FIND_IN_SET(?, kategori)
             AND DATE(created_at) BETWEEN ? AND ?
         `;
 
@@ -244,7 +251,7 @@ router.get('/getComment', async (req, res) => {
                 LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                 WHERE mc.unique_id_post IS NULL
                 AND p.platform = "TikTok"
-                AND p.kategori = ?
+                AND FIND_IN_SET(?, p.kategori)
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
         }
@@ -256,7 +263,7 @@ router.get('/getComment', async (req, res) => {
             console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
 
             const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "TikTok" AND kategori = ?`,
+                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "TikTok" AND FIND_IN_SET(?, kategori)`,
                 [unique_id_post, kategori]
             );
 
@@ -292,7 +299,7 @@ router.get('/getComment', async (req, res) => {
             FROM mainComments mc
             JOIN posts p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = "TikTok"
-            AND mc.kategori = ?
+            AND FIND_IN_SET(?, mc.kategori)
             AND DATE(p.created_at) BETWEEN ? AND ?
         `;
 
@@ -303,7 +310,7 @@ router.get('/getComment', async (req, res) => {
                 FROM mainComments mc
                 JOIN posts p ON mc.unique_id_post = p.unique_id_post
                 WHERE mc.platform = "TikTok"
-                AND mc.kategori = ?
+                AND FIND_IN_SET(?, mc.kategori)
                 AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
                 AND DATE(p.created_at) BETWEEN ? AND ?
             `;
@@ -358,7 +365,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             SELECT * FROM listKeywords 
             WHERE 
             platform = "TikTok" 
-            AND kategori = ? 
+            AND FIND_IN_SET(?, kategori) 
             `, [kategori]);
 
         await processQueue(rows, async (row) => {
@@ -404,7 +411,7 @@ router.post('/getCommentv2', async (req, res) => {
                 SELECT unique_id_post, created_at, kategori
                 FROM posts 
                 WHERE platform = "TikTok" 
-                AND kategori = ?
+                AND FIND_IN_SET(?, kategori)
                 AND unique_id_post = ?
             `;
 
@@ -415,7 +422,7 @@ router.post('/getCommentv2', async (req, res) => {
                     LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
                     WHERE mc.unique_id_post IS NULL
                     AND p.platform = "TikTok"
-                    AND p.kategori = ?
+                    AND FIND_IN_SET(?, p.kategori)
                     AND p.unique_id_post = ?
                 `;
             }
@@ -432,7 +439,7 @@ router.post('/getCommentv2', async (req, res) => {
                         FROM posts 
                         WHERE unique_id_post = ? 
                         AND platform = "TikTok" 
-                        AND kategori = ?`,
+                        AND FIND_IN_SET(?, kategori)`,
                     [unique_id_post, kategori]
                 );
 
@@ -476,7 +483,7 @@ router.post('/getCommentv2', async (req, res) => {
             FROM mainComments mc
             LEFT JOIN posts p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = "TikTok"
-            AND mc.kategori = ?
+            AND FIND_IN_SET(?, mc.kategori)
             AND p.unique_id_post IN (?)
         `;
 
