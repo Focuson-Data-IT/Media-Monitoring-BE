@@ -16,6 +16,7 @@ const youtube = require('./routes/youtube');
 const facebook = require('./routes/facebook');
 const insights = require('./routes/insights');
 const file = require('./routes/file');
+const label = require('./routes/label');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(cors())
@@ -40,7 +41,8 @@ app.use('/tiktok', logMiddleware, tiktok);
 app.use('/youtube', logMiddleware, youtube);
 app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
-app.use('/file', logMiddleware, file)
+app.use('/file', logMiddleware, file);
+app.use('/label', logMiddleware, label);
 
 app.get('/proxy-image', async (req, res) => {
     try {
