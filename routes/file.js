@@ -200,7 +200,7 @@ router.post('/exportFair', async (req, res) => {
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM dailyFairScores
-            WHERE FIND_IN_SET(?, kategori)
+            WHERE kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ${username ? "AND username = ?" : ""}
@@ -223,7 +223,7 @@ router.post('/exportFair', async (req, res) => {
         const dataQuery = `
             SELECT * 
             FROM dailyFairScores
-            WHERE FIND_IN_SET(?, kategori)
+            WHERE kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ${username ? "AND username = ?" : ""}

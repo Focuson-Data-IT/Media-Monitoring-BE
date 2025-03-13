@@ -1,13 +1,13 @@
 const connection = require('../models/db');
 
-// 🔹 **Fungsi untuk mendapatkan jumlah hari dalam bulan tertentu**
+// **Fungsi untuk mendapatkan jumlah hari dalam bulan tertentu**
 const getDaysInMonth = (date) => {
     const year = new Date(date).getFullYear();
     const month = new Date(date).getMonth() + 1;
     return new Date(year, month, 0).getDate();
 };
 
-// 🔹 **Fungsi untuk mendapatkan daftar tanggal dalam rentang tertentu**
+// **Fungsi untuk mendapatkan daftar tanggal dalam rentang tertentu**
 const getDatesInRange = (startDate, endDate) => {
     const dates = [];
     let currentDate = new Date(startDate);
@@ -21,7 +21,7 @@ const getDatesInRange = (startDate, endDate) => {
     return dates;
 };
 
-// 🔹 **Proses Data untuk Rentang Tanggal**
+// **Proses Data untuk Rentang Tanggal**
 const processData = async (startDate, endDate, kategori) => {
     console.info(`[INFO] Starting batch processing from ${startDate} to ${endDate} for kategori: ${kategori}...`);
 
@@ -38,69 +38,76 @@ const processData = async (startDate, endDate, kategori) => {
     console.info(`[INFO] Data processing completed for range ${startDate} to ${endDate} in kategori ${kategori}`);
 };
 
-// 🔹 **Ambil Data yang Perlu Diperbarui**
+// **Ambil Data yang Perlu Diperbarui**
 const getDataForBatchProcessing = async (date, kategori) => {
     console.info(`[INFO] Fetching data for batch processing on: ${date}`);
     const daysInMonth = getDaysInMonth(date);
 
     const query = `
-                SELECT fsd.list_id, fsd.client_account, fsd.kategori, fsd.platform, fsd.username, fsd.date,
+            SELECT fsd.list_id, fsd.client_account, fsd.kategori, fsd.platform, fsd.username, fsd.date,
         
-            -- ✅ Followers dengan filter platform
-            (SELECT followers FROM users WHERE users.username = fsd.username AND users.platform = fsd.platform LIMIT 1) AS followers,
+            -- Followers dengan filter platform
+            (
+                SELECT followers 
+                FROM posts p
+                WHERE p.username = fsd.username 
+                AND p.platform = fsd.platform 
+                AND DATE(p.created_at) <= fsd.date
+                ORDER BY p.created_at DESC
+                LIMIT 1
+            ) AS followers,
         
-            -- ✅ Activities (rata-rata posting per hari)
+            -- Activities (rata-rata posting per hari)
             (
                 SELECT COUNT(*) 
-                FROM posts 
-                WHERE client_account = fsd.client_account 
-                  AND kategori = ? 
-                  AND platform = fsd.platform  -- ✅ Tambah filter platform
-                  AND username = fsd.username 
-                  AND DATE(created_at) = fsd.date
+                FROM posts p 
+                WHERE p.client_account = fsd.client_account 
+                  AND FIND_IN_SET(?, p.kategori)
+                  AND p.platform = fsd.platform
+                  AND p.username = fsd.username 
+                  AND DATE(p.created_at) = fsd.date
             ) AS activities,
         
-            -- ✅ Nilai Aktivitas (jumlah posting di tanggal tertentu)
+            -- Nilai Aktivitas (jumlah posting di tanggal tertentu)
             (
                 SELECT COUNT(*) 
-                FROM posts
-                WHERE client_account = fsd.client_account
-                  AND kategori = ? 
-                  AND platform = fsd.platform  -- ✅ Tambah filter platform
-                  AND username = fsd.username  
-                  AND DATE(created_at) = fsd.date
+                FROM posts p
+                WHERE p.client_account = fsd.client_account
+                  AND FIND_IN_SET(?, p.kategori)
+                  AND p.platform = fsd.platform
+                  AND p.username = fsd.username  
+                  AND DATE(p.created_at) = fsd.date
             ) AS nilai_aktifitas,
         
-            -- ✅ Interactions (rata-rata likes per postingan)
+            -- Interactions (rata-rata likes per postingan)
             (
                 SELECT SUM(likes) 
-                FROM posts 
-                WHERE client_account = fsd.client_account 
-                  AND kategori = ? 
-                  AND platform = fsd.platform  -- ✅ Tambah filter platform
-                  AND username = fsd.username 
-                  AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
-            ) /
-            (
-                SELECT COUNT(*) 
-                FROM posts 
-                WHERE client_account = fsd.client_account 
-                  AND kategori = ? 
-                  AND platform = fsd.platform  -- ✅ Tambah filter platform
-                  AND username = fsd.username 
-                  AND DATE(created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
+                FROM posts p
+                WHERE p.client_account = fsd.client_account 
+                  AND FIND_IN_SET(?, p.kategori)
+                  AND p.platform = fsd.platform  
+                  AND p.username = fsd.username  
+                  AND DATE(p.created_at) = fsd.date
+            ) / COALESCE(
+                (SELECT COUNT(*) 
+                 FROM posts p
+                 WHERE client_account = fsd.client_account 
+                   AND FIND_IN_SET(?, p.kategori)
+                   AND p.platform = fsd.platform  
+                   AND p.username = fsd.username  
+                   AND DATE(p.created_at) = fsd.date), 1
             ) AS interactions,
         
-            -- ✅ Responsiveness dengan filter platform
+            -- Responsiveness dengan filter platform
             (
                 SELECT 
                     COALESCE(reply_count, 0) / NULLIF(COALESCE(incoming_count, 1), 0) * 100
                 FROM (
-                    -- 🔹 Hitung total komentar masuk (mainComments + childComments) dari user lain
+                    -- Hitung total komentar masuk (mainComments + childComments) dari user lain
                     SELECT 
                         COUNT(DISTINCT mc.comment_unique_id) + COUNT(DISTINCT cc.child_comment_unique_id) AS incoming_count,
 
-                        -- 🔹 Hitung total balasan dari akun ini (baik di mainComments maupun childComments)
+                        -- Hitung total balasan dari akun ini (baik di mainComments maupun childComments)
                         (
                             SELECT COUNT(*)
                             FROM mainComments mc_reply
@@ -117,24 +124,24 @@ const getDataForBatchProcessing = async (date, kategori) => {
                     LEFT JOIN mainComments mc ON mc.unique_id_post = p.unique_id_post
                     LEFT JOIN childComments cc ON cc.unique_id_post = p.unique_id_post
                     WHERE p.client_account = fsd.client_account 
-                      AND p.kategori = ? 
+                      AND FIND_IN_SET(?, p.kategori)
                       AND p.platform = fsd.platform
                       AND p.username = fsd.username
-                      AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
+                      AND DATE(p.created_at) = fsd.date
                 ) AS comment_summary
             ) AS responsiveness
 
         FROM fairScoresDaily fsd
-        WHERE fsd.date = ? AND fsd.kategori = ?
+        WHERE fsd.date = ? AND kategori = ?
         
     `;
 
     const [data] = await connection.query(query, [
         kategori,
         kategori,
-        kategori, date, date,
-        kategori, date, date,
-        kategori, date, date,
+        kategori,
+        kategori,
+        kategori,
         date, kategori
     ]);
 
@@ -143,7 +150,7 @@ const getDataForBatchProcessing = async (date, kategori) => {
     return data;
 };
 
-// 🔹 **Proses Batch untuk Tanggal**
+// **Proses Batch untuk Tanggal**
 const processBatchForDate = async (date, kategori) => {
     console.info(`[INFO] Processing batch for date: ${date} in kategori: ${kategori}`);
     const rows = await getDataForBatchProcessing(date, kategori);
@@ -172,7 +179,7 @@ const processBatchForDate = async (date, kategori) => {
 };
 
 
-// 🔹 **Batch Update Data Dasar**
+// **Batch Update Data Dasar**
 const batchUpdateFairScores = async (updates) => {
     if (!updates.length) {
         console.warn('[WARN] No updates to perform.');
@@ -201,7 +208,7 @@ const batchUpdateFairScores = async (updates) => {
     }
 };
 
-// 🔹 **Hitung Skor & Bobot Per Kategori dan Platform**
+// **Hitung Skor & Bobot Per Kategori dan Platform**
 const processScoresForDate = async (date) => {
     console.info(`[INFO] Processing scores and weights for date: ${date}`);
 
@@ -266,7 +273,7 @@ const processScoresForDate = async (date) => {
     await batchUpdateScores(updates);
 };
 
-// 🔹 **Update Skor, Bobot, dan FAIR Score**
+// **Update Skor, Bobot, dan FAIR Score**
 const batchUpdateScores = async (updates) => {
     if (!updates.length) {
         console.warn('[WARN] No fair score updates to apply.');
