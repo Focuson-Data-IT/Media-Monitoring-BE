@@ -494,7 +494,7 @@ router.get('/getFairRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
@@ -513,7 +513,7 @@ router.get('/getFairRanking', async (req, res) => {
           username,
           fair_score AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -527,7 +527,7 @@ router.get('/getFairRanking', async (req, res) => {
           username,
           fair_score AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -568,7 +568,7 @@ router.get('/getFollowersRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
@@ -587,7 +587,7 @@ router.get('/getFollowersRanking', async (req, res) => {
           username,
           followers AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -601,7 +601,7 @@ router.get('/getFollowersRanking', async (req, res) => {
           username,
           followers AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -642,7 +642,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
@@ -661,7 +661,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
           username,
           activities AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -675,7 +675,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
           username,
           activities AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -716,7 +716,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
@@ -735,7 +735,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
           username,
           interactions AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -749,7 +749,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
           username,
           interactions AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -790,7 +790,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         SELECT 
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
@@ -809,7 +809,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           username,
           responsiveness AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -823,7 +823,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           username,
           responsiveness AS value,
           platform
-        FROM fairScoresDaily
+        FROM fairScoresMonthly
         WHERE FIND_IN_SET(?, kategori)
           AND platform = ? 
           AND DATE(date) = DATE(?)
@@ -855,12 +855,12 @@ router.get('/getResponsivenessRanking', async (req, res) => {
     }
 });
 
-// Endpoint untuk mengambil data dari tabel fairScoresDaily
+// Endpoint untuk mengambil data dari tabel fairScoresMonthly
 router.get('/getAllData', async (req, res) => {
     try {
         const query = `
             SELECT *
-            FROM fairScoresDaily
+            FROM fairScoresMonthly
             WHERE
                 FIND_IN_SET(?, kategori)
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
@@ -1239,7 +1239,7 @@ router.get('/getDailyFollowers', async (req, res) => {
             CONVERT_TZ(date, '+00:00', '+07:00') AS date
         FROM fairScoresDaily
         WHERE
-            FIND_IN_SET(?, kategori)
+            kategori = ?
             AND platform = ?
             AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         ORDER BY
@@ -1512,8 +1512,8 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔍 Cari MAX(date) dengan konversi ke UTC+7
         const [maxDateResult] = await db.query(
             `SELECT MAX((CONVERT_TZ(date, '+00:00', '+07:00'))) AS maxDate
-             FROM fairScoresDaily 
-             WHERE FIND_IN_SET(?, kategori)
+             FROM fairScoresMonthly 
+             WHERE kategori = ?
              AND LOWER(platform) = LOWER(?) 
              AND DATE(CONVERT_TZ(date, '+00:00', '+07:00')) BETWEEN DATE(?) AND DATE(?)`,
             [kategori, platform, startDate, endDate]
@@ -1529,8 +1529,8 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔍 Ambil semua data untuk tanggal MAX dengan konversi timezone
         const [allRows] = await db.query(
             `SELECT *, CONVERT_TZ(date, '+00:00', '+07:00') AS local_date
-             FROM fairScoresDaily
-             WHERE FIND_IN_SET(?, kategori)
+             FROM fairScoresMonthly
+             WHERE kategori = ?
              AND LOWER(platform) = LOWER(?) AND CONVERT_TZ(date, '+00:00', '+07:00') = ?`,
             [kategori, platform, maxDate]
         );
