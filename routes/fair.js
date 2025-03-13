@@ -27,8 +27,10 @@ router.post('/processData', async (req, res) => {
         }
 
         console.info(`Starting to process data for kategori: ${kategori}...`);
-        await fairScoreDaily.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
-        await fairScoreMonthly.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
+        // await fairScoreDaily.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
+        await fairScoreDaily.processData('2025-01-01', '2025-01-31', kategori);
+        // await fairScoreMonthly.processData('2025-01-01', new Date().toISOString().split('T')[0], kategori);
+        // await fairScoreMonthly.processData('2025-01-01', '2025-01-31', kategori);
 
         res.json({ success: true, message: `Data berhasil diproses untuk kategori: ${kategori} dan disimpan ke dailyFairScores.` });
     } catch (error) {

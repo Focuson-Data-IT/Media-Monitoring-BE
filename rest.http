@@ -143,8 +143,7 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-  "start_date": "2025-01-01",
-  "kategori": "opdbekasikab"
+  "kategori": "disparbud"
 }
 
 ### Proses Performa Konten
