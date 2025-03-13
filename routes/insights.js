@@ -33,7 +33,7 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔹 **Cari MAX(date)** dalam rentang tanggal
         const [maxDateResult] = await db.query(
             `SELECT MAX(date) as maxDate 
-             FROM dailyFairScores 
+             FROM fairScoresMonthly 
              WHERE FIND_IN_SET(?, kategori) AND LOWER(platform) = LOWER(?) 
              AND DATE(date) BETWEEN DATE(?) AND DATE(?)`,
             [kategori, platform, startDate, endDate]
@@ -47,7 +47,7 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔹 **Ambil semua data untuk tanggal MAX tersebut**
         const [allRows] = await db.query(
             `SELECT *, CONVERT_TZ(date, '+00:00', '+07:00') AS local_date
-             FROM dailyFairScores
+             FROM fairScoresMonthly
              WHERE FIND_IN_SET(?, kategori) AND LOWER(platform) = LOWER(?) AND DATE(date) = ?`,
             [kategori, platform, maxDate]
         );
