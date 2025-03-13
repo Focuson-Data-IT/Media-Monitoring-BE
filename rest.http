@@ -143,7 +143,8 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-  "kategori": "disparbud"
+  "kategori": "disparbud",
+  "platform": "Instagram"
 }
 
 ### Proses Performa Konten

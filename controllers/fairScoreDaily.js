@@ -22,24 +22,24 @@ const getDatesInRange = (startDate, endDate) => {
 };
 
 // **Proses Data untuk Rentang Tanggal**
-const processData = async (startDate, endDate, kategori) => {
-    console.info(`[INFO] Starting batch processing from ${startDate} to ${endDate} for kategori: ${kategori}...`);
+const processData = async (startDate, endDate, kategori, platform) => {
+    console.info(`[INFO] Starting batch processing from ${startDate} to ${endDate} for kategori: ${kategori} for platform ${platform} ...`);
 
     const dates = getDatesInRange(startDate, endDate);
 
     for (const date of dates) {
         try {
-            await processBatchForDate(date, kategori);
+            await processBatchForDate(date, kategori, platform);
         } catch (error) {
-            console.error(`[ERROR] Failed to process batch for date ${date} in kategori ${kategori}:`, error);
+            console.error(`[ERROR] Failed to process batch for date ${date} in kategori ${kategori} for platform ${platform} :`, error);
         }
     }
 
-    console.info(`[INFO] Data processing completed for range ${startDate} to ${endDate} in kategori ${kategori}`);
+    console.info(`[INFO] Data processing completed for range ${startDate} to ${endDate} in kategori ${kategori} for platform ${platform}`);
 };
 
 // **Ambil Data yang Perlu Diperbarui**
-const getDataForBatchProcessing = async (date, kategori) => {
+const getDataForBatchProcessing = async (date, kategori, platform) => {
     console.info(`[INFO] Fetching data for batch processing on: ${date}`);
     const daysInMonth = getDaysInMonth(date);
 
@@ -48,13 +48,20 @@ const getDataForBatchProcessing = async (date, kategori) => {
         
             -- Followers dengan filter platform
             (
-                SELECT followers 
-                FROM posts p
-                WHERE p.username = fsd.username 
-                AND p.platform = fsd.platform 
-                AND DATE(p.created_at) <= fsd.date
-                ORDER BY p.created_at DESC
-                LIMIT 1
+                SELECT COALESCE(
+                    (SELECT followers 
+                     FROM posts p
+                     WHERE p.username = fsd.username 
+                     AND p.platform = ?
+                     AND DATE(p.created_at) <= fsd.date
+                     ORDER BY p.created_at DESC
+                     LIMIT 1),
+                    (SELECT u.followers
+                     FROM users u
+                     WHERE u.username = fsd.username
+                     AND u.platform = ?
+                     LIMIT 1) -- Ambil dari tabel users jika tidak ditemukan di posts
+                )
             ) AS followers,
         
             -- Activities (rata-rata posting per hari)
@@ -63,7 +70,7 @@ const getDataForBatchProcessing = async (date, kategori) => {
                 FROM posts p 
                 WHERE p.client_account = fsd.client_account 
                   AND FIND_IN_SET(?, p.kategori)
-                  AND p.platform = fsd.platform
+                  AND p.platform = ?
                   AND p.username = fsd.username 
                   AND DATE(p.created_at) = fsd.date
             ) AS activities,
@@ -74,7 +81,7 @@ const getDataForBatchProcessing = async (date, kategori) => {
                 FROM posts p
                 WHERE p.client_account = fsd.client_account
                   AND FIND_IN_SET(?, p.kategori)
-                  AND p.platform = fsd.platform
+                  AND p.platform = ?
                   AND p.username = fsd.username  
                   AND DATE(p.created_at) = fsd.date
             ) AS nilai_aktifitas,
@@ -85,7 +92,7 @@ const getDataForBatchProcessing = async (date, kategori) => {
                 FROM posts p
                 WHERE p.client_account = fsd.client_account 
                   AND FIND_IN_SET(?, p.kategori)
-                  AND p.platform = fsd.platform  
+                  AND p.platform = ?
                   AND p.username = fsd.username  
                   AND DATE(p.created_at) = fsd.date
             ) / COALESCE(
@@ -93,7 +100,7 @@ const getDataForBatchProcessing = async (date, kategori) => {
                  FROM posts p
                  WHERE client_account = fsd.client_account 
                    AND FIND_IN_SET(?, p.kategori)
-                   AND p.platform = fsd.platform  
+                   AND p.platform = ?  
                    AND p.username = fsd.username  
                    AND DATE(p.created_at) = fsd.date), 1
             ) AS interactions,
@@ -125,24 +132,25 @@ const getDataForBatchProcessing = async (date, kategori) => {
                     LEFT JOIN childComments cc ON cc.unique_id_post = p.unique_id_post
                     WHERE p.client_account = fsd.client_account 
                       AND FIND_IN_SET(?, p.kategori)
-                      AND p.platform = fsd.platform
+                      AND p.platform = ?
                       AND p.username = fsd.username
                       AND DATE(p.created_at) = fsd.date
                 ) AS comment_summary
             ) AS responsiveness
 
         FROM fairScoresDaily fsd
-        WHERE fsd.date = ? AND kategori = ?
+        WHERE fsd.date = ? AND fsd.kategori = ? AND fsd.platform = ?
         
     `;
 
     const [data] = await connection.query(query, [
-        kategori,
-        kategori,
-        kategori,
-        kategori,
-        kategori,
-        date, kategori
+        platform, platform,
+        kategori, platform,
+        kategori, platform,
+        kategori, platform,
+        kategori, platform,
+        kategori, platform,
+        date, kategori, platform
     ]);
 
     // console.info(`[INFO] Retrieved ${data.length} rows for date: ${date}`);
@@ -151,9 +159,9 @@ const getDataForBatchProcessing = async (date, kategori) => {
 };
 
 // **Proses Batch untuk Tanggal**
-const processBatchForDate = async (date, kategori) => {
-    console.info(`[INFO] Processing batch for date: ${date} in kategori: ${kategori}`);
-    const rows = await getDataForBatchProcessing(date, kategori);
+const processBatchForDate = async (date, kategori, platform) => {
+    console.info(`[INFO] Processing batch for date: ${date} in kategori: ${kategori} for platform ${platform}`);
+    const rows = await getDataForBatchProcessing(date, kategori, platform);
 
     if (rows.length === 0) {
         console.warn(`[WARN] No data found for date: ${date} in kategori: ${kategori}`);
@@ -175,7 +183,7 @@ const processBatchForDate = async (date, kategori) => {
     });
 
     await batchUpdateFairScores(updates);
-    await processScoresForDate(date, kategori);
+    await processScoresForDate(date, kategori, platform);
 };
 
 
@@ -209,7 +217,7 @@ const batchUpdateFairScores = async (updates) => {
 };
 
 // **Hitung Skor & Bobot Per Kategori dan Platform**
-const processScoresForDate = async (date) => {
+const processScoresForDate = async (date, kategori, platform) => {
     console.info(`[INFO] Processing scores and weights for date: ${date}`);
 
     const query = `
@@ -220,10 +228,11 @@ const processScoresForDate = async (date) => {
                MAX(responsiveness) AS max_responsiveness
         FROM fairScoresDaily
         WHERE date = ?
-        GROUP BY kategori, platform;
+        AND kategori = ?
+        AND platform = ?
     `;
 
-    const [maxValues] = await connection.query(query, [date]);
+    const [maxValues] = await connection.query(query, [date, kategori, platform]);
     console.info('[INFO] Max values per kategori and platform:', maxValues);
 
     if (maxValues.length === 0) {
@@ -233,7 +242,7 @@ const processScoresForDate = async (date) => {
 
     const updates = [];
 
-    for (const { kategori, platform, max_followers, max_activities, max_interactions, max_responsiveness } of maxValues) {
+    for (const { max_followers, max_activities, max_interactions, max_responsiveness } of maxValues) {
         const [rows] = await connection.query(`
             SELECT list_id, followers, activities, interactions, responsiveness
             FROM fairScoresDaily
@@ -243,29 +252,28 @@ const processScoresForDate = async (date) => {
         console.info(`[INFO] Processing kategori: ${kategori}, platform: ${platform}, found ${rows.length} rows.`);
 
         rows.forEach(row => {
-            // 🔥 Hitung skor
+            // Hitung skor
             const followers_score = (row.followers / (max_followers || 1)) || 0;
             const activities_score = (row.activities / (max_activities || 1)) || 0;
             const interactions_score = (row.interactions / (max_interactions || 1)) || 0;
             const responsiveness_score = (row.responsiveness / (max_responsiveness || 1)) || 0;
 
-            // 🔥 Hitung bobot
+            // Hitung bobot
             const followers_bobot = followers_score * 2;
             const activities_bobot = activities_score * 2;
             const interactions_bobot = interactions_score * 3;
             const responsiveness_bobot = responsiveness_score * 1;
 
-            // 🔥 Hitung FAIR Score
+            // Hitung FAIR Score
             const fair_score = ((followers_bobot + activities_bobot + interactions_bobot + responsiveness_bobot) / 8) * 100;
-
-            // console.info(`[INFO] Calculated fair_score for list_id: ${row.list_id} => ${fair_score.toFixed(2)}%`);
 
             updates.push([
                 followers_score, followers_bobot,
                 activities_score, activities_bobot,
                 interactions_score, interactions_bobot,
                 responsiveness_score, responsiveness_bobot,
-                fair_score, row.list_id, date
+                fair_score, 
+                row.list_id, date, kategori, platform
             ]);
         });
     }
@@ -290,7 +298,7 @@ const batchUpdateScores = async (updates) => {
             interactions_score = ?, interactions_bobot = ?,
             responsiveness_score = ?, responsiveness_bobot = ?,
             fair_score = ?
-        WHERE list_id = ? AND date = ?;
+        WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?;
     `;
 
     try {
