@@ -199,8 +199,8 @@ router.post('/exportFair', async (req, res) => {
         // 1️⃣ **Hitung total data**
         const countQuery = `
             SELECT COUNT(*) AS total
-            FROM dailyFairScores
-            WHERE FIND_IN_SET(?, kategori)
+            FROM fairScoresMonthly
+            WHERE kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ${username ? "AND username = ?" : ""}
@@ -222,8 +222,8 @@ router.post('/exportFair', async (req, res) => {
         // 2️⃣ **Ambil Semua Data dari Database**
         const dataQuery = `
             SELECT * 
-            FROM dailyFairScores
-            WHERE FIND_IN_SET(?, kategori)
+            FROM fairScoresMonthly
+            WHERE kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ${username ? "AND username = ?" : ""}
