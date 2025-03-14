@@ -1065,6 +1065,50 @@ router.get('/getAllPost', async (req, res) => {
     }
 });
 
+router.get('/getPost', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+            CONVERT_TZ(created_at, '+00:00', '+07:00') AS created_at,
+            followers as Followers,
+            comments as Comments,
+            likes as Likes,
+            playCount as Views,
+            shareCount as Shares,
+            downloadCount as Downloads,
+            collectCount as Saves,
+            media_name
+            FROM posts
+            WHERE
+                FIND_IN_SET(?, kategori)
+                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+                AND username = ?
+                AND platform = ?
+                ORDER BY created_at ASC
+        `;
+
+        const queryParams = [
+            req.query['kategori'],
+            req.query['start_date'],
+            req.query['end_date'],
+            req.query['username'],
+            req.query['platform'],
+        ];
+
+        const [rows] = await db.query(query, queryParams);
+
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching dates:', error);
+        res.status(500).send('Failed to fetch dates');
+    }
+})
+
 router.get('/getAllUsers', async (req, res) => {
     try {
         const query = `
@@ -1239,7 +1283,7 @@ router.get('/getDailyFollowers', async (req, res) => {
             CONVERT_TZ(date, '+00:00', '+07:00') AS date
         FROM fairScoresDaily
         WHERE
-            kategori = ?
+            FIND_IN_SET(?, kategori)
             AND platform = ?
             AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         ORDER BY
@@ -1275,13 +1319,13 @@ router.get('/getDailyLikes', async (req, res) => {
             p.client_account,
             SUM(p.likes) AS value, -- Total likes per hari
             p.platform,
-            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        GROUP BY p.username, p.client_account, p.platform, date
         ORDER BY date ASC;
         `;
 
@@ -1315,13 +1359,13 @@ router.get('/getDailyViews', async (req, res) => {
             p.client_account,
             SUM(p.playCount) AS value, -- Total likes per hari
             p.platform,
-            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        GROUP BY p.username, p.client_account, p.platform, date
         ORDER BY date ASC;
         `;
 
@@ -1354,13 +1398,13 @@ router.get('/getDailyComments', async (req, res) => {
             p.client_account,
             SUM(p.comments) AS value, -- Total likes per hari
             p.platform,
-            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        GROUP BY p.username, p.client_account, p.platform, date
         ORDER BY date ASC;
         `;
 
@@ -1393,13 +1437,13 @@ router.get('/getDailySaves', async (req, res) => {
             p.client_account,
             SUM(p.collectCount) AS value, -- Total likes per hari
             p.platform,
-            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        GROUP BY p.username, p.client_account, p.platform, date
         ORDER BY date ASC;
         `;
 
@@ -1432,13 +1476,13 @@ router.get('/getDailyShares', async (req, res) => {
             p.client_account,
             SUM(p.shareCount) AS value, -- Total likes per hari
             p.platform,
-            DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00')) AS date
+            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
             AND p.platform = ?
             AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, DATE(CONVERT_TZ(p.created_at, '+00:00', '+07:00'))
+        GROUP BY p.username, p.client_account, p.platform, date
         ORDER BY date ASC;
         `;
 
