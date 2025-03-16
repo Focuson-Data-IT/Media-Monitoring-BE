@@ -353,3 +353,6 @@ Content-Type: application/json
 
 ###
 GET http://localhost:7770/instagram/update-followers?kategori=disparbud&platform=Instagram
+
+###
+GET http://localhost:7770/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
