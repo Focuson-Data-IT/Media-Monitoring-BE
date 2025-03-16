@@ -164,7 +164,7 @@ router.get('/getFollowers', async (req, res) => {
                 FROM
                 fairScoresDaily
                 WHERE
-                FIND_IN_SET(?, kategori)
+                kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 ) AS ranked
@@ -206,7 +206,7 @@ router.get('/getDailyActivities', async (req, res) => {
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM fairScoresDaily
             WHERE
-                FIND_IN_SET(?, kategori)
+                kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
@@ -249,7 +249,8 @@ router.get('/getActivities', async (req, res) => {
             AND DATE(date) = (
                 SELECT MAX(date) 
                 FROM fairScoresDaily 
-                WHERE kategori = ? 
+                WHERE 
+                kategori = ? 
                 AND platform = ? 
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         )
@@ -290,7 +291,7 @@ router.get('/getDailyInteractions', async (req, res) => {
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM fairScoresDaily
             WHERE
-                FIND_IN_SET(?, kategori)
+                kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
@@ -322,21 +323,25 @@ router.get('/getInteractions', async (req, res) => {
     try {
         const query = `
         SELECT 
-            username,
-            client_account,
-            interactions AS value, -- Langsung ambil nilai interactions dari tanggal terbaru
-            platform,
-            MAX(interactions) OVER () AS max_value -- Mengambil nilai interactions tertinggi dari tanggal terbaru
-        FROM fairScoresDaily
-        WHERE FIND_IN_SET(?, kategori)
-            AND platform = ?
-            AND DATE(date) = (
+            fsd.username,
+            fsd.client_account,
+            fsd.interactions AS value,
+            fsd.platform,
+            MAX(fsd.interactions) OVER () AS max_value,
+            u.profile_pic_url
+        FROM fairScoresDaily fsd
+        LEFT JOIN users u ON fsd.username = u.username
+        WHERE 
+            fsd.kategori = ?
+            AND fsd.platform = ?
+            AND DATE(fsd.date) = (
                 SELECT MAX(date) 
                 FROM fairScoresDaily 
-                FIND_IN_SET(?, kategori)
-                AND platform = ? 
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        )
+                WHERE
+                    kategori = ?
+                    AND platform = ? 
+                    AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            )
         ORDER BY value DESC;
         `;
 
@@ -374,7 +379,7 @@ router.get('/getDailyResponsiveness', async (req, res) => {
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date
             FROM fairScoresDaily
             WHERE
-                FIND_IN_SET(?, kategori)
+                kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
@@ -417,7 +422,8 @@ router.get('/getResponsiveness', async (req, res) => {
             AND DATE(date) = (
                 SELECT MAX(date) 
                 FROM fairScoresDaily 
-                WHERE FIND_IN_SET(?, kategori)
+                WHERE 
+                kategori = ?
                 AND platform = ? 
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         )
@@ -458,7 +464,7 @@ router.get('/getFairScores', async (req, res) => {
                 platform
             FROM fairScoresDaily
             WHERE
-                FIND_IN_SET(?, kategori)
+                kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
                 AND is_render = 1
@@ -495,7 +501,8 @@ router.get('/getFairRanking', async (req, res) => {
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -514,7 +521,8 @@ router.get('/getFairRanking', async (req, res) => {
           fair_score AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY fair_score DESC;
@@ -528,7 +536,8 @@ router.get('/getFairRanking', async (req, res) => {
           fair_score AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY fair_score DESC;
@@ -569,7 +578,8 @@ router.get('/getFollowersRanking', async (req, res) => {
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -588,7 +598,8 @@ router.get('/getFollowersRanking', async (req, res) => {
           followers AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY followers DESC;
@@ -602,7 +613,8 @@ router.get('/getFollowersRanking', async (req, res) => {
           followers AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY followers DESC;
@@ -643,7 +655,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -662,7 +675,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
           activities AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY activities DESC;
@@ -676,7 +690,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
           activities AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY activities DESC;
@@ -717,7 +732,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -736,7 +752,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
           interactions AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY interactions DESC;
@@ -750,7 +767,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
           interactions AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY interactions DESC;
@@ -791,7 +809,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ?
           AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
@@ -810,7 +829,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           responsiveness AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY responsiveness DESC;
@@ -824,7 +844,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           responsiveness AS value,
           platform
         FROM fairScoresMonthly
-        WHERE FIND_IN_SET(?, kategori)
+        WHERE 
+        kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
         ORDER BY responsiveness DESC;
@@ -862,7 +883,7 @@ router.get('/getAllData', async (req, res) => {
             SELECT *
             FROM fairScoresMonthly
             WHERE
-                FIND_IN_SET(?, kategori)
+                kategori = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY DATE(date) DESC
         `;
@@ -910,7 +931,8 @@ router.get('/getAllPost', async (req, res) => {
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM posts
-            WHERE FIND_IN_SET(?, kategori)
+            WHERE 
+            kategori = ?
               AND platform = ?
               AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
               AND username LIKE CONCAT('%', ?, '%')
