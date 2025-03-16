@@ -1,8 +1,9 @@
 const express = require('express');
 const axios = require('axios');
-
-var cors = require('cors')
+const cors = require('cors');
 require('dotenv').config();
+
+const connection = require('./models/db'); // Import koneksi database (Keep-alive tetap berjalan)
 
 const app = express();
 
@@ -19,14 +20,13 @@ const file = require('./routes/file');
 const label = require('./routes/label');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
-app.use(cors())
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 function logMiddleware(req, res, next) {
     console.log = function (message) {
         process.stdout.write(message + '\n');
-        // sendLogToClients(message);
     };
     next();
 }
@@ -47,7 +47,7 @@ app.use('/label', logMiddleware, label);
 app.get('/proxy-image', async (req, res) => {
     try {
         const imageUrl = req.query.url;
-        const response = await axios.get(imageUrl, {responseType: 'arraybuffer', timeout: 30000});
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 30000 });
         res.set('Content-Type', 'image/jpeg');
         res.send(response.data);
     } catch (error) {
@@ -55,8 +55,20 @@ app.get('/proxy-image', async (req, res) => {
     }
 });
 
+(async () => {
+    try {
+        await connection.query('SELECT 1');
+        console.log('Database connected successfully');
+    } catch (error) {
+        console.error('Database connection failed:', error);
+    }
+})();
+
 // Jalankan server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });
+
+
+
