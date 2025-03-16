@@ -106,8 +106,7 @@ Content-Type: application/json
     "username": "ismailisme"
 }
 
-### List Akun Mitra / Kategori nya
-
+List Akun Mitra / Kategori nya
 - opdbekasikab bekasi khusus (instagram) doang
 - disparbud (Instagram dan TikTok) 
 - disparbud_competitor (Instagram dan TikTok) 
@@ -116,24 +115,33 @@ Content-Type: application/json
 - prokopim_bekasikab (Instagram)
 
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=disparbud_ambassador
+GET http://localhost:7770/instagram/getData?kategori=disparbud
 
 ### Get Tiktok User Data
 GET http://localhost:7770/tiktok/getData?kategori=disparbud
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=kdm
+GET http://localhost:7770/instagram/getPost?kategori=disparbud
 
 ### Get TikTok User Post
 GET http://localhost:7770/tiktok/getPost?kategori=disparbud
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=kdm_media
+GET http://localhost:7770/instagram/getComment?kategori=disparbud
 
 ### Get TikTok User Comment
-GET http://localhost:7770/tiktok/getComment?kategori=kdm
+GET http://localhost:7770/tiktok/getComment?kategori=disparbud_competitor
 
 ### STEP 2
+
+List Akun Mitra / Kategori nya
+- opdbekasikab bekasi khusus (instagram) doang
+- disparbud (Instagram & TikTok) 
+- disparbud_competitor (Instagram & TikTok) 
+- disparbud_ambassador (Instagram & TikTok)
+- prokopim_bekasikab (Instagram)
+- bkkbn_jabar (Instagram) Deprecated
+- kdm_media (Instagram & TikTok)
 
 ### post addDataUser per hari
 POST http://localhost:7770/fair/addDataUser
@@ -143,8 +151,10 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-    "start_date": "2025-01-01",
-    "end_date": "2025-01-31"
+    "start_date": "2025-02-01",
+    "end_date": "2025-03-31",
+    "kategori": "disparbud",
+    "platform": "Instagram"
 }
 
 ### Proses Performa Konten
@@ -342,4 +352,4 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:7770/tiktok/update-followers-kdm
+GET http://localhost:7770/instagram/update-followers?kategori=disparbud&platform=Instagram
