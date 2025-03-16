@@ -152,7 +152,7 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-    "start_date": "2025-01-01",
+    
     "kategori": "kdm_media",
     "platform": "Instagram"
 }
@@ -162,8 +162,8 @@ POST http://localhost:7780/fair/processData
 Content-Type: application/json
 
 {
-    "start_date": "2025-01-01",
-    "kategori": "kdm_media",
+    
+    "kategori": "disparbud_competitor",
     "platform": "TikTok"
 }
 
