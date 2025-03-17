@@ -57,7 +57,7 @@ router.post('/processData', async (req, res) => {
 
         await Promise.all(tasks);
 
-        res.json({ success: true, message: `Data berhasil diproses untuk kategori: ${categories.join(', ')} dan semua platform.` });
+        res.json({ success: true, message: `Data berhasil diproses untuk kategori: ${categories.join(', ')}, platform: ${platforms.join(', ')}.` });
     } catch (error) {
         console.error('Error processing data:', error.message);
         res.status(500).json({ success: false, message: 'Gagal menyimpan data user ke dailyFairScores.', error: error.message });
