@@ -41,7 +41,7 @@ app.use('/tiktok', logMiddleware, tiktok);
 app.use('/youtube', logMiddleware, youtube);
 app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
-app.use('/api/file', logMiddleware, file);
+app.use('/file', logMiddleware, file);
 app.use('/label', logMiddleware, label);
 
 app.get('/proxy-image', async (req, res) => {
@@ -65,7 +65,7 @@ app.get('/proxy-image', async (req, res) => {
 })();
 
 // Jalankan server
-const port = process.env.PORT || 3000;
+const port = 7780 || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });

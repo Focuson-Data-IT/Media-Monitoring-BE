@@ -106,34 +106,43 @@ Content-Type: application/json
     "username": "ismailisme"
 }
 
-### List Akun Mitra / Kategori nya
-
+List Akun Mitra / Kategori nya
 - opdbekasikab bekasi khusus (instagram) doang
 - disparbud (Instagram dan TikTok) 
 - disparbud_competitor (Instagram dan TikTok) 
 - disparbud_ambassador (Instagram dan TikTok)
-- bkkbn_jabar (Instagram)
+- bkkbn_jabar (Instagram) Deprecated
 - prokopim_bekasikab (Instagram)
+- kdm_media (Instagram & TikTok)
 
 ### Get Instagram User Data
-GET http://localhost:7770/instagram/getData?kategori=disparbud_ambassador
+GET http://localhost:7770/instagram/getData?kategori=kdm_media
 
 ### Get Tiktok User Data
-GET http://localhost:7770/tiktok/getData?kategori=disparbud
+GET http://localhost:7780/tiktok/getData?kategori=kdm_media
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=kdm
+GET http://localhost:7770/instagram/getPost?kategori=prokopim_bekasikab
 
 ### Get TikTok User Post
-GET http://localhost:7770/tiktok/getPost?kategori=disparbud
+GET http://localhost:7780/tiktok/getPost?kategori=
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=kdm_media
+GET http://localhost:7770/instagram/getComment?kategori=disparbud
 
 ### Get TikTok User Comment
-GET http://localhost:7770/tiktok/getComment?kategori=kdm
+GET http://localhost:7780/tiktok/getComment?kategori=disparbud_competitor
 
 ### STEP 2
+
+List Akun Mitra / Kategori nya
+- disparbud (Instagram & TikTok) 
+- disparbud_competitor (Instagram & TikTok) 
+- disparbud_ambassador (Instagram & TikTok)
+- opdbekasikab bekasi khusus (instagram) doang
+- prokopim_bekasikab (Instagram)
+- bkkbn_jabar (Instagram) Deprecated
+- kdm_media (Instagram & TikTok)
 
 ### post addDataUser per hari
 POST http://localhost:7770/fair/addDataUser
@@ -143,8 +152,19 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-  "start_date": "2025-01-01",
-  "kategori": "opdbekasikab"
+    
+    "kategori": "kdm_media",
+    "platform": "Instagram"
+}
+
+### post processData
+POST http://localhost:7780/fair/processData
+Content-Type: application/json
+
+{
+    
+    "kategori": "disparbud_competitor",
+    "platform": "TikTok"
 }
 
 ### Proses Performa Konten
@@ -175,7 +195,7 @@ GET http://localhost:7770/api/getFairSummary?username=smilingbogorcity&month=202
 ### Daily Data // Growth Metrics
 ### Instagram
 ### GET Daily Followers
-GET http://localhost:7770/api/getDailyFollowers?kategori=opdbekasikab&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&platform=Instagram
 
 ### GET Daily Likes
 GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
@@ -244,6 +264,9 @@ GET http://localhost:7770/api/getTotalPost?&platform=TikTok&kategori=disparbud&s
 
 ###
 GET http://localhost:7770/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
+
+###
+GET http://localhost:7770/api/getPost?kategori=disparbud&username=disbudpar.bdg&platform=Instagram&start_date=2025-02-01&end_date=2025-02-28
 
 ###
 GET http://localhost:7770/tiktok/getDataPostByKeywords?kategori=kdm
@@ -339,4 +362,7 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:7770/tiktok/update-followers-kdm
+GET http://localhost:7770/instagram/update-followers?kategori=disparbud&platform=Instagram
+
+###
+GET http://localhost:7770/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
