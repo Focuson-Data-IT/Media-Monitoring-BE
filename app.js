@@ -41,7 +41,7 @@ app.use('/tiktok', logMiddleware, tiktok);
 app.use('/youtube', logMiddleware, youtube);
 app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
-app.use('/file', logMiddleware, file);
+app.use('/api/file', logMiddleware, file);
 app.use('/label', logMiddleware, label);
 
 app.get('/proxy-image', async (req, res) => {
