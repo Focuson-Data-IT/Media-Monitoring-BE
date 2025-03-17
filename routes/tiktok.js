@@ -2,131 +2,17 @@ const express = require('express');
 const router = express.Router();
 const getDataTiktok = require('../controllers/getDataTiktok');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
-const async = require('async');
-const axios = require("axios");
+const platform = "TikTok";
 
-let requestCount = 0;
-const maxRequestsPerMinute = 240;
-const threadRequestLimit = 10;
-const threadRestTime = 60000; // Dalam ms
-const totalThreads = 20;
-const delay = 60000;
-const requestTimeout = 10000; // 10 detik
+router.get('/update-followers', async (req, res) => {
+    const { kategori, platform } = req.body;
 
-const trackRequests = async () => {
-    requestCount++;
-    console.log(`Global request count: ${requestCount}`);
-    if (requestCount >= maxRequestsPerMinute) {
-        console.log(`Reached ${maxRequestsPerMinute} requests. Resting globally for ${delay / 1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        requestCount = 0;
-    }
-};
-
-const processQueue = async (items, processFunction) => {
-    let activeThreads = 0; // Untuk melacak jumlah thread aktif
-    let processedCount = 0; // Untuk melacak jumlah item yang sudah diproses
-
-    const queue = async.queue(async (item, callback) => {
-        try {
-            activeThreads++;
-            let threadRequestCount = 0; // Reset untuk setiap thread
-
-            // Proses item dengan timeout
-            await Promise.race([
-                processFunction(item),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), requestTimeout))
-            ]);
-            threadRequestCount++;
-            processedCount++;
-            console.log(`Processed ${processedCount} of ${items.length} items.`);
-
-            // Lacak permintaan global
-            await trackRequests();
-
-            // Jika thread mencapai batas, istirahatkan
-            if (threadRequestCount >= threadRequestLimit) {
-                console.log(`Thread reached ${threadRequestLimit} requests. Resting thread for ${threadRestTime / 1000} seconds...`);
-                await new Promise(resolve => setTimeout(resolve, threadRestTime));
-                threadRequestCount = 0; // Reset untuk thread
-            }
-        } catch (error) {
-            console.error(`Error processing item: ${error.message}`);
-        } finally {
-            activeThreads--;
-            // Tunggu sebelum memproses permintaan berikutnya
-            setTimeout(callback, delay);
-        }
-    }, totalThreads);
-
-    // Tambahkan item ke antrian
-    queue.push(items);
-
-    // Tunggu hingga semua tugas selesai
-    await queue.drain();
-
-    console.log('All items in the queue have been processed.');
-};
-
-const chunkArray = (array, size) => {
-    const chunkedArr = [];
-    for (let i = 0; i < array.length; i += size) {
-        chunkedArr.push(array.slice(i, i + size));
-    }
-    return chunkedArr;
-};
-
-router.get('/update-followers-kdm', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM posts WHERE FIND_IN_SET("kdm", kategori) AND platform = "TikTok" AND followers IS NULL');
-
-        if (!rows.length) {
-            return res.send('No users found in the database.');
-        }
-
-        const batchSize = 5; // Jumlah row yang diproses per batch
-        const rowBatches = chunkArray(rows, batchSize);
-
-        for (const batch of rowBatches) {
-            console.info(`Processing batch of ${batch.length} users...`);
-
-            await Promise.all(batch.map(async (row) => {
-                try {
-                    console.info('Fetching data for user: ' + row.username);
-
-                    const getUser = {
-                        method: 'GET',
-                        url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
-                        params: {
-                            unique_id: `@${row.username}`
-                        },
-                        headers: {
-                            'x-rapidapi-key': process.env.RAPIDAPI_TIKTOK_KEY,
-                            'x-rapidapi-host': process.env.RAPIDAPI_TIKTOK_HOST
-                        }
-                    };
-
-                    const response = await axios.request(getUser);
-
-                    if (response.data?.data) {
-                        const userData = response.data;
-
-                        const follower = userData.data.stats.followerCount;
-                        const following = userData.data.stats.followingCount;
-
-                        console.info(`Updating ${row.username}: followers=${follower}, following=${following}`);
-
-                        const updateQuery = `UPDATE posts SET followers = ?, following = ? WHERE username = ?`;
-                        await db.query(updateQuery, [follower, following, row.username]);
-                    }
-                } catch (error) {
-                    console.error(`Error fetching/updating data for ${row.username}:`, error.message);
-                }
-            }));
-
-            // Tambahkan delay opsional jika ingin menghindari rate limit API
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antara batch
-        }
+        
+        await getDataTiktok.getDataFollowers(
+            kategori,
+            platform
+        )
 
         res.send('Data followers & following berhasil diperbarui untuk semua pengguna.');
     } catch (error) {
@@ -138,59 +24,42 @@ router.get('/update-followers-kdm', async (req, res) => {
 // Eksekusi getData berdasarkan semua username di listAkun
 router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
-    // Fetch data for TikTok
+
+    if (!kategori) {
+        return res.status(400).send('❌ Error: kategori parameter is required.');
+    }
+
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = "TikTok" AND FIND_IN_SET(?, kategori)', [kategori]);
+        console.info(`🔍 Starting data fetching for category: ${kategori}`);
 
-        await processQueue(rows, async (row) => {
-            try {
-                console.info('Fetching data for user:' + row.username);
-        
-                // Panggil fungsi getDataUser
-                await getDataTiktok.getDataUser(
-                    row.client_account,
-                    row.kategori,
-                    row.platform,
-                    row.username
-                );
-        
-                console.log(`Data for user ${row.username} has been fetched and saved.`);
-            } catch (error) {
-                console.error(`Error fetching data for user ${row.username}:`, error.message);
-            }
-        });        
+        // Langsung panggil getDataUser tanpa looping tambahan
+        await getDataTiktok.getDataUser(kategori, "TikTok");
 
-        res.send('Data getData for all users have been fetched and saved.');
+        res.send(`✅ Data ${platform} for category "${kategori}" has been fetched and saved.`);
     } catch (error) {
-        console.error('Error executing getData:', error.message);
-        res.status(500).send(`Error executing getData: ${error.message}`);
+        console.error('❌ Error executing getData:', error.message);
+        res.status(500).send(`❌ Error executing getData: ${error.message}`);
     }
 });
 
 // Eksekusi getPost berdasarkan semua username di listAkun
 router.get('/getPost', async (req, res) => {
     const { kategori } = req.query;
-    // Fetch data for TikTok
+
+    if (!kategori) {
+        return res.status(400).send('❌ Error: kategori parameter is required.');
+    }
+
     try {
-        const [rows] = await db.query('SELECT * FROM users WHERE platform = "TikTok" AND FIND_IN_SET(?, kategori)', [kategori]);
+        console.info(`🔍 Starting post fetching for category: ${kategori}`);
 
-        await processQueue(rows, async (row) => {
-            console.log(`Fetching posts for user: ${row.username}...`);
-            await getDataTiktok.getDataPost(
-                row.client_account,
-                row.kategori,
-                row.platform,
-                row.username,
-                row.followers,
-                row.following
-            );
-            console.log(`Posts for user ${row.username} have been fetched and saved.`);
-        });
+        // Langsung panggil getDataPost tanpa looping tambahan
+        await getDataTiktok.getDataPost(kategori, "TikTok");
 
-        res.send('Data getPost for all users have been fetched and saved.');
+        res.send(`✅ Data ${platform} posts for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
-        console.error('Error executing getPost:', error.message);
-        res.status(500).send(`Error executing getPost: ${error.message}`);
+        console.error('❌ Error executing getPost:', error.message);
+        res.status(500).send(`❌ Error executing getPost: ${error.message}`);
     }
 });
 
@@ -212,146 +81,38 @@ const getDateRange = async () => {
 
 // 🔹 Endpoint untuk eksekusi getComment
 router.get('/getComment', async (req, res) => {
-    const { kategori, fromStart } = req.query;
-    const processFromStart = fromStart ? fromStart === 'true' : false;
+    const { kategori } = req.query;
 
-    console.info(kategori)
-    console.info(fromStart)
-    console.info(processFromStart)
+    if (!kategori) {
+        return res.status(400).json({ message: '❌ kategori parameter is required.' });
+    }
 
     try {
+        console.info(`🔍 Fetching comments for category: ${kategori}`);
+
+        // Ambil tanggal dari database
         const dateRange = await getDateRange();
         if (!dateRange) {
-            return res.status(500).json({ message: 'Gagal mendapatkan rentang tanggal dari database.' });
+            return res.status(500).json({ message: '❌ Gagal mendapatkan rentang tanggal dari database.' });
         }
 
-        console.info(fromStart)
-        console.info(processFromStart)
-        console.info(dateRange)
+        const { startDate, endDate } = dateRange; // Destructuring tanggal
 
-        const { startDate, endDate } = dateRange;
-
-        // ================================
-        // 🔹 Step 1: Proses Main Comments
-        // ================================
-        console.log('🚀 Starting to fetch main comments...');
-
-        let mainCommentQuery = `
-            SELECT unique_id_post, created_at
-            FROM posts 
-            WHERE platform = "TikTok" 
-            AND FIND_IN_SET(?, kategori)
-            AND DATE(created_at) BETWEEN ? AND ?
-        `;
-
-        if (!processFromStart) {
-            mainCommentQuery = `
-                SELECT p.unique_id_post, p.created_at
-                FROM posts p
-                LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
-                WHERE mc.unique_id_post IS NULL
-                AND p.platform = "TikTok"
-                AND FIND_IN_SET(?, p.kategori)
-                AND DATE(p.created_at) BETWEEN ? AND ?
-            `;
-        }
-
-        const [mainComments] = await db.query(mainCommentQuery, [kategori, startDate, endDate]);
-        console.log(`📌 Found ${mainComments.length} posts to process.`);
-
-        await processQueue(mainComments, async ({ unique_id_post }) => {
-            console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
-
-            const [userRows] = await db.query(
-                `SELECT user_id, username, comments, client_account, kategori, platform FROM posts WHERE unique_id_post = ? AND platform = "TikTok" AND FIND_IN_SET(?, kategori)`,
-                [unique_id_post, kategori]
-            );
-
-            if (userRows.length === 0) {
-                console.log(`🚫 Post ${unique_id_post} not found in database.`);
-                return;
-            }
-
-            const { user_id, username, comments, client_account, platform } = userRows[0];
-
-            if (comments > 0) {
-                try {
-                    await getDataTiktok.getDataComment(unique_id_post, user_id, username, client_account, kategori, platform);
-                    console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
-                } catch (err) {
-                    console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
-                }
-            } else {
-                console.log(`ℹ️ No comments for post ${unique_id_post}.`);
-            }
-        });
-
+        // Step 1: Fetch Main Comments
+        console.log('🚀 Fetching main comments...');
+        await getDataTiktok.getDataComment(kategori, "TikTok", startDate, endDate);
         console.log('✅ Main comments processing completed.');
 
-        // ================================
-        // 🔹 Step 2: Proses Child Comments
-        // ================================
-        console.log('🚀 Starting to fetch child comments...');
-
-        let childCommentQuery = `
-            SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform,
-            mc.child_comment_count, mc.client_account, mc.kategori, p.created_at
-            FROM mainComments mc
-            JOIN posts p ON mc.unique_id_post = p.unique_id_post
-            WHERE mc.platform = "TikTok"
-            AND FIND_IN_SET(?, mc.kategori)
-            AND DATE(p.created_at) BETWEEN ? AND ?
-        `;
-
-        if (!processFromStart) {
-            childCommentQuery = `
-                SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform,
-                mc.child_comment_count, mc.client_account, mc.kategori, p.created_at
-                FROM mainComments mc
-                JOIN posts p ON mc.unique_id_post = p.unique_id_post
-                WHERE mc.platform = "TikTok"
-                AND FIND_IN_SET(?, mc.kategori)
-                AND mc.comment_unique_id NOT IN (SELECT comment_unique_id FROM childComments)
-                AND DATE(p.created_at) BETWEEN ? AND ?
-            `;
-        }
-
-        const [childComments] = await db.query(childCommentQuery, [kategori, startDate, endDate]);
-        console.log(`📌 Found ${childComments.length} child comments to process.`);
-
-        await processQueue(childComments, async ({
-            comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account
-        }) => {
-            console.log(`🔍 Fetching child comments for comment ID: ${comment_unique_id} on post: ${unique_id_post}...`);
-
-            if (child_comment_count > 0) {
-                try {
-                    await getDataTiktok.getDataChildComment(
-                        unique_id_post, 
-                        user_id, 
-                        username, 
-                        comment_unique_id, 
-                        client_account, 
-                        kategori, 
-                        platform
-                    );
-                    console.log(`✅ Child comments for comment ID ${comment_unique_id} on post ${unique_id_post} have been fetched and saved.`);
-                } catch (err) {
-                    console.error(`❌ Error fetching child comments for comment ID ${comment_unique_id}:`, err.message);
-                }
-            } else {
-                console.log(`ℹ️ No child comments for comment ID ${comment_unique_id}.`);
-            }
-        });
-
+        // Step 2: Fetch Child Comments
+        console.log('🚀 Fetching child comments...');
+        await getDataTiktok.getDataChildComment(kategori, "TikTok", startDate, endDate);
         console.log('✅ Child comments processing completed.');
 
-        res.send('✅ Data getComment and getChildComment for all users have been fetched and saved.');
-
+        res.send(`✅ Comments and child ${platform} comments for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getComment and getChildComment:', error.message);
         res.status(500).json({
-            message: 'Terjadi kesalahan saat menjalankan proses getComment dan getChildComment.',
+            message: '❌ Error fetching comments.',
             error: error.message,
         });
     }
@@ -368,7 +129,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             AND FIND_IN_SET(?, kategori) 
             `, [kategori]);
 
-        await processQueue(rows, async (row) => {
+        (rows, async (row) => {
             console.log(`Fetching posts for keyword: ${row.keyword}...`);
             await getDataTiktok.getDataPostByKeyword(
                 row.client_account,
@@ -379,149 +140,10 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             console.log(`Posts for keywords ${row.keyword} have been fetched and saved.`);
         });
 
-        res.send('Data getDataPostByKeywords for all users have been fetched and saved.');
+        res.send(`Data ${platform} getDataPostByKeywords for all users have been fetched and saved.`);
     } catch (error) {
         console.error('Error executing getDataPostByKeywords:', error.message);
         res.status(500).send(`Error executing getDataPostByKeywords: ${error.message}`);
-    }
-});
-
-router.post('/getCommentv2', async (req, res) => {
-    try {
-        const { kategori, fromStart, unique_id_post } = req.body;
-        const processFromStart = fromStart ? fromStart === 'true' : false;
-
-        console.info(`Kategori: ${kategori}`);
-        console.info(`Post Codes: ${unique_id_post}`);
-        console.info(`Process From Start: ${processFromStart}`);
-
-        if (!Array.isArray(unique_id_post) || unique_id_post.length === 0) {
-            return res.status(400).json({ error: "Invalid unique_id_post format. It should be a non-empty list." });
-        }
-
-        console.log(`🚀 Starting to fetch main comments for ${unique_id_post.length} posts...`);
-
-        // ================================
-        // 🔹 Step 1: Proses Main Comments
-        // ================================
-        for (const code of unique_id_post) {
-            console.log(`🔍 Processing unique_id_post: ${code}`);
-
-            let mainCommentQuery = `
-                SELECT unique_id_post, created_at, kategori
-                FROM posts 
-                WHERE platform = "TikTok" 
-                AND FIND_IN_SET(?, kategori)
-                AND unique_id_post = ?
-            `;
-
-            if (!processFromStart) {
-                mainCommentQuery = `
-                    SELECT p.unique_id_post, p.created_at, p.kategori
-                    FROM posts p
-                    LEFT JOIN mainComments mc ON p.unique_id_post = mc.unique_id_post
-                    WHERE mc.unique_id_post IS NULL
-                    AND p.platform = "TikTok"
-                    AND FIND_IN_SET(?, p.kategori)
-                    AND p.unique_id_post = ?
-                `;
-            }
-
-            const [mainComments] = await db.query(mainCommentQuery, [kategori, code]);
-
-            console.log(`📌 Found ${mainComments.length} posts to process.`);
-
-            await processQueue(mainComments, async ({ unique_id_post, kategori }) => {
-                console.log(`🔍 Fetching comments for post: ${unique_id_post}...`);
-
-                const [userRows] = await db.query(
-                    `SELECT user_id, username, comments, client_account, platform 
-                        FROM posts 
-                        WHERE unique_id_post = ? 
-                        AND platform = "TikTok" 
-                        AND FIND_IN_SET(?, kategori)`,
-                    [unique_id_post, kategori]
-                );
-
-                if (userRows.length === 0) {
-                    console.log(`🚫 Post ${unique_id_post} not found in database.`);
-                    return;
-                }
-
-                const { user_id, username, comments, client_account, platform } = userRows[0];
-
-                if (comments > 0) {
-                    try {
-                        await getDataTiktok.getDataComment(
-                            unique_id_post, 
-                            user_id, 
-                            username, 
-                            client_account, 
-                            kategori, 
-                            platform
-                        );
-                        console.log(`✅ Comments for post ${unique_id_post} have been fetched and saved.`);
-                    } catch (err) {
-                        console.error(`❌ Error fetching comments for post ${unique_id_post}:`, err.message);
-                    }
-                } else {
-                    console.log(`ℹ️ No comments for post ${unique_id_post}.`);
-                }
-            });
-        }
-
-        console.log('✅ Main comments processing completed.');
-
-        // ================================
-        // 🔹 Step 2: Proses Child Comments
-        // ================================
-        console.log('🚀 Starting to fetch child comments...');
-
-        let childCommentQuery = `
-            SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.platform,
-            mc.child_comment_count, mc.client_account, mc.kategori
-            FROM mainComments mc
-            LEFT JOIN posts p ON mc.unique_id_post = p.unique_id_post
-            WHERE mc.platform = "TikTok"
-            AND FIND_IN_SET(?, mc.kategori)
-            AND p.unique_id_post IN (?)
-        `;
-
-        const [childComments] = await db.query(childCommentQuery, [kategori, unique_id_post]);
-
-        console.log(`📌 Found ${childComments.length} child comments to process.`);
-
-        await processQueue(childComments, async ({
-            comment_unique_id, unique_id_post, user_id, username, child_comment_count, platform, client_account
-        }) => {
-            console.log(`🔍 Fetching child comments for comment ID: ${comment_unique_id} on post: ${unique_id_post}...`);
-
-            if (child_comment_count > 0) {
-                try {
-                    await getDataTiktok.getDataChildComment(
-                        unique_id_post,
-                        user_id,
-                        username,
-                        comment_unique_id,
-                        client_account,
-                        kategori,
-                        platform
-                    );
-                    console.log(`✅ Child comments for comment ID ${comment_unique_id} on post ${unique_id_post} have been fetched and saved.`);
-                } catch (err) {
-                    console.error(`❌ Error fetching child comments for comment ID ${comment_unique_id}:`, err.message);
-                }
-            } else {
-                console.log(`ℹ️ No child comments for comment ID ${comment_unique_id}.`);
-            }
-        });
-
-        console.log('✅ Child comments processing completed.');
-        res.status(200).json({ message: "✅ Data getComment and getChildComment processed successfully." });
-
-    } catch (error) {
-        console.error("❌ Error in /getCommentv2 route:", error.message);
-        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
