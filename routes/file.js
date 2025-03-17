@@ -186,6 +186,116 @@ router.post('/exportPosts', async (req, res) => {
     }
 });
 
+// router.post('/exportFair', async (req, res) => {
+//     try {
+//         const { kategori, platform, start_date, end_date, username } = req.body;
+
+//         if (!kategori || !platform || !start_date || !end_date) {
+//             return res.status(400).json({ message: "Kategori, platform, start_date, dan end_date wajib diisi." });
+//         }
+
+//         console.info("[INFO] Received Export Request: ", { kategori, platform, start_date, end_date, username });
+
+//         // 1️⃣ **Hitung total data**
+//         const countQuery = `
+//             SELECT COUNT(*) AS total
+//             FROM fairScoresMonthly
+//             WHERE kategori = ?
+//                 AND platform = ?
+//                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+//                 ${username ? "AND username = ?" : ""}
+//         `;
+
+//         const queryParams = [kategori, platform, start_date, end_date];
+//         if (username) queryParams.push(username);
+
+//         const [countRows] = await db.query(countQuery, queryParams);
+//         const total = countRows[0].total || 0;
+
+//         if (total === 0) {
+//             console.warn(`[WARN] No data found for kategori: ${kategori}, platform: ${platform}, date range: ${start_date} to ${end_date}`);
+//             return res.status(404).json({ message: "No data found for export." });
+//         }
+
+//         console.info(`[INFO] Found ${total} records for export.`);
+
+//         // 2️⃣ **Ambil Semua Data dari Database**
+//         const dataQuery = `
+//             SELECT * 
+//             FROM fairScoresMonthly
+//             WHERE kategori = ?
+//                 AND platform = ?
+//                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+//                 ${username ? "AND username = ?" : ""}
+//         `;
+
+//         const [dataRows] = await db.query(dataQuery, queryParams);
+
+//         // 3️⃣ **Buat File Excel**
+//         const workbook = new ExcelJS.Workbook();
+//         const worksheet = workbook.addWorksheet("Fair Scores");
+
+//         // **Header Kolom**
+//         worksheet.columns = [
+//             { header: "Username", key: "username", width: 20 },
+//             { header: "Date", key: "date", width: 15 },
+//             { header: "Followers", key: "followers", width: 10 },
+//             { header: "Followers Score", key: "followers_score", width: 10 },
+//             { header: "Activities", key: "activities", width: 10 },
+//             { header: "Activities Score", key: "activities_score", width: 10 },
+//             { header: "Interactions", key: "interactions", width: 10 },
+//             { header: "Interactions Score", key: "interactions_score", width: 10 },
+//             { header: "Responsiveness", key: "responsiveness", width: 10 },
+//             { header: "Responsiveness Score", key: "responsiveness_score", width: 10 },
+//             { header: "Fair Score", key: "fair_score", width: 10 }
+//         ];
+
+//         // **Masukkan Data ke dalam Excel**
+//         dataRows.forEach(row => {
+//             worksheet.addRow({
+//                 username: row.username,
+//                 date: moment(row.date).tz("Asia/Jakarta").format("YYYY-MM-DD"),
+//                 followers: row.followers,
+//                 followers_score: row.followers_score,
+//                 activities: row.activities,
+//                 activities_score: row.activities_score,
+//                 interactions: row.interactions,
+//                 interactions_score: row.interactions_score,
+//                 responsiveness: row.responsiveness,
+//                 responsiveness_score: row.responsiveness_score,
+//                 fair_score: row.fair_score
+//             });
+//         });
+
+//         console.info(`[INFO] Inserted ${dataRows.length} rows into Excel file.`);
+
+//         // **Gaya Header**
+//         worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+//         worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F81BD" } };
+//         worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+
+//         // **Buat Nama File Dinamis**
+//         const filename = username && username.trim()
+//             ? `fair_data_${username}_on_${kategori}_${platform}_${start_date}_to_${end_date}.xlsx`
+//             : `fair_data_${kategori}_${platform}_${start_date}_to_${end_date}.xlsx`;
+
+//         console.info(`[INFO] Generating file: ${filename}`);
+
+//         // 4️⃣ **Kirim File Excel ke User**
+//         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+//         res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+//         res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+//         await workbook.xlsx.write(res);
+//         res.end();
+
+//         console.info(`[SUCCESS] Excel file for kategori ${kategori} successfully generated and sent.`);
+//     } catch (error) {
+//         console.error("[ERROR] Failed to export fair:", error);
+//         res.status(500).json({ code: 500, status: "ERROR", message: "Failed to export fair", error: error.message });
+//     }
+// });
+
 router.post('/exportFair', async (req, res) => {
     try {
         const { kategori, platform, start_date, end_date, username } = req.body;
@@ -196,9 +306,9 @@ router.post('/exportFair', async (req, res) => {
 
         console.info("[INFO] Received Export Request: ", { kategori, platform, start_date, end_date, username });
 
-        // 1️⃣ **Hitung total data**
-        const countQuery = `
-            SELECT COUNT(*) AS total
+        // **Ambil Semua Data dari Database**
+        const dataQuery = `
+            SELECT * 
             FROM fairScoresMonthly
             WHERE kategori = ?
                 AND platform = ?
@@ -209,86 +319,21 @@ router.post('/exportFair', async (req, res) => {
         const queryParams = [kategori, platform, start_date, end_date];
         if (username) queryParams.push(username);
 
-        const [countRows] = await db.query(countQuery, queryParams);
-        const total = countRows[0].total || 0;
+        const [dataRows] = await db.query(dataQuery, queryParams);
 
-        if (total === 0) {
-            console.warn(`[WARN] No data found for kategori: ${kategori}, platform: ${platform}, date range: ${start_date} to ${end_date}`);
+        if (dataRows.length === 0) {
             return res.status(404).json({ message: "No data found for export." });
         }
 
-        console.info(`[INFO] Found ${total} records for export.`);
+        console.info(`[INFO] Found ${dataRows.length} records for export.`);
 
-        // 2️⃣ **Ambil Semua Data dari Database**
-        const dataQuery = `
-            SELECT * 
-            FROM fairScoresMonthly
-            WHERE kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                ${username ? "AND username = ?" : ""}
-        `;
-
-        const [dataRows] = await db.query(dataQuery, queryParams);
-
-        // 3️⃣ **Buat File Excel**
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet("Fair Scores");
-
-        // **Header Kolom**
-        worksheet.columns = [
-            { header: "Username", key: "username", width: 20 },
-            { header: "Date", key: "date", width: 15 },
-            { header: "Followers", key: "followers", width: 10 },
-            { header: "Followers Score", key: "followers_score", width: 10 },
-            { header: "Activities", key: "activities", width: 10 },
-            { header: "Activities Score", key: "activities_score", width: 10 },
-            { header: "Interactions", key: "interactions", width: 10 },
-            { header: "Interactions Score", key: "interactions_score", width: 10 },
-            { header: "Responsiveness", key: "responsiveness", width: 10 },
-            { header: "Responsiveness Score", key: "responsiveness_score", width: 10 },
-            { header: "Fair Score", key: "fair_score", width: 10 }
-        ];
-
-        // **Masukkan Data ke dalam Excel**
-        dataRows.forEach(row => {
-            worksheet.addRow({
-                username: row.username,
-                date: moment(row.date).tz("Asia/Jakarta").format("YYYY-MM-DD"),
-                followers: row.followers,
-                followers_score: row.followers_score,
-                activities: row.activities,
-                activities_score: row.activities_score,
-                interactions: row.interactions,
-                interactions_score: row.interactions_score,
-                responsiveness: row.responsiveness,
-                responsiveness_score: row.responsiveness_score,
-                fair_score: row.fair_score
-            });
+        // Kirim data dalam format JSON ke frontend
+        return res.json({
+            status: "success",
+            total: dataRows.length,
+            data: dataRows,
         });
 
-        console.info(`[INFO] Inserted ${dataRows.length} rows into Excel file.`);
-
-        // **Gaya Header**
-        worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-        worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F81BD" } };
-        worksheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
-
-        // **Buat Nama File Dinamis**
-        const filename = username && username.trim()
-            ? `fair_data_${username}_on_${kategori}_${platform}_${start_date}_to_${end_date}.xlsx`
-            : `fair_data_${kategori}_${platform}_${start_date}_to_${end_date}.xlsx`;
-
-        console.info(`[INFO] Generating file: ${filename}`);
-
-        // 4️⃣ **Kirim File Excel ke User**
-        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
-
-        await workbook.xlsx.write(res);
-        res.end();
-
-        console.info(`[SUCCESS] Excel file for kategori ${kategori} successfully generated and sent.`);
     } catch (error) {
         console.error("[ERROR] Failed to export fair:", error);
         res.status(500).json({ code: 500, status: "ERROR", message: "Failed to export fair", error: error.message });
