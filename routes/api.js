@@ -726,61 +726,77 @@ router.get('/getInteractionsRanking', async (req, res) => {
     try {
         const { kategori, platform, start_date, end_date } = req.query;
 
-        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
+        // 🔹 Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
         const [dateRows] = await db.query(`
-        SELECT 
-          MAX(date) AS max_date,
-          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
-      `, [kategori, platform, start_date, end_date]);
+            SELECT 
+                MAX(date) AS max_date,
+                DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+            FROM fairScoresMonthly
+            WHERE 
+                kategori = ?
+                AND platform = ?
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+        `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
 
         if (!max_date) {
-            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+            return res.status(404).json({
+                code: 404,
+                status: 'Not Found',
+                data: [],
+                errors: 'No data found in the specified date range.'
+            });
         }
 
-        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
+        // 🔹 Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          interactions AS value,
-          platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY interactions DESC;
-      `, [kategori, platform, max_date]);
+            SELECT 
+                fsm.client_account,
+                fsm.username,
+                fsm.interactions AS value,
+                u.profile_pic_url
+            FROM fairScoresMonthly fsm
+            LEFT JOIN users u ON fsm.username = u.username
+            WHERE 
+                fsm.kategori = ?
+                AND fsm.platform = ? 
+                AND DATE(fsm.date) = DATE(?)
+            ORDER BY fsm.interactions DESC;
+        `, [kategori, platform, max_date]);
 
-        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
+        // Jika tidak ada data di tanggal terbaru, kirimkan respons kosong
+        if (!latestRows.length) {
+            return res.json({
+                code: 200,
+                status: 'OK',
+                data: [],
+                errors: null
+            });
+        }
+
+        // 🔹 Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          interactions AS value,
-          platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY interactions DESC;
-      `, [kategori, platform, prev_date]);
+            SELECT 
+                client_account,
+                username,
+                interactions AS value,
+                platform
+            FROM fairScoresMonthly
+            WHERE 
+                kategori = ?
+                AND platform = ? 
+                AND DATE(date) = DATE(?)
+            ORDER BY interactions DESC;
+        `, [kategori, platform, prev_date]);
 
-        // Helper function untuk mendapatkan peringkat berdasarkan username
+        // 🔹 Helper function untuk mendapatkan peringkat berdasarkan username
         const getRank = (username, rows) => {
             const rank = rows.findIndex(item => item.username === username);
             return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
         };
 
-        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        // 🔹 Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
         const mergedData = latestRows.map((item, index) => ({
             ...item,
             current_rank: index + 1,
@@ -793,9 +809,10 @@ router.get('/getInteractionsRanking', async (req, res) => {
             data: mergedData,
             errors: null
         });
+
     } catch (error) {
-        console.error('Error fetching fair ranking:', error);
-        res.status(500).send('Failed to fetch fair ranking');
+        console.error('Error fetching interactions ranking:', error);
+        res.status(500).json({ code: 500, status: 'ERROR', message: 'Failed to fetch interactions ranking' });
     }
 });
 
