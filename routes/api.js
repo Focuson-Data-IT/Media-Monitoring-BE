@@ -460,6 +460,10 @@ router.get('/getFairScores', async (req, res) => {
                 client_account,
                 username,
                 fair_score AS value,
+                followers as fairF,
+                activities as fairA,
+                interactions as fairI,
+                responsiveness as fairR,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date,
                 platform
             FROM fairScoresDaily
