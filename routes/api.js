@@ -456,22 +456,23 @@ router.get('/getResponsiveness', async (req, res) => {
 router.get('/getFairScores', async (req, res) => {
     try {
         const query = `
-            SELECT
+            SELECT 
                 client_account,
                 username,
+                username AS akun,
                 fair_score AS value,
-                followers as fairF,
-                activities as fairA,
-                interactions as fairI,
-                responsiveness as fairR,
+                followers AS fairF,
+                activities AS fairA,
+                interactions AS fairI,
+                responsiveness AS fairR,
                 CONVERT_TZ(date, '+00:00', '+07:00') AS date,
-                platform
+                platform,
+                RANK() OVER (PARTITION BY kategori, DATE(date) ORDER BY fair_score DESC) AS ranking
             FROM fairScoresDaily
-            WHERE
+            WHERE 
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                AND is_render = 1
         `;
 
         const queryParams = [
