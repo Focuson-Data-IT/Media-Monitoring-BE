@@ -40,57 +40,40 @@ const saveUser = async (user) => {
     );
 };
 
-
-// fungsi untuk menyimpan data post ke database
 const savePost = async (post) => {
     const sql = `
         INSERT INTO posts (
             client_account, kategori, platform, user_id, unique_id_post, username, created_at, 
             thumbnail_url, caption, post_code, comments, likes, media_name, product_type, 
-            tagged_users, is_pinned, followers, following, playCount, shareCount
+            tagged_users, is_pinned, followers, following, playCount, shareCount, collabs, collabs_with
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-            client_account = IF(
-                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
-                        client_account, 
-                        CONCAT_WS(',', client_account, VALUES(client_account))
-                    ),
-                    kategori = IF(
-                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
-                        kategori, 
-                        CONCAT_WS(',', kategori, VALUES(kategori))
-                    ),
-            platform = VALUES(platform),
-            user_id = VALUES(user_id),
-            username = VALUES(username),
-            created_at = VALUES(created_at),
-            thumbnail_url = VALUES(thumbnail_url),
-            caption = VALUES(caption),
-            post_code = VALUES(post_code),
             comments = VALUES(comments),
             likes = VALUES(likes),
             media_name = VALUES(media_name),
             product_type = VALUES(product_type),
             tagged_users = VALUES(tagged_users),
             is_pinned = VALUES(is_pinned),
-            followers = VALUES(followers),
-            following = VALUES(following),
             playCount = VALUES(playCount),
-            shareCount = VALUES(shareCount)
+            shareCount = VALUES(shareCount),
+            collabs = VALUES(collabs),
+            collabs_with = VALUES(collabs_with)
     `;
-    connection.query(sql, [
-        post.client_account, post.kategori, post.platform,
-        post.user_id, post.unique_id_post, post.username, post.created_at, post.thumbnail_url, post.caption, post.post_code, post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, post.followers, post.following, post.playCount, post.shareCount
-    ],
-        (err, result) => {
-            if (err) {
-                console.error(`Error saving post ${post.unique_id_post} to database:`, err.message);
-            } else {
-                console.log(`Saved post ${post.unique_id_post} to database`);
-            }
-        }
-    );
+
+    try {
+        await connection.query(sql, [
+            post.client_account, post.kategori, post.platform,
+            post.user_id, post.unique_id_post, post.username, post.created_at, post.thumbnail_url, post.caption,
+            post.post_code, post.comments, post.likes, post.media_name, post.product_type,
+            post.tagged_users, post.is_pinned, post.followers, post.following, post.playCount, post.shareCount,
+            post.collabs, post.collabs_with // Langsung ambil dari request
+        ]);
+
+        console.log(`Saved post: ${post.post_code} | ${post.username} | Collabs: ${post.collabs}`);
+    } catch (err) {
+        console.error(`Error saving post ${post.unique_id_post} to database:`, err.message);
+    }
 };
 
 // fungsi untuk menyimpan data comment ke database

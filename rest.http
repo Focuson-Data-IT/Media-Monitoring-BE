@@ -108,12 +108,12 @@ Content-Type: application/json
 
 List Akun Mitra / Kategori nya
 - opdbekasikab bekasi khusus (instagram) doang
+- prokopim_bekasikab (Instagram)
 - disparbud (Instagram dan TikTok) 
 - disparbud_competitor (Instagram dan TikTok) 
 - disparbud_ambassador (Instagram dan TikTok)
-- bkkbn_jabar (Instagram) Deprecated
-- prokopim_bekasikab (Instagram)
 - kdm_media (Instagram & TikTok)
+- bkkbn_jabar (Instagram) Deprecated
 
 ### Get Instagram User Data
 GET http://localhost:7770/instagram/getData?kategori=kdm_media
@@ -122,10 +122,10 @@ GET http://localhost:7770/instagram/getData?kategori=kdm_media
 GET http://localhost:7780/tiktok/getData?kategori=kdm_media
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=prokopim_bekasikab
+GET http://localhost:7770/instagram/getPost?kategori=opdbekasikab
 
 ### Get TikTok User Post
-GET http://localhost:7780/tiktok/getPost?kategori=
+GET http://localhost:7780/tiktok/getPost?kategori=kdm_media
 
 ### Get Instagram User Comment
 GET http://localhost:7770/instagram/getComment?kategori=disparbud
@@ -141,8 +141,8 @@ List Akun Mitra / Kategori nya
 - disparbud_ambassador (Instagram & TikTok)
 - opdbekasikab bekasi khusus (instagram) doang
 - prokopim_bekasikab (Instagram)
-- bkkbn_jabar (Instagram) Deprecated
 - kdm_media (Instagram & TikTok)
+- bkkbn_jabar (Instagram) Deprecated
 
 ### post addDataUser per hari
 POST http://localhost:7770/fair/addDataUser
@@ -366,3 +366,6 @@ GET http://localhost:7770/instagram/update-followers?kategori=disparbud&platform
 
 ###
 GET http://localhost:7770/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
+
+###
+POST http://localhost:7770/fair/update-followers
