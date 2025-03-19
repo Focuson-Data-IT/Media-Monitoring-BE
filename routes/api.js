@@ -575,7 +575,7 @@ router.get('/getFairRanking', async (req, res) => {
         // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
         const mergedData = latestRows.map((item, index) => ({
             ...item,
-            current_rank: index + 1,
+            ranking: index + 1,
             previous_rank: getRank(item.username, prevRows)
         }));
 
@@ -652,7 +652,7 @@ router.get('/getFollowersRanking', async (req, res) => {
         // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
         const mergedData = latestRows.map((item, index) => ({
             ...item,
-            current_rank: index + 1,
+            ranking: index + 1,
             previous_rank: getRank(item.username, prevRows)
         }));
 
@@ -729,7 +729,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
         const mergedData = latestRows.map((item, index) => ({
             ...item,
-            current_rank: index + 1,
+            ranking: index + 1,
             previous_rank: getRank(item.username, prevRows)
         }));
 
@@ -822,7 +822,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
         // 🔹 Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
         const mergedData = latestRows.map((item, index) => ({
             ...item,
-            current_rank: index + 1,
+            ranking: index + 1,
             previous_rank: getRank(item.username, prevRows)
         }));
 
@@ -901,7 +901,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
         const mergedData = latestRows.map((item, index) => ({
             ...item,
-            current_rank: index + 1,
+            ranking: index + 1,
             previous_rank: getRank(item.username, prevRows)
         }));
 
