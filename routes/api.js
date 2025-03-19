@@ -850,9 +850,9 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
         WHERE 
-        kategori = ?
-          AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+            kategori = ?
+            AND platform = ?
+            AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -863,19 +863,19 @@ router.get('/getResponsivenessRanking', async (req, res) => {
 
         // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
-            SELECT 
-                fsm.client_account,
-                fsm.username,
-                fsm.responsiveness AS value,
-                u.profile_pic_url
-            FROM fairScoresMonthly fsm
-            LEFT JOIN users u ON fsm.username = u.username
-            WHERE 
-                fsm.kategori = ?
-                AND fsm.platform = ? 
-                AND DATE(fsm.date) = DATE(?)
-            ORDER BY fsm.interactions DESC;
-        `, [kategori, platform, max_date]);
+        SELECT 
+          fsm.client_account,
+          fsm.username,
+          fsm.responsiveness AS value,
+          u.profile_pic_url
+        FROM fairScoresMonthly fsm
+        LEFT JOIN users u ON fsm.username = u.username
+        WHERE 
+        fsm.kategori = ?
+          AND fsm.platform = ? 
+          AND DATE(fsm.date) = DATE(?)
+        ORDER BY fsm.responsiveness DESC;
+      `, [kategori, platform, max_date]);
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
