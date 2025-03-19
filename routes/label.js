@@ -137,7 +137,7 @@ router.get('/v1/comments-coding', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM mainComments WHERE label IS NULL AND FIND_IN_SET("kdm", kategori) ORDER BY main_comment_id ASC`;
+        const query = `SELECT * FROM mainComments WHERE label IS NULL AND FIND_IN_SET("custom_request", kategori) ORDER BY main_comment_id ASC`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -257,7 +257,7 @@ router.get('/v1/comments-sentiment', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM mainComments WHERE sentiment IS NULL AND FIND_IN_SET("kdm", kategori)`;
+        const query = `SELECT * FROM mainComments WHERE sentiment IS NULL AND FIND_IN_SET("custom_request", kategori)`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
