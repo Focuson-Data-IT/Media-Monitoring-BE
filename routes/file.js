@@ -312,11 +312,11 @@ router.post('/exportFair', async (req, res) => {
             FROM fairScoresMonthly
             WHERE kategori = ?
                 AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                AND date = ?
                 ${username ? "AND username = ?" : ""}
         `;
 
-        const queryParams = [kategori, platform, start_date, end_date];
+        const queryParams = [kategori, platform, end_date];
         if (username) queryParams.push(username);
 
         const [dataRows] = await db.query(dataQuery, queryParams);
