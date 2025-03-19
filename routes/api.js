@@ -783,7 +783,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
             LEFT JOIN users u ON fsm.username = u.username
             WHERE 
                 fsm.kategori = ?
-                AND u.platform = ? 
+                AND fsm.platform = ? 
                 AND DATE(fsm.date) = DATE(?)
             ORDER BY fsm.interactions DESC;
         `, [kategori, platform, max_date]);
@@ -872,7 +872,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         LEFT JOIN users u ON fsm.username = u.username
         WHERE 
         fsm.kategori = ?
-          AND u.platform = ? 
+          AND fsm.platform = ? 
           AND DATE(fsm.date) = DATE(?)
         ORDER BY fsm.responsiveness DESC;
       `, [kategori, platform, max_date]);
