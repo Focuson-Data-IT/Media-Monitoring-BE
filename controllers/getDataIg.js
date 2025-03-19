@@ -144,16 +144,23 @@ const getDataPost = async (kategori = null, platform = null) => {
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
                 const maxRetries = 3; // Maksimal retry per user
+
                 while (retryCount < maxRetries) {
+                    
+                    // **Tambahkan ke cache**
+                    userCache[row.username] = {
+                        followers: userData.stats.followerCount || 0,
+                        following: userData.stats.followingCount || 0
+                    };
+
                     try {
                         console.info(`🔍 Fetching posts for user: ${row.username} (Attempt ${retryCount + 1})`);
 
                         let paginationToken = null;
                         let morePosts = true;
                         let pageCount = 0;
-                        const maxPaginationPages = 20; // Maksimum pagination loop
 
-                        while (morePosts && pageCount < maxPaginationPages) {
+                        while (morePosts) {
                             const getPost = {
                                 method: 'GET',
                                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
@@ -686,7 +693,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
 
                         console.info(`✅ Finished processing child comments for parent comment: ${row.comment_unique_id}`);
                         await db.query(`
-                            UPDATE posts 
+                            UPDATE mainComments 
                             SET child_comments_processed = 1 
                             WHERE unique_id_post = ?
                         `, [row.unique_id_post]);
@@ -701,7 +708,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                             console.error(`❌ Failed to fetch child comments for ${row.comment_unique_id} after ${maxRetries} attempts.`);
 
                             await db.query(`
-                                UPDATE posts 
+                                UPDATE mainComments
                                 SET child_comments_processed = 0 
                                 WHERE unique_id_post = ?
                             `, [row.unique_id_post]);
@@ -729,6 +736,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
             SELECT *
             FROM listCustomRequest 
             WHERE platform = ?
+            AND comments_processed = 0
             AND FIND_IN_SET(?, kategori)
             
         `, [platform, kategori]);
@@ -755,7 +763,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
                         let paginationToken = null;
                         let moreComments = true;
                         let pageCount = 0;
-                        const limitPage = 1000; // Batas maksimal halaman
+                        const limitPage = 50; // Batas maksimal halaman
 
                         while (moreComments && pageCount < limitPage) {
                             const getComment = {
@@ -873,6 +881,7 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
             FROM mainComments mc
             JOIN listCustomRequest p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = ?
+            AND child_comments_processed = 0
             AND FIND_IN_SET(?, mc.kategori)
         `, [platform, kategori]);
 
@@ -889,7 +898,7 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 2; // Maksimum retry per parent comment
+                const maxRetries = 50; // Maksimum retry per parent comment
 
                 while (retryCount < maxRetries) {
                     try {

@@ -134,7 +134,7 @@ router.get('/getCommentByCode', async (req, res) => {
 
         // Step 1: Fetch Main Comments
         console.log('🚀 Fetching main comments...');
-        // await getDataIg.getDataCommentByCode(kategori, "Instagram");
+        await getDataIg.getDataCommentByCode(kategori, "Instagram");
         console.log('✅ Main comments processing completed.');
 
         // Step 2: Fetch Child Comments

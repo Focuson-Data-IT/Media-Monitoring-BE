@@ -1,9 +1,9 @@
 ###
-GET http://localhost:7770/instagram/update-followers-kdm
+GET http://localhost:7780/instagram/update-followers-kdm
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/label/v1/labeling
+GET http://localhost:7780/label/v1/labeling
 Content-Type: application/json
 
 ###
@@ -15,7 +15,7 @@ GET http://localhost:7780/label/v1/comments-coding
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/reply-coding/api/v1/comments-coding
+GET http://localhost:7780/api/v1/reply-coding/api/v1/comments-coding
 Content-Type: application/json
 
 ###
@@ -30,7 +30,7 @@ Content-Type: application/json
 
 
 ###
-POST http://localhost:7770/api/auth/login
+POST http://localhost:7780/api/auth/login
 Content-Type: application/json
 
 {
@@ -39,39 +39,39 @@ Content-Type: application/json
 }
 
 ### Get all products
-GET http://localhost:7770/api/data/calculateFairScore
+GET http://localhost:7780/api/data/calculateFairScore
 
 
 
 
 
 ### GET processData
-GET http://localhost:7770/api/data/getData
+GET http://localhost:7780/api/data/getData
 
 ### GET processData
-GET http://localhost:7770/api/getFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET processData
-GET http://localhost:7770/api/getActivities?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getActivities?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET processData
-GET http://localhost:7770/api/getInteractions?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getInteractions?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET processData
-GET http://localhost:7770/api/getResponsiveness?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getResponsiveness?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET processData
-GET http://localhost:7770/api/getFairScores?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=Instagram
+GET http://localhost:7780/api/getFairScores?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-09&platform=Instagram
 
 
 ### GET processData
-GET http://localhost:7770/api/getAllPost?page=1&perPage=5&kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getAllPost?page=1&perPage=5&kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET rank
-GET http://localhost:7770/api/getFairRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getFairRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET fair score
-GET http://localhost:7770/api/getFairScores?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getFairScores?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET fair score
 GET http://localhost:7780/api/getActivitiesRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
@@ -79,7 +79,7 @@ GET http://localhost:7780/api/getActivitiesRanking?kategori=disparbud&start_date
 ### STEP 1 ###
 
 ### Post addListAkun
-POST http://localhost:7770/api/addListAkun
+POST http://localhost:7780/api/addListAkun
 Content-Type: application/json
 
 {
@@ -90,13 +90,13 @@ Content-Type: application/json
 }
 
 ### Get ListAkun
-GET http://localhost:7770/accounts/ListAkun
+GET http://localhost:7780/accounts/ListAkun
 
 ### Delete ListAkun
-DELETE http://localhost:7770/api/deleteListAkun/129
+DELETE http://localhost:7780/api/deleteListAkun/129
 
 ### Edit ListAkun
-PUT http://localhost:7770/api/editListAkun/130
+PUT http://localhost:7780/api/editListAkun/130
 Content-Type: application/json
 
 {
@@ -116,21 +116,21 @@ List Akun Mitra / Kategori nya
 - bkkbn_jabar (Instagram) Deprecated
 
 ### Get Instagram User Data (Deprecated // langsung panggil user post nya saja)
-GET http://localhost:7770/instagram/getData?kategori=kdm_media
+GET http://localhost:7780/instagram/getData?kategori=kdm_media
 
 ### Get Tiktok User Data
-GET http://localhost:7780/tiktok/getData?kategori=kdm_media
+GET http://localhost:7790/tiktok/getData?kategori=kdm_media
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=disparbud_competitor
+GET http://localhost:7780/instagram/getPost?kategori=kdm_media
 
 ### Get TikTok User Post
-GET http://localhost:7780/tiktok/getPost?kategori=kdm_media
+GET http://localhost:7790/tiktok/getPost?kategori=kdm_media
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=disparbud
+GET http://localhost:7780/instagram/getComment?kategori=disparbud
 
-### Get Instagram User Comment
+### Get Instagram User Comment custom request
 GET http://localhost:7780/instagram/getCommentByCode?kategori=custom_request
 
 ### Get TikTok User Comment
@@ -151,27 +151,27 @@ List Akun Mitra / Kategori nya
 POST http://localhost:7770/fair/addDataUser
 
 ### post processData
-POST http://localhost:7770/fair/processData
-Content-Type: application/json
-
-{
-    "start_date": "2025-03-01",
-    "kategori": "kdm_media",
-    "platform": "Instagram"
-}
-
-### post processData
 POST http://localhost:7780/fair/processData
 Content-Type: application/json
 
 {
     "start_date": "2025-03-01",
-    "kategori": "kdm_media",
+    "kategori": "disparbud_competitor",
+    "platform": "Instagram"
+}
+
+### post processData
+POST http://localhost:7790/fair/processData
+Content-Type: application/json
+
+{
+    "start_date": "2025-03-01",
+    "kategori": "disparbud_competitor",
     "platform": "TikTok"
 }
 
 ### Proses Performa Konten
-POST http://localhost:7770/api/prosesPerformaKonten
+POST http://localhost:7780/api/prosesPerformaKonten
 Content-Type: application/json
 
 {
@@ -180,65 +180,65 @@ Content-Type: application/json
 }
 
 ### Get Instagram User Data
-GET http://localhost:7770/api/getAllUsers?kategori=disparbud&platform=Instagram&username=budpardepok
+GET http://localhost:7780/api/getAllUsers?kategori=disparbud&platform=Instagram&username=budpardepok
 
 ### Get All Username Data
-GET http://localhost:7770/api/getAllUsername?kategori=disparbud&platform=Instagram
+GET http://localhost:7780/api/getAllUsername?kategori=disparbud&platform=Instagram
 
 ### Get Picture Data
-GET http://localhost:7770/api/getPictureData?kategori=disparbud&platform=Instagram&username=disparbudbandungbarat
+GET http://localhost:7780/api/getPictureData?kategori=disparbud&platform=Instagram&username=disparbudbandungbarat
 
 ### Get Fair Data for Insights
-GET http://localhost:7770/api/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=purwakartapariwisata
+GET http://localhost:7780/api/getFairDataInsights?kategori=disparbud&platform=Instagram&month=2025-01&username=purwakartapariwisata
 
 ### Get Ai Summary
-GET http://localhost:7770/api/getFairSummary?username=smilingbogorcity&month=2025-01&kategori=disparbud&platform=Instagram
+GET http://localhost:7780/api/getFairSummary?username=smilingbogorcity&month=2025-01&kategori=disparbud&platform=Instagram
 
 
 ### Daily Data // Growth Metrics
 ### Instagram
 ### GET Daily Followers
-GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&platform=Instagram
+GET http://localhost:7780/api/getDailyLikes?kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&platform=Instagram
 
 ### GET Daily Likes
-GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET Daily Views
-GET http://localhost:7770/api/getDailyViews?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getDailyViews?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET Daily Comments
-GET http://localhost:7770/api/getDailyComments?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getDailyComments?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### TikTok
 ### GET Daily Followers
-GET http://localhost:7770/api/getDailyFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getDailyFollowers?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET Daily Likes
-GET http://localhost:7770/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getDailyLikes?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET Daily Views
-GET http://localhost:7770/api/getDailyViews?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getDailyViews?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET Daily Comments
-GET http://localhost:7770/api/getDailyComments?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getDailyComments?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET Daily Saves
-GET http://localhost:7770/api/getDailySaves?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getDailySaves?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 # ### GET Daily Downloads
-# GET http://localhost:7770/api/getDailyDownloads?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+# GET http://localhost:7780/api/getDailyDownloads?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 ### GET Daily Shares
-GET http://localhost:7770/api/getDailyShares?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
+GET http://localhost:7780/api/getDailyShares?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=TikTok
 
 
 
 
 ###
-GET http://localhost:7770/api/getGrowthData?username=smilingbogorcity&start_date=2025-02-01&end_date=2025-02-28&platform=Instagram
+GET http://localhost:7780/api/getGrowthData?username=smilingbogorcity&start_date=2025-02-01&end_date=2025-02-28&platform=Instagram
 
 ###
-POST http://localhost:7770/file/exportPosts
+POST http://localhost:7780/file/exportPosts
 Content-Type: application/json
 
 {
@@ -249,7 +249,7 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7770/file/exportFair
+POST http://localhost:7780/file/exportFair
 Content-Type: application/json
 
 {
@@ -260,31 +260,31 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:7770/api/getAllSearchUsername?&platform=Instagram&kategori=prokopim_bekasikab&search=pemkabbekasi
+GET http://localhost:7780/api/getAllSearchUsername?&platform=Instagram&kategori=prokopim_bekasikab&search=pemkabbekasi
 
 ###
-GET http://localhost:7770/api/getTotalPost?&platform=TikTok&kategori=disparbud&search=disparbudmajalengka&start_date=2025-02-01&end_date=2025-02-28
+GET http://localhost:7780/api/getTotalPost?&platform=TikTok&kategori=disparbud&search=disparbudmajalengka&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-GET http://localhost:7770/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
+GET http://localhost:7780/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
 
 ###
-GET http://localhost:7770/api/getPost?kategori=disparbud&username=disbudpar.bdg&platform=Instagram&start_date=2025-02-01&end_date=2025-02-28
+GET http://localhost:7780/api/getPost?kategori=disparbud&username=disbudpar.bdg&platform=Instagram&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-GET http://localhost:7770/tiktok/getDataPostByKeywords?kategori=kdm
+GET http://localhost:7780/tiktok/getDataPostByKeywords?kategori=kdm
 
 ###
-GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=kdm
+GET http://localhost:7780/instagram/getDataPostByKeywords?kategori=kdm
 
 ###
-GET http://localhost:7770/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
+GET http://localhost:7780/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
 
 ###
-GET http://localhost:7770/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
+GET http://localhost:7780/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-09
 
 ###
-POST http://localhost:7770/youtube/getCommentv2
+POST http://localhost:7780/youtube/getCommentv2
 Content-Type: application/json
 
 {
@@ -295,7 +295,7 @@ Content-Type: application/json
     ]
 }
 ###
-POST http://localhost:7770/youtube/getCommentv3
+POST http://localhost:7780/youtube/getCommentv3
 Content-Type: application/json
 
 {
@@ -306,7 +306,7 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7770/tiktok/getCommentv2
+POST http://localhost:7780/tiktok/getCommentv2
 Content-Type: application/json
 
 {
@@ -318,7 +318,7 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7770/facebook/getCommentv2
+POST http://localhost:7780/facebook/getCommentv2
 Content-Type: application/json
 
 {
@@ -331,7 +331,7 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7770/youtube/getCommentv2
+POST http://localhost:7780/youtube/getCommentv2
 Content-Type: application/json
 
 {
@@ -348,7 +348,7 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7770/instagram/getPostDataByCode
+POST http://localhost:7780/instagram/getPostDataByCode
 Content-Type: application/json
 
 {
@@ -365,10 +365,13 @@ Content-Type: application/json
 }
 
 ###
-GET http://localhost:7770/instagram/update-followers?kategori=disparbud&platform=Instagram
+GET http://localhost:7780/instagram/update-followers?kategori=disparbud&platform=Instagram
 
 ###
-GET http://localhost:7770/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
+GET http://localhost:7780/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-POST http://localhost:7770/fair/update-followers
+POST http://localhost:7795/fair/update-followers?platform=TikTok
+
+###
+GET http://localhost:7770/api/getResponsivenessRanking?platform=Instagram&kategori=disparbud&start_date=2025-03-01&end_date=2025-03-31
