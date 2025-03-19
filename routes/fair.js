@@ -76,7 +76,7 @@ router.post("/update-followers", async (req, res) => {
     try {
         // 1️⃣ Ambil data username dan followers dari tabel users (hanya yang followers > 3000)
         const [usersData] = await connection.query(
-            `SELECT username, followers FROM users WHERE followers > 3000`
+            `SELECT username, followers FROM users WHERE followers > 3000 and platform = 'TikTok'`
         );
 
         if (usersData.length === 0) {
@@ -87,7 +87,7 @@ router.post("/update-followers", async (req, res) => {
 
         // 2️⃣ Tentukan rentang tanggal dari hari ini ke 1 Februari
         const today = moment().format("YYYY-MM-DD");
-        const startDate = "2025-02-01";
+        const startDate = "2025-03-01";
         const dates = [];
 
         let tempDate = moment(today);

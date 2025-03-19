@@ -3,15 +3,15 @@ GET http://localhost:7770/instagram/update-followers-kdm
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/labeling
+GET http://localhost:7770/label/v1/labeling
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/post-labeling
+GET http://localhost:7780/label/v1/post-labeling
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/comments-coding
+GET http://localhost:7780/label/v1/comments-coding
 Content-Type: application/json
 
 ###
@@ -19,11 +19,11 @@ GET http://localhost:7770/api/v1/reply-coding/api/v1/comments-coding
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/comments-sentiment
+GET http://localhost:7790/label/v1/comments-sentiment
 Content-Type: application/json
 
 ###
-GET http://localhost:7770/api/v1/reply-sentiment
+GET http://localhost:7780/label/v1/reply-sentiment
 Content-Type: application/json
 
 
@@ -74,7 +74,7 @@ GET http://localhost:7770/api/getFairRanking?kategori=disparbud&start_date=2025-
 GET http://localhost:7770/api/getFairScores?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### GET fair score
-GET http://localhost:7770/api/getActivitiesRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
+GET http://localhost:7780/api/getActivitiesRanking?kategori=disparbud&start_date=2025-01-01&end_date=2025-01-31&platform=Instagram
 
 ### STEP 1 ###
 
@@ -115,20 +115,23 @@ List Akun Mitra / Kategori nya
 - kdm_media (Instagram & TikTok)
 - bkkbn_jabar (Instagram) Deprecated
 
-### Get Instagram User Data
+### Get Instagram User Data (Deprecated // langsung panggil user post nya saja)
 GET http://localhost:7770/instagram/getData?kategori=kdm_media
 
 ### Get Tiktok User Data
 GET http://localhost:7780/tiktok/getData?kategori=kdm_media
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=opdbekasikab
+GET http://localhost:7770/instagram/getPost?kategori=disparbud_competitor
 
 ### Get TikTok User Post
 GET http://localhost:7780/tiktok/getPost?kategori=kdm_media
 
 ### Get Instagram User Comment
 GET http://localhost:7770/instagram/getComment?kategori=disparbud
+
+### Get Instagram User Comment
+GET http://localhost:7780/instagram/getCommentByCode?kategori=custom_request
 
 ### Get TikTok User Comment
 GET http://localhost:7780/tiktok/getComment?kategori=disparbud_competitor
@@ -152,7 +155,7 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-    
+    "start_date": "2025-03-01",
     "kategori": "kdm_media",
     "platform": "Instagram"
 }
@@ -162,8 +165,8 @@ POST http://localhost:7780/fair/processData
 Content-Type: application/json
 
 {
-    
-    "kategori": "disparbud_competitor",
+    "start_date": "2025-03-01",
+    "kategori": "kdm_media",
     "platform": "TikTok"
 }
 
@@ -173,7 +176,7 @@ Content-Type: application/json
 
 {
   "startDate": "2025-01-01",
-  "endDate": "2025-02-28"
+  "endDate": "2025-03-31"
 }
 
 ### Get Instagram User Data
