@@ -849,7 +849,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
           client_account,
           username,
           responsiveness AS value,
-          platform
+          platform,
+        u.profile_pic_url
         FROM fairScoresMonthly
         WHERE 
         kategori = ?
