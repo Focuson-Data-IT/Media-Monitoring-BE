@@ -298,13 +298,13 @@ router.post('/exportPosts', async (req, res) => {
 
 router.post('/exportFair', async (req, res) => {
     try {
-        const { kategori, platform, start_date, end_date, username } = req.body;
+        const { kategori, platform, date } = req.body;
 
-        if (!kategori || !platform || !start_date || !end_date) {
-            return res.status(400).json({ message: "Kategori, platform, start_date, dan end_date wajib diisi." });
+        if (!kategori || !platform || !date) {
+            return res.status(400).json({ message: "Kategori, platform, date wajib diisi." });
         }
 
-        console.info("[INFO] Received Export Request: ", { kategori, platform, start_date, end_date, username });
+        console.info("[INFO] Received Export Request: ", { kategori, platform, date });
 
         // **Ambil Semua Data dari Database**
         const dataQuery = `
@@ -313,11 +313,9 @@ router.post('/exportFair', async (req, res) => {
             WHERE kategori = ?
                 AND platform = ?
                 AND date = ?
-                ${username ? "AND username = ?" : ""}
         `;
 
-        const queryParams = [kategori, platform, end_date];
-        if (username) queryParams.push(username);
+        const queryParams = [kategori, platform, date];
 
         const [dataRows] = await db.query(dataQuery, queryParams);
 
