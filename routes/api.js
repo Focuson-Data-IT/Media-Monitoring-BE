@@ -783,7 +783,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
             LEFT JOIN users u ON fsm.username = u.username
             WHERE 
                 fsm.kategori = ?
-                AND fsm.platform = ? 
+                AND u.platform = ? 
                 AND DATE(fsm.date) = DATE(?)
             ORDER BY fsm.interactions DESC;
         `, [kategori, platform, max_date]);
@@ -872,10 +872,20 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         LEFT JOIN users u ON fsm.username = u.username
         WHERE 
         fsm.kategori = ?
-          AND fsm.platform = ? 
+          AND u.platform = ? 
           AND DATE(fsm.date) = DATE(?)
         ORDER BY fsm.responsiveness DESC;
       `, [kategori, platform, max_date]);
+
+        // Jika tidak ada data di tanggal terbaru, kirimkan respons kosong
+        if (!latestRows.length) {
+        return res.json({
+            code: 200,
+            status: 'OK',
+            data: [],
+            errors: null
+        });
+        }
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
