@@ -491,6 +491,7 @@ router.get('/getFairScores', async (req, res) => {
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY list_id, platform, username, date, client_account, kategori
         `;
 
         const queryParams = [
@@ -527,7 +528,8 @@ router.get('/getFairRanking', async (req, res) => {
         WHERE 
         kategori = ?
           AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+          GROUP BY list_id, platform, username, date, client_account, kategori;
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -548,6 +550,7 @@ router.get('/getFairRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY fair_score DESC;
       `, [kategori, platform, max_date]);
 
@@ -563,6 +566,7 @@ router.get('/getFairRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY fair_score DESC;
       `, [kategori, platform, prev_date]);
 
@@ -597,14 +601,15 @@ router.get('/getFollowersRanking', async (req, res) => {
 
         // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
         const [dateRows] = await db.query(`
-        SELECT 
+        SELECT
           MAX(date) AS max_date,
           DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
         FROM fairScoresMonthly
         WHERE 
         kategori = ?
           AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori;
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -625,6 +630,7 @@ router.get('/getFollowersRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY followers DESC;
       `, [kategori, platform, max_date]);
 
@@ -640,6 +646,7 @@ router.get('/getFollowersRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY followers DESC;
       `, [kategori, platform, prev_date]);
 
@@ -681,7 +688,8 @@ router.get('/getActivitiesRanking', async (req, res) => {
         WHERE 
         kategori = ?
           AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+          GROUP BY list_id, platform, username, date, client_account, kategori;
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -702,6 +710,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY activities DESC;
       `, [kategori, platform, max_date]);
 
@@ -717,6 +726,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY activities DESC;
       `, [kategori, platform, prev_date]);
 
@@ -758,7 +768,8 @@ router.get('/getInteractionsRanking', async (req, res) => {
             WHERE 
                 kategori = ?
                 AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                GROUP BY list_id, platform, username, date, client_account, kategori;
         `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -785,6 +796,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
                 fsm.kategori = ?
                 AND fsm.platform = ? 
                 AND DATE(fsm.date) = DATE(?)
+            GROUP BY fsm.list_id, fsm.platform, fsm.username, fsm.date, fsm.client_account, fsm.kategori
             ORDER BY fsm.interactions DESC;
         `, [kategori, platform, max_date]);
 
@@ -810,6 +822,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
                 kategori = ?
                 AND platform = ? 
                 AND DATE(date) = DATE(?)
+            GROUP BY list_id, platform, username, date, client_account, kategori
             ORDER BY interactions DESC;
         `, [kategori, platform, prev_date]);
 
@@ -852,7 +865,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         WHERE 
             kategori = ?
             AND platform = ?
-            AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY list_id, platform, username, date, client_account, kategori;
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -874,6 +888,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         fsm.kategori = ?
           AND fsm.platform = ? 
           AND DATE(fsm.date) = DATE(?)
+          GROUP BY fsm.list_id, fsm.platform, fsm.username, fsm.date, fsm.client_account, fsm.kategori
         ORDER BY fsm.responsiveness DESC;
       `, [kategori, platform, max_date]);
 
@@ -899,6 +914,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
+          GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY responsiveness DESC;
       `, [kategori, platform, prev_date]);
 
