@@ -73,10 +73,12 @@ const chunkArray = (array, chunkSize) => {
 };
 
 router.post("/update-followers", async (req, res) => {
+    const{platform} = req.query;
+
     try {
         // 1️⃣ Ambil data username dan followers dari tabel users (hanya yang followers > 3000)
         const [usersData] = await connection.query(
-            `SELECT username, followers FROM users WHERE followers > 3000 and platform = 'TikTok'`
+            `SELECT username, followers FROM users WHERE platform = ?`,[platform]
         );
 
         if (usersData.length === 0) {
@@ -87,7 +89,7 @@ router.post("/update-followers", async (req, res) => {
 
         // 2️⃣ Tentukan rentang tanggal dari hari ini ke 1 Februari
         const today = moment().format("YYYY-MM-DD");
-        const startDate = "2025-03-01";
+        const startDate = "2025-01-01";
         const dates = [];
 
         let tempDate = moment(today);
@@ -103,12 +105,29 @@ router.post("/update-followers", async (req, res) => {
 
         // Fungsi untuk menghasilkan noise yang tidak berpola
         const getRandomDecreaseRate = (dayIndex) => {
-            let baseRate = getRandomInRange(0.00005, 0.0005); // 0.05% - 0.3%
-            let noise = Math.sin(dayIndex * 0.003) * getRandomInRange(0.00005, 0.0005);
-            let isIncrease = Math.random() < 0.05; // 5% chance naik
-            let finalRate = isIncrease ? -baseRate : baseRate + noise;
-            return Math.min(Math.max(finalRate, -0.01), 0.0005);
-        };
+            let baseRate = getRandomInRange(0.00001, 0.00005);
+        
+            // 🔹 Fluktuasi lebih halus dengan perubahan lambat
+            let trendFactor = Math.cos(dayIndex * 0.0002); // Memastikan ada stabilitas
+        
+            // 🔹 Noise yang lebih smooth agar naik-turun tidak terlalu ekstrem
+            let noise = Math.sin(dayIndex * 0.0001) * getRandomInRange(0.00001, 0.00005);
+        
+            // 🔹 Gunakan probabilitas dinamis: Kadang naik, kadang stabil, kadang turun
+            let isIncrease = Math.random() < 0.2; // 20% kemungkinan turun, 80% naik atau stabil
+            let isStable = Math.random() < 0.3;   // 30% kemungkinan tetap stabil
+        
+            let finalRate;
+        
+            if (isStable) {
+                finalRate = 0; // Stabil
+            } else {
+                finalRate = isIncrease ? -baseRate : baseRate + noise * trendFactor;
+            }
+        
+            // 🔹 Batasi agar perubahan tidak terlalu ekstrem
+            return Math.min(Math.max(finalRate, -0.2), 0.00005);
+        };        
 
         // 3️⃣ Gunakan batch `UPDATE` untuk mempercepat proses update followers
         const userChunks = chunkArray(usersData, 50);
@@ -120,7 +139,7 @@ router.post("/update-followers", async (req, res) => {
                 let currentFollowers = followers;
 
                 // Buat batch query untuk update followers
-                let updateQuery = `UPDATE posts SET followers = CASE`;
+                let updateQuery = `UPDATE fairScoresDaily SET followers = CASE`;
                 let updateConditions = [];
                 let updateValues = [];
 
@@ -129,13 +148,13 @@ router.post("/update-followers", async (req, res) => {
                     const decreaseRate = getRandomDecreaseRate(i);
                     const newFollowers = Math.floor(currentFollowers * (1 - decreaseRate));
 
-                    updateQuery += ` WHEN username = ? AND created_at = ? THEN ?`;
-                    updateValues.push(username, date, newFollowers);
+                    updateQuery += ` WHEN username = ? AND date = ? AND platform = ? THEN ?`;
+                    updateValues.push(username, date, platform, newFollowers);
 
                     currentFollowers = newFollowers;
                 }
 
-                updateQuery += ` ELSE followers END WHERE username IN (?) AND created_at BETWEEN ? AND ?`;
+                updateQuery += ` ELSE followers END WHERE username IN (?) AND date BETWEEN ? AND ?`;
                 updateValues.push(chunk.map(u => u.username), startDate, today);
 
                 await connection.query(updateQuery, updateValues);
