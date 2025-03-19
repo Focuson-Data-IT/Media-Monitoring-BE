@@ -87,21 +87,59 @@ router.get('/getComment', async (req, res) => {
         console.info(`🔍 Fetching comments for category: ${kategori}`);
 
         // Ambil tanggal dari database
-        const dateRange = await getDateRange();
-        if (!dateRange) {
-            return res.status(500).json({ message: '❌ Gagal mendapatkan rentang tanggal dari database.' });
-        }
+        // const dateRange = await getDateRange();
+        // if (!dateRange) {
+        //     return res.status(500).json({ message: '❌ Gagal mendapatkan rentang tanggal dari database.' });
+        // }
 
-        const { startDate, endDate } = dateRange; // Destructuring tanggal
+        // const { startDate, endDate } = dateRange; // Destructuring tanggal
 
         // Step 1: Fetch Main Comments
         console.log('🚀 Fetching main comments...');
-        await getDataIg.getDataComment(kategori, "Instagram", startDate, endDate);
+        await getDataIg.getDataComment(kategori, "Instagram");
         console.log('✅ Main comments processing completed.');
 
         // Step 2: Fetch Child Comments
         console.log('🚀 Fetching child comments...');
-        await getDataIg.getDataChildComment(kategori, "Instagram", startDate, endDate);
+        await getDataIg.getDataChildComment(kategori, "Instagram");
+        console.log('✅ Child comments processing completed.');
+
+        res.send(`✅ Comments and child comments ${platform} for category "${kategori}" have been fetched and saved.`);
+    } catch (error) {
+        console.error('❌ Error executing getComment and getChildComment:', error.message);
+        res.status(500).json({
+            message: '❌ Error fetching comments.',
+            error: error.message,
+        });
+    }
+});
+
+router.get('/getCommentByCode', async (req, res) => {
+    const { kategori } = req.query;
+
+    if (!kategori) {
+        return res.status(400).json({ message: '❌ kategori parameter is required.' });
+    }
+
+    try {
+        console.info(`🔍 Fetching comments for category: ${kategori}`);
+
+        // Ambil tanggal dari database
+        // const dateRange = await getDateRange();
+        // if (!dateRange) {
+        //     return res.status(500).json({ message: '❌ Gagal mendapatkan rentang tanggal dari database.' });
+        // }
+
+        // const { startDate, endDate } = dateRange; // Destructuring tanggal
+
+        // Step 1: Fetch Main Comments
+        console.log('🚀 Fetching main comments...');
+        // await getDataIg.getDataCommentByCode(kategori, "Instagram");
+        console.log('✅ Main comments processing completed.');
+
+        // Step 2: Fetch Child Comments
+        console.log('🚀 Fetching child comments...');
+        await getDataIg.getDataChildCommentByCode(kategori, "Instagram");
         console.log('✅ Child comments processing completed.');
 
         res.send(`✅ Comments and child comments ${platform} for category "${kategori}" have been fetched and saved.`);

@@ -31,7 +31,7 @@ router.post('/prosesPerformaKonten', async (req, res) => {
             });
         }
 
-        // 2️⃣ Ambil semua post_id dan informasi gruping
+        // 2️⃣ Ambil semua data yang akan diupdate
         const selectQuery = `
             SELECT 
                 post_id,
@@ -48,47 +48,65 @@ router.post('/prosesPerformaKonten', async (req, res) => {
         `;
         const [posts] = await db.query(selectQuery, [startDate, endDate]);
 
-        // 3️⃣ Fungsi hitung performa berdasarkan grup
-        const hitungPerforma = (post) => {
-            const { platform, media_name, likes = 0, comments = 0, playCount = 0, shareCount = 0, collectCount = 0 } = post;
+        console.info(`📊 Menghitung performa untuk ${posts.length} postingan...`);
+
+        // **Inisialisasi Progress Bar**
+        const progressBar = new cliProgress.SingleBar({
+            format: '📊 Progress [{bar}] {percentage}% | {value}/{total} posts processed',
+        }, cliProgress.Presets.shades_classic);
+
+        progressBar.start(totalRows, 0);
+
+        // 3️⃣ Hitung performa konten untuk semua post
+        let updateCases = [];
+        let postIds = [];
+
+        for (const post of posts) {
+            const { post_id, platform, media_name, likes = 0, comments = 0, playCount = 0, shareCount = 0, collectCount = 0 } = post;
+            let performa = 0;
 
             if (platform === 'Instagram') {
                 if (['post', 'album'].includes(media_name)) {
-                    return ((likes / 24) * 2) + ((comments / 24) * 1);
+                    performa = ((likes / 24) * 2) + ((comments / 24) * 1);
                 } else if (media_name === 'reel') {
-                    return ((playCount / 24) * 2.5) +
+                    performa = ((playCount / 24) * 2.5) +
                         ((likes / 24) * 2) +
                         ((comments / 24) * 1.5) +
                         ((shareCount / 24) * 1);
                 }
             } else if (platform === 'TikTok') {
-                return ((playCount / 24) * 4) +
+                performa = ((playCount / 24) * 4) +
                     ((likes / 24) * 2.5) +
                     ((comments / 24) * 1.5) +
                     ((shareCount / 24) * 1.5) +
                     ((collectCount / 24) * 0.5);
             }
-            return 0; // Default jika tidak sesuai kondisi
-        };
 
-        // 4️⃣ Update setiap post dengan performa yang dihitung
-        const updateQuery = `
-            UPDATE posts
-            SET performa_konten = ?
-            WHERE post_id = ?
-        `;
+            // Simpan data untuk batch update
+            updateCases.push(`WHEN post_id = ${post_id} THEN ${performa}`);
+            postIds.push(post_id);
 
-        const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
-        progressBar.start(totalRows, 0);
-
-        for (const post of posts) {
-            const performa = hitungPerforma(post);
-            await db.query(updateQuery, [performa, post.post_id]);
+            // Update progress bar setiap iterasi
             progressBar.increment();
         }
 
+        // 4️⃣ Buat batch update query
+        if (updateCases.length > 0) {
+            const updateQuery = `
+                UPDATE posts 
+                SET performa_konten = CASE 
+                    ${updateCases.join(" ")}
+                END
+                WHERE post_id IN (${postIds.join(",")})
+            `;
+
+            console.info("⏳ Menjalankan batch update performa...");
+            await db.query(updateQuery);
+        }
+
+        // **Hentikan Progress Bar setelah selesai**
         progressBar.stop();
-        console.info("✅ Semua data berhasil diperbarui.");
+        console.info(`✅ Semua data (${totalRows} postingan) berhasil diperbarui.`);
 
         res.json({
             code: 200,
