@@ -131,7 +131,7 @@ router.post('/auth/login', async (req, res) => {
     try {
         const query = `
             SELECT * FROM mitra
-            WHERE email = ?
+            WHERE login_mail = ?
             AND password = ?
         `;
 
