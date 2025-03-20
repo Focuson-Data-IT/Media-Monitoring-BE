@@ -266,7 +266,7 @@ GET http://localhost:7780/api/getAllSearchUsername?&platform=Instagram&kategori=
 GET http://localhost:7780/api/getTotalPost?&platform=TikTok&kategori=disparbud&search=disparbudmajalengka&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-GET http://localhost:7780/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
+GET http://localhost:7771/api/getAllPost?perPage=2&page=1&platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28&orderBy=performa_konten&direction=desc&username=
 
 ###
 GET http://localhost:7780/api/getPost?kategori=disparbud&username=disbudpar.bdg&platform=Instagram&start_date=2025-02-01&end_date=2025-02-28

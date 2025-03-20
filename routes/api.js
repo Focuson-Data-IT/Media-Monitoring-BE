@@ -963,7 +963,7 @@ router.get('/getAllPost', async (req, res) => {
     try {
         const allowedOrderByFields = [
             "created_at", "likes", "comments", "playCount",
-            "shareCount", "collectCount", "downloadCount", "performa_konten"
+            "shareCount", "collectCount", "downloadCount", "performa_konten", "username"
         ];
         const orderBy = allowedOrderByFields.includes(req.query['orderBy']) ? req.query['orderBy'] : "performa_konten";
         const direction = req.query['direction'] === "asc" ? "ASC" : "DESC";
@@ -1045,11 +1045,10 @@ router.get('/getAllPost', async (req, res) => {
                             END
                     ) AS total_rows
                 FROM posts
-                WHERE FIND_IN_SET(?, kategori)
+                WHERE kategori = ?
                   AND platform = ?
                   AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-                  AND username LIKE CONCAT('%', ?, '%')
-                  AND (media_name = ? OR ? IS NULL)
+                  AND media_name = ?
             ),
             positions AS (
                 SELECT
@@ -1079,7 +1078,7 @@ router.get('/getAllPost', async (req, res) => {
             CROSS JOIN percentile_90_calc p90;
         `;
 
-        const [percentileRows] = await db.query(percentileQuery, [kategori, platform, start_date, end_date, username, media_name, media_name]);
+        const [percentileRows] = await db.query(percentileQuery, [kategori, platform, start_date, end_date, media_name]);
         const percentile10 = percentileRows[0]?.percentile_10 || 0;
         const percentile90 = percentileRows[0]?.percentile_90 || 0;
 
@@ -1103,22 +1102,34 @@ router.get('/getAllPost', async (req, res) => {
                         ELSE 'yellow'
                     END) AS performa_color
                 FROM posts
-                WHERE FIND_IN_SET(?, kategori)
+                WHERE kategori = ?
                     AND platform = ?
                     AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-                    AND username LIKE CONCAT('%', ?, '%')
-                    AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
+                    AND media_name = ? -- Filter media_name jika tersedia
             )
             SELECT all_data.*, formatted_media_name AS media_name
             FROM all_data
-            ORDER BY ${orderBy} ${direction}
+            WHERE username LIKE CONCAT('%', ?, '%')
+            ORDER BY ${orderBy} ${direction}, performa_konten DESC
             LIMIT ?
             OFFSET ?;
         `;
 
-        console.info([percentile10, percentile90, kategori, platform, username, media_name, perPage, offset]);
-        const [dataRows] = await db.query(dataQuery, [percentile10, percentile90, kategori, platform, start_date, end_date, username, media_name, media_name, perPage, offset]);
+        const [dataRows] = await db.query(dataQuery,
+            [
+                percentile10,
+                percentile90,
+                kategori,
+                platform,
+                start_date,
+                end_date,
+                media_name,
+                username,
+                perPage,
+                offset
+            ]);
 
+        console.info(`ORDER BY ${orderBy} ${direction}`);
         // 4️⃣ Kirim respons ke frontend
         res.json({
             code: 200,
