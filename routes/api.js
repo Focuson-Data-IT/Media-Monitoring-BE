@@ -688,8 +688,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         WHERE 
         kategori = ?
           AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-          GROUP BY list_id, platform, username, date, client_account, kategori;
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -703,32 +702,34 @@ router.get('/getActivitiesRanking', async (req, res) => {
         SELECT 
           client_account,
           username,
-          activities AS value,
+          COALESCE(activities, 0) AS value,
           platform
         FROM fairScoresMonthly
         WHERE 
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY activities DESC;
       `, [kategori, platform, max_date]);
+
+      console.info(max_date)
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
         SELECT 
           client_account,
           username,
-          activities AS value,
+          COALESCE(activities, 0) AS value,
           platform
         FROM fairScoresMonthly
         WHERE 
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY activities DESC;
       `, [kategori, platform, prev_date]);
+
+      console.info(prev_date)
 
         // Helper function untuk mendapatkan peringkat berdasarkan username
         const getRank = (username, rows) => {
@@ -769,7 +770,6 @@ router.get('/getInteractionsRanking', async (req, res) => {
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-                GROUP BY list_id, platform, username, date, client_account, kategori;
         `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -796,7 +796,6 @@ router.get('/getInteractionsRanking', async (req, res) => {
                 fsm.kategori = ?
                 AND fsm.platform = ? 
                 AND DATE(fsm.date) = DATE(?)
-            GROUP BY fsm.list_id, fsm.platform, fsm.username, fsm.date, fsm.client_account, fsm.kategori
             ORDER BY fsm.interactions DESC;
         `, [kategori, platform, max_date]);
 
@@ -822,7 +821,6 @@ router.get('/getInteractionsRanking', async (req, res) => {
                 kategori = ?
                 AND platform = ? 
                 AND DATE(date) = DATE(?)
-            GROUP BY list_id, platform, username, date, client_account, kategori
             ORDER BY interactions DESC;
         `, [kategori, platform, prev_date]);
 
@@ -866,7 +864,6 @@ router.get('/getResponsivenessRanking', async (req, res) => {
             kategori = ?
             AND platform = ?
             AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            GROUP BY list_id, platform, username, date, client_account, kategori;
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -888,7 +885,6 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         fsm.kategori = ?
           AND fsm.platform = ? 
           AND DATE(fsm.date) = DATE(?)
-          GROUP BY fsm.list_id, fsm.platform, fsm.username, fsm.date, fsm.client_account, fsm.kategori
         ORDER BY fsm.responsiveness DESC;
       `, [kategori, platform, max_date]);
 
@@ -914,7 +910,6 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-          GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY responsiveness DESC;
       `, [kategori, platform, prev_date]);
 

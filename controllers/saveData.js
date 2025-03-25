@@ -38,10 +38,10 @@ const saveListAkun = async (listAkun) => {
     }
 };
 
-const saveDataUser = async () => {
+const saveDataUser = async (kategori, platform) => {
     try {
         // Ambil semua akun dari tabel listAkun
-        const [accounts] = await connection.query('SELECT * FROM listAkun');
+        const [accounts] = await connection.query('SELECT * FROM listAkun WHERE kategori = ? AND platform = ?', [kategori, platform]);
 
         // Tentukan rentang tanggal
         const startDate = new Date('2025-01-01');

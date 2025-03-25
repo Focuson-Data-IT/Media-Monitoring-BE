@@ -64,6 +64,16 @@ app.get('/proxy-image', async (req, res) => {
     }
 })();
 
+const { connectDB, fetchData, closeDB } = require('./models/pg');
+
+// Coba koneksi ke database
+(async () => {
+    await connectDB(); // Coba koneksi ke PostgreSQL
+    await fetchData(); // Menjalankan query
+    await closeDB();   // Menutup koneksi setelah selesai
+})();
+
+
 // Jalankan server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
