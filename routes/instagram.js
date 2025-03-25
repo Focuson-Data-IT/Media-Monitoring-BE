@@ -195,16 +195,16 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             AND FIND_IN_SET(?, kategori) 
             `, [kategori]);
 
-        (rows, async (row) => {
-            console.log(`Fetching posts for keyword: ${row.keyword}...`);
+        await Promise.all(rows.map(async (row) => {
+            console.info(`Fetching posts for keyword: ${row.keyword}...`);
             await getDataIg.getDataPostByKeyword(
                 row.client_account,
                 row.kategori,
                 row.platform,
                 row.keyword
             );
-            console.log(`Posts for keywords ${row.keyword} have been fetched and saved.`);
-        });
+            console.info(`Posts for keyword ${row.keyword} have been fetched and saved.`);
+        }));            
 
         res.send(`Data ${platform} getDataPostByKeywords for all users have been fetched and saved.`);
     } catch (error) {
