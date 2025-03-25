@@ -10,9 +10,10 @@ const PLATFORMS = ['Instagram', 'TikTok'];
 
 // Endpoint untuk memasukan data dari listAkun ke dalam tabel dailyFairScores
 router.post('/addDataUser', async (req, res) => {
+    const { kategori, platform } = req.body;
     try {
         console.info('Starting to add user data to dailyFairScores...');
-        await saveData.saveDataUser();
+        await saveData.saveDataUser(kategori, platform);
         res.json({ success: true, message: 'Data user berhasil disimpan ke dailyFairScores.' });
     } catch (error) {
         console.error("Error saving user data to dailyFairScores:", error.message);

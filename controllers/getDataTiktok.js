@@ -303,9 +303,8 @@ const getDataComment = async (kategori = null, platform = null) => {
                         let cursor = 0;
                         let hasMore = true;
                         let pageCount = 0;
-                        const limitPage = Infinity; // Batas maksimal halaman
     
-                        while (hasMore && pageCount < limitPage) {
+                        while (hasMore) {
                             // Konfigurasi request ke TikTok API
                             const getComment = {
                                 method: 'GET',
@@ -439,9 +438,8 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                         let cursor = 0;
                         let hasMore = true;
                         let pageCount = 0;
-                        const limitPage = Infinity; // Batas maksimal halaman
-    
-                        while (hasMore && pageCount < limitPage) {
+                        
+                        while (hasMore) {
                             // Konfigurasi request ke TikTok API
                             const getChildComment = {
                                 method: 'GET',
@@ -544,7 +542,7 @@ const getDataPostByKeyword = async (client_account = null, kategori = null, plat
     try {
         console.info(`🔍 Searching posts for keyword: ${keyword}`);
 
-        let cursor = null;
+        let cursor = 0;
         let hasMore = true;
         let pageCount = 0;
         const batchSize = 5; // Jumlah video yang diproses per batch
@@ -566,7 +564,7 @@ const getDataPostByKeyword = async (client_account = null, kategori = null, plat
 
             const response = await axios.request(getPost);
 
-            if (!response.data?.data?.videos) {
+            if (!response.data.data) {
                 console.warn(`🚫 No videos found for keyword: ${keyword}`);
                 break;
             }
@@ -676,11 +674,222 @@ const getDataFollowers = async (kategori = null, platform = null) => {
     }
 };
 
+const getDataCommentByCode = async (kategori = null, platform = null, url = null) => {
+    try {
+        if (!url || !kategori || !platform) {
+            return console.warn('⚠️ URL, kategori, dan platform harus diisi.');
+        }
+
+        let retryCount = 0;
+        const maxRetries = 3;
+        const batchSize = 50;
+
+        while (retryCount < maxRetries) {
+            try {
+                console.info(`🔍 Fetching comments for post: ${url}`);
+
+                let cursor = 0;
+                let hasMore = true;
+                let pageCount = 0;
+
+                while (hasMore) {
+                    const getComment = {
+                        method: 'GET',
+                        url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getCommentListByVideo',
+                        params: {
+                            url: url,
+                            count: 50,
+                            ...(cursor && { cursor })
+                        },
+                        headers: {
+                            'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                            'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
+                        }
+                    };
+
+                    const response = await axios.request(getComment);
+
+                    if (!response.data?.data?.comments) {
+                        console.log(`🚫 No more comments for URL: ${url}`);
+                        hasMore = false;
+                        break;
+                    }
+
+                    const userComments = response.data.data.comments;
+                    const commentBatches = chunkArray(userComments, batchSize);
+
+                    for (const commentBatch of commentBatches) {
+                        console.info(`💬 Processing batch of ${commentBatch.length} comments...`);
+
+                        await Promise.all(commentBatch.map(async (item) => {
+                            const postDate = new Date(item.create_time * 1000).getTime();
+                            const commentData = {
+                                client_account: "",
+                                kategori: kategori,
+                                platform: platform,
+                                user_id: "",
+                                username: "",
+                                unique_id_post: item.video_id,
+                                comment_unique_id: item.id,
+                                created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                                commenter_username: item.user?.unique_id || '',
+                                commenter_userid: item.user?.id || '',
+                                comment_text: item.text,
+                                comment_like_count: item.digg_count,
+                                child_comment_count: item.reply_total
+                            };
+
+                            await save.saveComment(commentData);
+
+                            // Ambil child comment kalau ada
+                            if (item.reply_total > 0) {
+                                await getChildCommentsFromComment({
+                                    kategori,
+                                    platform,
+                                    comment_id: item.id,
+                                    video_id: item.video_id,
+                                    client_account: '',
+                                    username: '',
+                                    user_id: ''
+                                });
+                            }
+                        }));
+                    }
+
+                    cursor = response.data.data.cursor;
+                    hasMore = response.data.data.hasMore;
+                    pageCount++;
+
+                    console.log(`✅ Processed page: ${pageCount}, Cursor: ${cursor}, HasMore: ${hasMore}`);
+                }
+
+                console.info(`✅ Finished processing all comments for URL: ${url}`);
+                break;
+            } catch (error) {
+                retryCount++;
+                console.error(`❌ Error fetching comments (Attempt ${retryCount}):`, error.message);
+
+                if (retryCount < maxRetries) {
+                    console.warn(`⚠️ Retrying in 5 seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                } else {
+                    console.error(`❌ Failed to fetch comments after ${maxRetries} attempts.`);
+                }
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Error executing function:', error.message);
+    }
+};
+
+// Fungsi tambahan untuk mengambil child comment dari satu komentar
+const getChildCommentsFromComment = async ({
+    kategori,
+    platform,
+    comment_id,
+    video_id,
+    client_account,
+    username,
+    user_id
+}) => {
+    try {
+        let retryCount = 0;
+        const maxRetries = 3;
+        const batchSize = 50;
+
+        while (retryCount < maxRetries) {
+            try {
+                console.info(`🔍 Fetching child comments for comment: ${comment_id} on post: ${video_id}`);
+
+                let cursor = 0;
+                let hasMore = true;
+                let pageCount = 0;
+
+                while (hasMore) {
+                    const getChildComment = {
+                        method: 'GET',
+                        url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getReplyListByCommentId',
+                        params: {
+                            comment_id: comment_id,
+                            video_id: video_id,
+                            count: 50,
+                            ...(cursor && { cursor })
+                        },
+                        headers: {
+                            'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                            'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
+                        }
+                    };
+
+                    const response = await axios.request(getChildComment);
+
+                    if (!response.data?.data?.comments) {
+                        console.log(`🚫 No more child comments for comment: ${comment_id}`);
+                        hasMore = false;
+                        break;
+                    }
+
+                    const userComments = response.data.data.comments;
+                    const commentBatches = chunkArray(userComments, batchSize);
+
+                    for (const commentBatch of commentBatches) {
+                        console.info(`💬 Processing batch of ${commentBatch.length} child comments...`);
+                        await Promise.all(commentBatch.map(async (item) => {
+                            const postDate = new Date(item.create_time * 1000).getTime();
+                            const childComment = {
+                                client_account: client_account,
+                                kategori: kategori,
+                                platform: platform,
+                                user_id: user_id,
+                                username: username,
+                                unique_id_post: video_id,
+                                comment_unique_id: comment_id,
+                                child_comment_unique_id: item.id,
+                                created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                                child_commenter_username: item.user?.unique_id || '',
+                                child_commenter_userid: item.user?.id || '',
+                                child_comment_text: item.text,
+                                child_comment_like_count: item.digg_count
+                            };
+
+                            await save.saveChildComment(childComment);
+                        }));
+                    }
+
+                    cursor = response.data.data.cursor;
+                    hasMore = response.data.data.hasMore;
+                    pageCount++;
+
+                    console.log(`✅ Processed page: ${pageCount}, Cursor: ${cursor}, HasMore: ${hasMore}`);
+                }
+
+                console.info(`✅ Finished processing child comments for comment: ${comment_id}`);
+                break;
+            } catch (error) {
+                retryCount++;
+                console.error(`❌ Error fetching child comments (Attempt ${retryCount}):`, error.message);
+
+                if (retryCount < maxRetries) {
+                    console.warn(`⚠️ Retrying in 5 seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                } else {
+                    console.error(`❌ Failed to fetch child comments after ${maxRetries} attempts.`);
+                }
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Error executing child comment function:', error.message);
+    }
+};
+
 module.exports = {
     getDataUser,
     getDataPost,
     getDataComment,
     getDataChildComment,
     getDataPostByKeyword,
-    getDataFollowers
+    getDataFollowers,
+    getDataCommentByCode
 };

@@ -186,26 +186,30 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
     }
 };
 
-const getDataComment = async (unique_id_post = null, user_id = null, username = null, client_account = null, kategori = null, platform = null) => {
+const getDataComment = async (
+    kategori = null, 
+    platform = null, 
+    unique_id_post = null, 
+    user_id = "", 
+    username = "", 
+    client_account = ""
+    ) => {
+
+        console.info(`🔁 Main comment fetch for post ${unique_id_post}`);
+
     try {
         let cursor = null;
         let moreComments = true;
         let pageCount = 0;
-        limitPage = 20;
+        const limitPage = 20;
 
         while (moreComments) {
-            
-            if (limitPage > 0 && pageCount >= limitPage) {
-                console.log(`⏹️ Stopping at page limit (${limitPage}) for child comments on post ${unique_id_post}`);
-                break;
-            }
-
             const getComment = {
                 method: 'GET',
                 url: 'https://facebook-scraper3.p.rapidapi.com/post/comments',
                 params: {
                     post_id: unique_id_post,
-                    ...(cursor && { cursor: cursor })
+                    ...(cursor && { cursor })
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
@@ -213,7 +217,9 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
                 }
             };
 
-            const response = await apiRequestWithRetry(getComment);
+            const response = await axios.request(getComment);
+
+            console.info('Response:', response.data);
 
             if (!response.data || !response.data.results) {
                 moreComments = false;
@@ -223,14 +229,13 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
             const userComment = response.data.results;
 
             for (const item of userComment) {
-                // Simpan data comment utama
                 const comment = {
-                    client_account: client_account,
-                    kategori: kategori,
-                    platform: platform,
-                    user_id: user_id,
-                    username: username,
-                    unique_id_post: unique_id_post,
+                    client_account,
+                    kategori,
+                    platform,
+                    user_id,
+                    username,
+                    unique_id_post,
                     comment_unique_id: item.legacy_comment_id,
                     created_at: new Date(item.created_time * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     commenter_username: item.author.name,
@@ -243,43 +248,58 @@ const getDataComment = async (unique_id_post = null, user_id = null, username = 
 
                 await save.saveComment(comment);
 
+                // 🔁 Fetch child comments jika ada
+                if (item.replies_count > 0) {
+                    await getDataChildComment(
+                        unique_id_post,
+                        user_id,
+                        username,
+                        item.legacy_comment_id,
+                        client_account,
+                        kategori,
+                        platform,
+                        item.expansion_token
+                    );
+                }
             }
 
             cursor = response.data.cursor;
-            if (!cursor) moreComments = false;
-            pageCount++; // Tambahkan penghitung halaman
-            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
+            if (!cursor || pageCount >= limitPage) moreComments = false;
+            pageCount++;
+            console.log(`Page count (main): ${pageCount}`);
         }
     } catch (error) {
         console.error(`Error fetching data for ${unique_id_post}:`, error.message);
     }
 };
 
-const getDataChildComment = async (unique_id_post =null, user_id = null, username = null, comment_unique_id = null, client_account= null, kategori = null, platform = null, expansion_token = null) => {
-    
-    console.info(unique_id_post, client_account, kategori, comment_unique_id, user_id, username, platform);
+const getDataChildComment = async (
+    unique_id_post,
+    user_id,
+    username,
+    comment_unique_id,
+    client_account,
+    kategori,
+    platform,
+    expansion_token
+) => {
+    console.info(`🔁 Child comment fetch for ${comment_unique_id} on post ${unique_id_post}`);
 
     try {
         let cursor = null;
         let moreComments = true;
-        let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
-        limitPage = 5;
+        let pageCount = 0;
+        const limitPage = 5;
 
         while (moreComments) {
-            
-            if (limitPage > 0 && pageCount >= limitPage) {
-                console.log(`⏹️ Stopping at page limit (${limitPage}) for post ${unique_id_post}`);
-                break;
-            }
-
             const getChildComment = {
                 method: 'GET',
                 url: 'https://facebook-scraper3.p.rapidapi.com/post/comments_nested',
                 params: {
                     post_id: unique_id_post,
                     comment_id: comment_unique_id,
-                    expansion_token: expansion_token,
-                    ...(cursor && { cursor: cursor })
+                    expansion_token,
+                    ...(cursor && { cursor })
                 },
                 headers: {
                     'X-RapidAPI-Key': process.env.RAPIDAPI_FB_KEY,
@@ -287,26 +307,27 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                 }
             };
 
-            const response = await apiRequestWithRetry(getChildComment);
+            const response = await axios.request(getChildComment);
+
+            console.info('Response:', response.data);
 
             if (!response.data || !response.data.results) {
                 moreComments = false;
                 break;
             }
 
-            const userComment = response.data.results;
+            const childComments = response.data.results;
 
-            for (const child of userComment) {
-                // Simpan data comment utama
+            for (const child of childComments) {
                 const childComment = {
-                    client_account: client_account,
-                    kategori: kategori,
-                    platform: platform,
-                    user_id: user_id,
-                    username: username,
-                    unique_id_post: unique_id_post,
-                    parent_comment_unique_id: comment_unique_id, // Parent comment ID
-                    comment_unique_id: child.legacy_comment_id, // Unique ID dari child comment
+                    client_account,
+                    kategori,
+                    platform,
+                    user_id,
+                    username,
+                    unique_id_post,
+                    parent_comment_unique_id: comment_unique_id,
+                    comment_unique_id: child.legacy_comment_id,
                     created_at: new Date(child.created_time * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                     commenter_username: child.author.username,
                     commenter_userid: child.author.id,
@@ -315,16 +336,15 @@ const getDataChildComment = async (unique_id_post =null, user_id = null, usernam
                 };
 
                 await save.saveChildComment(childComment);
-
             }
 
             cursor = response.data.cursor;
-            if (!cursor) moreComments = false;
-            pageCount++; // Tambahkan penghitung halaman
-            console.log(`Page count: ${pageCount}`); // Log jumlah halaman yang telah diproses
+            if (!cursor || pageCount >= limitPage) moreComments = false;
+            pageCount++;
+            console.log(`Page count (child): ${pageCount}`);
         }
     } catch (error) {
-        console.error(`Error fetching data for comment ${comment_unique_id} on post ${unique_id_post}:`, error.message);
+        console.error(`❌ Error fetching child comments for ${comment_unique_id}:`, error.message);
     }
 };
 

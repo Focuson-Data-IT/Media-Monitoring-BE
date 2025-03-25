@@ -8,7 +8,7 @@ router.get('/update-followers', async (req, res) => {
     const { kategori, platform } = req.body;
 
     try {
-        
+
         await getDataTiktok.getDataFollowers(
             kategori,
             platform
@@ -118,33 +118,58 @@ router.get('/getComment', async (req, res) => {
     }
 });
 
+router.get('/getCommentByCode', async (req, res) => {
+    const { kategori, url } = req.query;
+
+    if (!kategori) {
+        return res.status(400).json({ message: '❌ kategori parameter is required.' });
+    }
+
+    try {
+        console.info(`🔍 Fetching comments for category: ${kategori}`);
+
+        // Step 1: Fetch Main Comments
+        console.log('🚀 Fetching main comments...');
+        await getDataTiktok.getDataCommentByCode(kategori, "TikTok", url);
+        console.log('✅ Main comments processing completed.');
+
+        res.send(`✅ Comments and child ${platform} comments for category "${kategori}" have been fetched and saved.`);
+    } catch (error) {
+        console.error('❌ Error executing getComment and getChildComment:', error.message);
+        res.status(500).json({
+            message: '❌ Error fetching comments.',
+            error: error.message,
+        });
+    }
+});
+
 router.get('/getDataPostByKeywords', async (req, res) => {
     const { kategori } = req.query;
-    // Fetch data for TikTok
+    console.info(kategori);
+
     try {
         const [rows] = await db.query(`
             SELECT * FROM listKeywords 
-            WHERE 
-            platform = "TikTok" 
-            AND FIND_IN_SET(?, kategori) 
-            `, [kategori]);
+            WHERE platform = "TikTok" AND kategori = ?
+        `, [kategori]);
 
-        (rows, async (row) => {
-            console.log(`Fetching posts for keyword: ${row.keyword}...`);
+        await Promise.all(rows.map(async (row) => {
+            console.info(`Fetching posts for keyword: ${row.keyword}...`);
             await getDataTiktok.getDataPostByKeyword(
                 row.client_account,
                 row.kategori,
                 row.platform,
                 row.keyword
             );
-            console.log(`Posts for keywords ${row.keyword} have been fetched and saved.`);
-        });
+            console.info(`Posts for keyword ${row.keyword} have been fetched and saved.`);
+        }));        
 
-        res.send(`Data ${platform} getDataPostByKeywords for all users have been fetched and saved.`);
+        res.send(`Data TikTok getDataPostByKeywords for all users have been fetched and saved.`);
     } catch (error) {
         console.error('Error executing getDataPostByKeywords:', error.message);
         res.status(500).send(`Error executing getDataPostByKeywords: ${error.message}`);
     }
 });
+
 
 module.exports = router;
