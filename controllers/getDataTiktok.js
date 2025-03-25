@@ -121,14 +121,14 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         // Ambil startDate dari server
-        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        const data = await response.json();
-        const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        const endDateObj = new Date(endDate).getTime();
+        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        // const data = await response.json();
+        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        // const endDateObj = new Date(endDate).getTime();
 
-        // const endDate = new Date();
-        // endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
-        // const endDateObj = endDate.toISOString().split('T')[0];
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
+        const endDateObj = endDate.toISOString().split('T')[0];
 
         const batchSize = 1; // Jumlah akun yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);

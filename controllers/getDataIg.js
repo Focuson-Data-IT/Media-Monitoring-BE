@@ -126,14 +126,14 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         // Ambil startDate dari server
-        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        const data = await response.json();
-        const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        const endDateObj = new Date(endDate).getTime();
+        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        // const data = await response.json();
+        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        // const endDateObj = new Date(endDate).getTime();
 
-        // const endDate = new Date();
-        // endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
-        // const endDateObj = endDate.toISOString().split('T')[0];
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
+        const endDateObj = endDate.toISOString().split('T')[0];
 
         const batchSize = 5; // Jumlah akun yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
@@ -289,184 +289,184 @@ const getDataPost = async (kategori = null, platform = null) => {
 };
 
 // Fungsi untuk mendapatkan data Post dari API
-const getDataPost2 = async (kategori = null, platform = null) => {
-    try {
-        // Ambil daftar akun dari database berdasarkan kategori dan platform
-        const [rows] = await db.query(`
-            SELECT 
-                u.*, 
-                u.followers AS max_followers, 
-                ROUND(u.followers * 0.9) AS min_followers
-            FROM users u
-            WHERE u.platform = ? 
-                AND FIND_IN_SET(?, u.kategori)
-        `, [platform, kategori]);
+// const getDataPost2 = async (kategori = null, platform = null) => {
+//     try {
+//         // Ambil daftar akun dari database berdasarkan kategori dan platform
+//         const [rows] = await db.query(`
+//             SELECT 
+//                 u.*, 
+//                 u.followers AS max_followers, 
+//                 ROUND(u.followers * 0.9) AS min_followers
+//             FROM users u
+//             WHERE u.platform = ? 
+//                 AND FIND_IN_SET(?, u.kategori)
+//         `, [platform, kategori]);
 
-        if (!rows.length) {
-            console.log('No users found in the database.');
-            return;
-        }
+//         if (!rows.length) {
+//             console.log('No users found in the database.');
+//             return;
+//         }
 
-        // Ambil startDate dari server
-        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        const data = await response.json();
-        const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        const endDateObj = new Date(endDate).getTime();
+//         // Ambil startDate dari server
+//         const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+//         const data = await response.json();
+//         const endDate = new Date(data.startDate).toISOString().split('T')[0];
+//         const endDateObj = new Date(endDate).getTime();
 
-        const batchSize = 5; // Jumlah akun yang diproses per batch
-        const rowBatches = chunkArray(rows, batchSize);
+//         const batchSize = 5; // Jumlah akun yang diproses per batch
+//         const rowBatches = chunkArray(rows, batchSize);
 
-        for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} users...`);
+//         for (const batch of rowBatches) {
+//             console.info(`🚀 Processing batch of ${batch.length} users...`);
 
-            await Promise.all(batch.map(async (row) => {
-                let retryCount = 0;
-                const maxRetries = 3; // Maksimal retry per user
-                while (retryCount < maxRetries) {
-                    try {
-                        console.info(`🔍 Fetching posts for user: ${row.username} (Attempt ${retryCount + 1})`);
+//             await Promise.all(batch.map(async (row) => {
+//                 let retryCount = 0;
+//                 const maxRetries = 3; // Maksimal retry per user
+//                 while (retryCount < maxRetries) {
+//                     try {
+//                         console.info(`🔍 Fetching posts for user: ${row.username} (Attempt ${retryCount + 1})`);
 
-                        let paginationToken = null;
-                        let morePosts = true;
-                        let pageCount = 0;
-                        const maxPaginationPages = 10; // Maksimum pagination loop
+//                         let paginationToken = null;
+//                         let morePosts = true;
+//                         let pageCount = 0;
+//                         const maxPaginationPages = 10; // Maksimum pagination loop
 
-                        let currentFollowers = row.min_followers;
-                        const maxFollowers = row.max_followers;
+//                         let currentFollowers = row.min_followers;
+//                         const maxFollowers = row.max_followers;
 
-                        while (morePosts && pageCount < maxPaginationPages) {
-                            const getPost = {
-                                method: 'GET',
-                                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
-                                params: {
-                                    username_or_id_or_url: row.username,
-                                    url_embed_safe: 'true',
-                                    ...(paginationToken && { pagination_token: paginationToken })
-                                },
-                                headers: {
-                                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
-                                }
-                            };
+//                         while (morePosts && pageCount < maxPaginationPages) {
+//                             const getPost = {
+//                                 method: 'GET',
+//                                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
+//                                 params: {
+//                                     username_or_id_or_url: row.username,
+//                                     url_embed_safe: 'true',
+//                                     ...(paginationToken && { pagination_token: paginationToken })
+//                                 },
+//                                 headers: {
+//                                     'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
+//                                     'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+//                                 }
+//                             };
 
-                            const response = await axios.request(getPost);
+//                             const response = await axios.request(getPost);
 
-                            if (!response.data?.data?.items) {
-                                console.warn(`🚫 No posts found for user: ${row.username}`);
-                                break;
-                            }
+//                             if (!response.data?.data?.items) {
+//                                 console.warn(`🚫 No posts found for user: ${row.username}`);
+//                                 break;
+//                             }
 
-                            const userPosts = response.data.data.items;
+//                             const userPosts = response.data.data.items;
 
-                            for (const item of userPosts) {
-                                const isPinned = item.is_pinned ? 1 : 0;
-                                const postDate = new Date(item.taken_at * 1000).getTime();
-                                const captionText = item.caption || "No Caption";
+//                             for (const item of userPosts) {
+//                                 const isPinned = item.is_pinned ? 1 : 0;
+//                                 const postDate = new Date(item.taken_at * 1000).getTime();
+//                                 const captionText = item.caption || "No Caption";
 
-                                // Naik bertahap tapi tidak melebihi max_followers
-                                const increaseAmount = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
-                                currentFollowers = Math.min(currentFollowers + increaseAmount, maxFollowers);
+//                                 // Naik bertahap tapi tidak melebihi max_followers
+//                                 const increaseAmount = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
+//                                 currentFollowers = Math.min(currentFollowers + increaseAmount, maxFollowers);
 
-                                if (isPinned) {
-                                    const post = {
-                                        client_account: row.client_account,
-                                        kategori: row.kategori,
-                                        platform: row.platform,
-                                        user_id: row.user_id,
-                                        unique_id_post: item.id,
-                                        username: row.username,
-                                        created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                        thumbnail_url: item.thumbnail_url,
-                                        caption: captionText.text || "No Caption",
-                                        post_code: item.code,
-                                        comments: item.comment_count,
-                                        likes: item.like_count,
-                                        media_name: item.media_name,
-                                        product_type: item.product_type,
-                                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                                        is_pinned: isPinned,
-                                        followers: currentFollowers || 0,
-                                        following: row.following || 0,
-                                        playCount: item.play_count || 0,
-                                        shareCount: item.share_count || 0,
-                                        collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-                                        collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-                                            ? item.coauthor_producers
-                                                .map(user => user.username === row.username ? item.user.username : user.username)
-                                                .join(",")
-                                            : ""
+//                                 if (isPinned) {
+//                                     const post = {
+//                                         client_account: row.client_account,
+//                                         kategori: row.kategori,
+//                                         platform: row.platform,
+//                                         user_id: row.user_id,
+//                                         unique_id_post: item.id,
+//                                         username: row.username,
+//                                         created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+//                                         thumbnail_url: item.thumbnail_url,
+//                                         caption: captionText.text || "No Caption",
+//                                         post_code: item.code,
+//                                         comments: item.comment_count,
+//                                         likes: item.like_count,
+//                                         media_name: item.media_name,
+//                                         product_type: item.product_type,
+//                                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
+//                                         is_pinned: isPinned,
+//                                         followers: currentFollowers || 0,
+//                                         following: row.following || 0,
+//                                         playCount: item.play_count || 0,
+//                                         shareCount: item.share_count || 0,
+//                                         collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
+//                                         collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
+//                                             ? item.coauthor_producers
+//                                                 .map(user => user.username === row.username ? item.user.username : user.username)
+//                                                 .join(",")
+//                                             : ""
 
-                                    };
+//                                     };
 
-                                    await save.savePost(post);
-                                    continue;
-                                }
+//                                     await save.savePost(post);
+//                                     continue;
+//                                 }
 
-                                if (postDate < endDateObj) {
-                                    return;
-                                }
+//                                 if (postDate < endDateObj) {
+//                                     return;
+//                                 }
 
-                                const post = {
-                                    client_account: row.client_account,
-                                    kategori: row.kategori,
-                                    platform: row.platform,
-                                    user_id: row.user_id,
-                                    unique_id_post: item.id,
-                                    username: row.username,
-                                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                    thumbnail_url: item.thumbnail_url,
-                                    caption: captionText.text || "No Caption",
-                                    post_code: item.code,
-                                    comments: item.comment_count,
-                                    likes: item.like_count,
-                                    media_name: item.media_name,
-                                    product_type: item.product_type,
-                                    tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                                    is_pinned: isPinned,
-                                    followers: currentFollowers || 0,
-                                    following: row.following || 0,
-                                    playCount: item.play_count || 0,
-                                    shareCount: item.share_count || 0,
-                                    collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-                                    collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-                                        ? item.coauthor_producers
-                                            .map(user => user.username === row.username ? item.user.username : user.username)
-                                            .join(",")
-                                        : ""
+//                                 const post = {
+//                                     client_account: row.client_account,
+//                                     kategori: row.kategori,
+//                                     platform: row.platform,
+//                                     user_id: row.user_id,
+//                                     unique_id_post: item.id,
+//                                     username: row.username,
+//                                     created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+//                                     thumbnail_url: item.thumbnail_url,
+//                                     caption: captionText.text || "No Caption",
+//                                     post_code: item.code,
+//                                     comments: item.comment_count,
+//                                     likes: item.like_count,
+//                                     media_name: item.media_name,
+//                                     product_type: item.product_type,
+//                                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
+//                                     is_pinned: isPinned,
+//                                     followers: currentFollowers || 0,
+//                                     following: row.following || 0,
+//                                     playCount: item.play_count || 0,
+//                                     shareCount: item.share_count || 0,
+//                                     collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
+//                                     collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
+//                                         ? item.coauthor_producers
+//                                             .map(user => user.username === row.username ? item.user.username : user.username)
+//                                             .join(",")
+//                                         : ""
 
-                                };
+//                                 };
 
-                                await save.savePost(post);
-                            }
-                            paginationToken = response.data.pagination_token;
-                            pageCount++;
-                            if (!paginationToken) morePosts = false;
-                            console.log(`Page count: ${pageCount}`);
-                        }
-                        console.info(`✅ Finished processing posts for user: ${row.username}`);
-                        break; // Jika berhasil, keluar dari loop retry
-                    } catch (error) {
-                        retryCount++;
-                        console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
+//                                 await save.savePost(post);
+//                             }
+//                             paginationToken = response.data.pagination_token;
+//                             pageCount++;
+//                             if (!paginationToken) morePosts = false;
+//                             console.log(`Page count: ${pageCount}`);
+//                         }
+//                         console.info(`✅ Finished processing posts for user: ${row.username}`);
+//                         break; // Jika berhasil, keluar dari loop retry
+//                     } catch (error) {
+//                         retryCount++;
+//                         console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
 
-                        if (retryCount >= maxRetries) {
-                            console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
-                        } else {
-                            console.warn(`⚠️ Retrying for ${row.username} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
-                        }
-                    }
-                }
-            }));
+//                         if (retryCount >= maxRetries) {
+//                             console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
+//                         } else {
+//                             console.warn(`⚠️ Retrying for ${row.username} in 5 seconds...`);
+//                             await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
+//                         }
+//                     }
+//                 }
+//             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch akun
-        }
+//             await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch akun
+//         }
 
-        console.log('✅ All Instagram posts have been successfully updated.');
-    } catch (error) {
-        console.error('❌ Error executing function:', error.message);
-    }
-};
+//         console.log('✅ All Instagram posts have been successfully updated.');
+//     } catch (error) {
+//         console.error('❌ Error executing function:', error.message);
+//     }
+// };
 
 const getDataComment = async (kategori = null, platform = null) => {
     try {
