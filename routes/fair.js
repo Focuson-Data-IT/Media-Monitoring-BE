@@ -73,102 +73,105 @@ const chunkArray = (array, chunkSize) => {
     );
 };
 
+const getGrowthImpactRate = (posts) => {
+    let totalImpact = 0;
+
+    for (const post of posts) {
+        const { likes = 0, comments = 0, playCount = 0 } = post;
+        const engagement = (likes + comments) / (playCount || 1);
+        const baseImpact = playCount / 10000;
+
+        if (engagement > 0.3) totalImpact += baseImpact * 0.3;
+        else if (engagement > 0.1) totalImpact += baseImpact * 0.1;
+        else if (engagement > 0.05) totalImpact += baseImpact * 0.05;
+        else totalImpact += baseImpact * 0.05;
+    }
+
+    return Math.min(Math.max(totalImpact, 0.00001), 0.01); // batasi
+};
+
 router.post("/update-followers", async (req, res) => {
-    const{platform} = req.query;
+    const { platform } = req.query;
 
     try {
-        // 1️⃣ Ambil data username dan followers dari tabel users (hanya yang followers > 3000)
         const [usersData] = await connection.query(
-            `SELECT username, followers FROM users WHERE platform = ?`,[platform]
+            `SELECT username, followers, following FROM users WHERE platform = ?`,
+            [platform]
         );
 
         if (usersData.length === 0) {
-            return res.status(400).json({ message: "Tidak ada pengguna dengan followers > 3000." });
+            return res.status(404).json({ message: "Tidak ada pengguna ditemukan." });
         }
 
-        console.info(`[INFO] Ditemukan ${usersData.length} pengguna untuk diproses.`);
+        const today = moment().startOf('day');
+        const startDate = moment("2024-12-01");
+        const daysRange = today.diff(startDate, 'days');
 
-        // 2️⃣ Tentukan rentang tanggal dari hari ini ke 1 Februari
-        const today = moment().format("YYYY-MM-DD");
-        const startDate = "2025-01-01";
-        const dates = [];
+        // Buat map cache untuk currentFollowers/following per user
+        const userState = {};
+        usersData.forEach(user => {
+            userState[user.username] = {
+                followers: user.followers
+            };
+        });
 
-        let tempDate = moment(today);
-        while (tempDate.isSameOrAfter(startDate)) {
-            dates.push(tempDate.format("YYYY-MM-DD"));
-            tempDate.subtract(1, "days");
-        }
+        for (let i = 0; i <= daysRange; i++) {
+            const date = moment(today).subtract(i, 'days').format("YYYY-MM-DD");
 
-        console.info(`[INFO] Proses update dari ${today} ke ${startDate} (${dates.length} hari)`);
+            const [postsData] = await connection.query(
+                `SELECT username, likes, comments, playCount FROM posts WHERE platform = ? AND DATE(created_at) = ?`,
+                [platform, date]
+            );
 
-        // Fungsi untuk menghasilkan angka acak dalam rentang tertentu
-        const getRandomInRange = (min, max) => Math.random() * (max - min) + min;
+            const postsByUser = {};
+            for (const post of postsData) {
+                if (!postsByUser[post.username]) postsByUser[post.username] = [];
+                postsByUser[post.username].push(post);
+            }
 
-        // Fungsi untuk menghasilkan noise yang tidak berpola
-        const getRandomDecreaseRate = (dayIndex) => {
-            let baseRate = getRandomInRange(0.00001, 0.00005);
-        
-            // 🔹 Fluktuasi lebih halus dengan perubahan lambat
-            let trendFactor = Math.cos(dayIndex * 0.0002); // Memastikan ada stabilitas
-        
-            // 🔹 Noise yang lebih smooth agar naik-turun tidak terlalu ekstrem
-            let noise = Math.sin(dayIndex * 0.0001) * getRandomInRange(0.00001, 0.00005);
-        
-            // 🔹 Gunakan probabilitas dinamis: Kadang naik, kadang stabil, kadang turun
-            let isIncrease = Math.random() < 0.2; // 20% kemungkinan turun, 80% naik atau stabil
-            let isStable = Math.random() < 0.3;   // 30% kemungkinan tetap stabil
-        
-            let finalRate;
-        
-            if (isStable) {
-                finalRate = 0; // Stabil
+            let updateFollowersCase = 'followers = CASE';
+            let usernames = [];
+            let values = [];
+
+            for (const [username, posts] of Object.entries(postsByUser)) {
+                const growthRate = getGrowthImpactRate(posts);
+
+                const curr = userState[username];
+                if (!curr) continue;
+
+                const newFollowers = Math.max(0, Math.floor(curr.followers * (1 - growthRate)));
+
+                // Update state
+                userState[username].followers = newFollowers;
+
+                updateFollowersCase += ` WHEN username = ? AND platform = ? THEN ?`;
+
+                values.push(username, platform, newFollowers);
+
+                usernames.push(username);
+            }
+
+            updateFollowersCase += ' ELSE followers END';
+
+            if (usernames.length > 0) {
+                const updateQuery = `
+                    UPDATE posts
+                    SET ${updateFollowersCase}
+                    WHERE platform = ? AND DATE(created_at) = ? AND username IN (?)
+                `;
+
+                await connection.query(updateQuery, [...values, platform, date, usernames]);
+                console.info(`[OK] ${date} (${usernames.length} akun diproses)`);
             } else {
-                finalRate = isIncrease ? -baseRate : baseRate + noise * trendFactor;
-            }
-        
-            // 🔹 Batasi agar perubahan tidak terlalu ekstrem
-            return Math.min(Math.max(finalRate, -0.2), 0.00005);
-        };        
-
-        // 3️⃣ Gunakan batch `UPDATE` untuk mempercepat proses update followers
-        const userChunks = chunkArray(usersData, 50);
-        for (const chunk of userChunks) {
-            console.info(`[INFO] Memproses batch ${chunk.length} username...`);
-
-            for (const user of chunk) {
-                const { username, followers } = user;
-                let currentFollowers = followers;
-
-                // Buat batch query untuk update followers
-                let updateQuery = `UPDATE fairScoresDaily SET followers = CASE`;
-                let updateConditions = [];
-                let updateValues = [];
-
-                for (let i = 0; i < dates.length; i++) {
-                    const date = dates[i];
-                    const decreaseRate = getRandomDecreaseRate(i);
-                    const newFollowers = Math.floor(currentFollowers * (1 - decreaseRate));
-
-                    updateQuery += ` WHEN username = ? AND date = ? AND platform = ? THEN ?`;
-                    updateValues.push(username, date, platform, newFollowers);
-
-                    currentFollowers = newFollowers;
-                }
-
-                updateQuery += ` ELSE followers END WHERE username IN (?) AND date BETWEEN ? AND ?`;
-                updateValues.push(chunk.map(u => u.username), startDate, today);
-
-                await connection.query(updateQuery, updateValues);
-                console.info(`[BATCH UPDATED] ${username} selesai diproses`);
+                console.info(`[SKIP] ${date} (tidak ada post)`);
             }
         }
 
-        console.info(`[SUCCESS] Update followers selesai.`);
-        res.json({ message: "Update followers selesai untuk semua pengguna." });
+        res.json({ message: "Selesai update followers berdasarkan performa postingan." });
 
-    } catch (error) {
-        console.error("[ERROR] Gagal mengupdate followers:", error);
-        res.status(500).json({ message: "Terjadi kesalahan saat update followers.", error: error.message });
+    } catch (err) {
+        console.error("Update gagal:", err);
+        res.status(500).json({ message: "Gagal update data postingan.", error: err.message });
     }
 });
 
