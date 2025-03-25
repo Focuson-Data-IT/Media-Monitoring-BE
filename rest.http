@@ -153,7 +153,7 @@ Content-Type: application/json
 
 {
     "kategori": "disparbud",
-    "platform": "Instagram"
+    "platform": "TikTok"
 }
 
 ### post processData
@@ -164,7 +164,7 @@ Content-Type: application/json
     "start_date": "2025-01-01",
     "end_date": "2025-03-31",
     "kategori": "disparbud",
-    "platform": "Instagram"
+    "platform": "TikTok"
 }
 
 ### post processData
@@ -375,7 +375,7 @@ GET http://localhost:7780/instagram/update-followers?kategori=disparbud&platform
 GET http://localhost:7780/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-POST http://localhost:7795/fair/update-followers?platform=TikTok
+POST http://localhost:7770/fair/update-followers?platform=Instagram
 
 ###
 GET http://localhost:7770/api/getResponsivenessRanking?platform=Instagram&kategori=disparbud&start_date=2025-03-01&end_date=2025-03-31
