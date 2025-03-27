@@ -780,17 +780,16 @@ router.get('/getInteractionsRanking', async (req, res) => {
         // 🔹 Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
             SELECT 
-                fsm.client_account,
-                fsm.username,
-                fsm.interactions AS value,
-                u.profile_pic_url
-            FROM fairScoresMonthly fsm
-            LEFT JOIN users u ON fsm.username = u.username
+                client_account,
+                username,
+                COALESCE(interactions, 0) AS value,
+                platform
+            FROM fairScoresMonthly
             WHERE 
-                fsm.kategori = ?
-                AND fsm.platform = ? 
-                AND DATE(fsm.date) = DATE(?)
-            ORDER BY fsm.interactions DESC;
+                kategori = ?
+                AND platform = ? 
+                AND DATE(date) = DATE(?)
+            ORDER BY interactions DESC;
         `, [kategori, platform, max_date]);
 
         // Jika tidak ada data di tanggal terbaru, kirimkan respons kosong
@@ -808,7 +807,7 @@ router.get('/getInteractionsRanking', async (req, res) => {
             SELECT 
                 client_account,
                 username,
-                interactions AS value,
+                COALESCE(interactions, 0) AS value,
                 platform
             FROM fairScoresMonthly
             WHERE 
@@ -869,17 +868,16 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
         SELECT 
-          fsm.client_account,
-          fsm.username,
-          fsm.responsiveness AS value,
-          u.profile_pic_url
-        FROM fairScoresMonthly fsm
-        LEFT JOIN users u ON fsm.username = u.username
+          client_account,
+          username,
+          COALESCE(responsiveness, 0) AS value,
+          platform
+        FROM fairScoresMonthly
         WHERE 
-        fsm.kategori = ?
-          AND fsm.platform = ? 
-          AND DATE(fsm.date) = DATE(?)
-        ORDER BY fsm.responsiveness DESC;
+        kategori = ?
+          AND platform = ? 
+          AND DATE(date) = DATE(?)
+        ORDER BY responsiveness DESC;
       `, [kategori, platform, max_date]);
 
         // Jika tidak ada data di tanggal terbaru, kirimkan respons kosong
@@ -897,7 +895,7 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         SELECT 
           client_account,
           username,
-          responsiveness AS value,
+          COALESCE(responsiveness, 0) AS value,
           platform
         FROM fairScoresMonthly
         WHERE 
