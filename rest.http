@@ -163,7 +163,7 @@ Content-Type: application/json
 {
     "start_date": "2025-03-01",
     "end_date": "2025-03-31",
-    "kategori": "disparbud_ambassador",
+    "kategori": "disparbud_competitor",
     "platform": "Instagram"
 }
 
@@ -174,7 +174,7 @@ Content-Type: application/json
 {
     "start_date": "2025-03-01",
     "end_date": "2025-03-31",
-    "kategori": "disparbud_ambassador",
+    "kategori": "disparbud_competitor",
     "platform": "TikTok"
 }
 
@@ -382,7 +382,7 @@ GET http://localhost:7780/instagram/update-followers?kategori=disparbud&platform
 GET http://localhost:7780/api/getInteractions?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-GET http://localhost:7770/api/getInteractionsRanking?platform=Instagram&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
+GET http://localhost:7770/api/getFollowersRanking?platform=TikTok&kategori=disparbud&start_date=2025-02-01&end_date=2025-02-28
 
 ###
 https://vt.tiktok.com/ZSMo2Hesu/

@@ -594,67 +594,44 @@ router.get('/getFairRanking', async (req, res) => {
 
 router.get('/getFollowersRanking', async (req, res) => {
     try {
-        const { kategori, platform, start_date, end_date } = req.query;
+        const { kategori, platform, start_date, end_date } = req.query; // tetap dipakai meskipun ga digunakan di query
 
-        // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
-        const [dateRows] = await db.query(`
-        SELECT
-          MAX(date) AS max_date,
-          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
-      `, [kategori, platform, start_date, end_date]);
+        // Ambil semua user dengan kategori dan platform sesuai
+        const [users] = await db.query(`
+            SELECT 
+                client_account,
+                username,
+                followers AS value,
+                platform,
+                profile_pic_url
+            FROM users
+            WHERE 
+                FIND_IN_SET(?, kategori)
+                AND platform = ?
+            ORDER BY followers DESC;
+        `, [kategori, platform]);
 
-        const { max_date, prev_date } = dateRows[0];
-
-        if (!max_date) {
-            return res.status(404).json({ code: 404, status: 'Not Found', data: [], errors: 'No data found in the specified date range.' });
+        // Kalau tidak ada data, return kosong
+        if (!users.length) {
+            return res.status(404).json({
+                code: 404,
+                status: 'Not Found',
+                data: [],
+                errors: 'No user data found for the specified category and platform.'
+            });
         }
 
-        // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
-        const [latestRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          followers AS value,
-          platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY followers DESC;
-      `, [kategori, platform, max_date]);
-
-        // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
-        const [prevRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          followers AS value,
-          platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY followers DESC;
-      `, [kategori, platform, prev_date]);
-
-        // Helper function untuk mendapatkan peringkat berdasarkan username
+        // Helper untuk ranking sebelumnya (dummy logic: sama dengan sekarang karena tidak ada snapshot)
         const getRank = (username, rows) => {
             const rank = rows.findIndex(item => item.username === username);
-            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+            return rank !== -1 ? rank + 1 : null;
         };
 
-        // Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
-        const mergedData = latestRows.map((item, index) => ({
+        const mergedData = users.map((item, index) => ({
             ...item,
             ranking: index + 1,
-            previous_rank: getRank(item.username, prevRows)
+            previous_rank: getRank(item.username, users),
+            profile_pic_url: item.profile_pic_url || null
         }));
 
         res.json({
@@ -663,9 +640,14 @@ router.get('/getFollowersRanking', async (req, res) => {
             data: mergedData,
             errors: null
         });
+
     } catch (error) {
-        console.error('Error fetching fair ranking:', error);
-        res.status(500).send('Failed to fetch fair ranking');
+        console.error('Error fetching followers ranking:', error);
+        res.status(500).json({
+            code: 500,
+            status: 'ERROR',
+            message: 'Failed to fetch followers ranking'
+        });
     }
 });
 
