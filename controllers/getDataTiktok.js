@@ -105,32 +105,26 @@ const getDataUser = async (kategori = null, platform = null) => {
 // Fungsi untuk mendapatkan data Post dari API
 const getDataPost = async (kategori = null, platform = null) => {
     try {
-        // Panggil getDataUser terlebih dahulu agar userCache terisi
-        // await getDataUser(kategori, platform);
-
         const [rows] = await db.query(`
-            SELECT 
-                *
-            FROM users
-            WHERE platform = ? 
-                AND FIND_IN_SET(?, kategori)
+            SELECT * FROM listAkun
+            WHERE platform = ? AND FIND_IN_SET(?, kategori)
         `, [platform, kategori]);
 
         if (!rows.length) {
-            return console.log('No users found in the database.');
+            console.log('No users found.');
+            return;
         }
 
-        // Ambil startDate dari server
-        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        // const data = await response.json();
-        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        // const endDateObj = new Date(endDate).getTime();
+        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        const data = await response.json();
+        const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        const endDateObj = new Date(endDate).getTime();
 
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
-        const endDateObj = endDate.toISOString().split('T')[0];
+        // const endDate = new Date();
+        // endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
+        // const endDateObj = endDate.toISOString().split('T')[0];
 
-        const batchSize = 1; // Jumlah akun yang diproses per batch
+        const batchSize = 5; // Jumlah akun yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -141,9 +135,38 @@ const getDataPost = async (kategori = null, platform = null) => {
                 const maxRetries = 3; // Maksimal retry per user
                 
                 while (retryCount < maxRetries) {
-                    
                     try {
-                        console.info(`Fetching post data for user: ${row.username}`);
+                        console.info(`Fetching data for user: ${row.username}`);
+    
+                        const userInfoRes = await axios.request({
+                            method: 'GET',
+                            url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
+                            params: {
+                                unique_id: `@${row.username}`
+                            },
+                            headers: {
+                                'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                                'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
+                            }
+                        });
+
+                        const userData = userInfoRes.data?.data;
+                        if (!userData) {
+                            console.warn(`🚫 No data found for user: ${row.username}`);
+                            return;
+                        }
+                        
+                        await save.saveUser({
+                            client_account: row.client_account,
+                            kategori: kategori,
+                            platform: platform,
+                            username: row.username,
+                            user_id: userData.user.id,
+                            followers: userData.stats.followerCount || 0,
+                            following: userData.stats.followingCount || 0,
+                            mediaCount: userData.stats.videoCount || 0,
+                            profile_pic_url: userData.user.avatarThumb || '',
+                        })
 
                         let cursor = null;
                         let hasMore = true;
@@ -180,8 +203,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                 if (isPinned) {
                                     const post = {
                                         client_account: row.client_account,
-                                        kategori: kategori,
-                                        platform: platform,
+                                        kategori: row.kategori,
+                                        platform: row.platform,
                                         user_id: item.author.id,
                                         unique_id_post: item.video_id,
                                         username: row.username,
@@ -195,8 +218,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                         product_type: item.media_type || '',
                                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                                         is_pinned: isPinned,
-                                        followers: row.followers || 0,
-                                        following: row.following || 0,
+                                        followers: userData.follower_count || 0,
+                                        following: userData.following_count || 0,
                                         playCount: item.play_count || 0,
                                         collectCount: item.collect_count || 0,
                                         shareCount: item.share_count || 0,
@@ -213,8 +236,8 @@ const getDataPost = async (kategori = null, platform = null) => {
 
                                 const post = {
                                     client_account: row.client_account,
-                                    kategori: kategori,
-                                    platform: platform,
+                                    kategori: row.kategori,
+                                    platform: row.platform,
                                     user_id: item.author.id,
                                     unique_id_post: item.video_id,
                                     username: row.username,
@@ -228,8 +251,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     product_type: item.media_type || '',
                                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                                     is_pinned: isPinned,
-                                    followers: row.followers || 0,
-                                    following: row.following || 0,
+                                    followers: userData.follower_count || 0,
+                                    following: userData.following_count || 0,
                                     playCount: item.play_count || 0,
                                     collectCount: item.collect_count || 0,
                                     shareCount: item.share_count || 0,
@@ -238,8 +261,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                 
                                 await save.savePost(post);
                             }
-                            cursor = response.data.data.cursor;
-                            hasMore = response.data.data.hasMore;
+                            cursor = response.data?.data?.cursor;
+                            hasMore = response.data?.data?.hasMore;
                             pageCount++;
                             console.log(`Page count: ${pageCount}`);
                         }
@@ -273,11 +296,11 @@ const getDataComment = async (kategori = null, platform = null) => {
     try {
         // Ambil daftar postingan dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
-            SELECT unique_id_post, user_id, username, comments, client_account, kategori, platform
+            SELECT *
             FROM posts 
             WHERE platform = ?
             AND FIND_IN_SET(?, kategori)
-            AND comment_processed = 0
+            AND comments_processed = 0
             AND comments > 0
         `, [platform, kategori]);
 
@@ -285,7 +308,7 @@ const getDataComment = async (kategori = null, platform = null) => {
             return console.log('No posts found in the database.');
         }
 
-        const batchSize = 50; // Jumlah postingan yang diproses per batch
+        const batchSize = 5; // Jumlah postingan yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -408,12 +431,12 @@ const getDataChildComment = async (kategori = null, platform = null) => {
     try {
         // Ambil daftar komentar dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
-            SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.child_comment_count, mc.client_account, mc.kategori, mc.platform
+            SELECT *
             FROM mainComments mc
             JOIN posts p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = ?
             AND FIND_IN_SET(?, mc.kategori)
-            AND child_comments_processed = 0
+            AND mc.child_comments_processed = 0
             AND mc.child_comment_count > 0
         `, [platform, kategori]);
 
@@ -421,7 +444,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
             return console.log('No comments found in the database.');
         }
 
-        const batchSize = 50; // Jumlah komentar yang diproses per batch
+        const batchSize = 5; // Jumlah komentar yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -502,7 +525,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
 
                         console.info(`✅ Finished processing child comments for parent comment: ${row.comment_unique_id}`);
                         await db.query(`
-                            UPDATE posts 
+                            UPDATE mainComments 
                             SET child_comments_processed = 1 
                             WHERE unique_id_post = ?
                         `, [row.unique_id_post]);
@@ -517,7 +540,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                             console.error(`❌ Failed to fetch child comments for ${row.comment_unique_id} after ${maxRetries} attempts.`);
 
                             await db.query(`
-                                UPDATE posts 
+                                UPDATE mainComments 
                                 SET child_comments_processed = 0 
                                 WHERE unique_id_post = ?
                             `, [row.unique_id_post]);
