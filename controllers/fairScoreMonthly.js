@@ -55,12 +55,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
                      AND p.platform = ?
                      AND DATE(p.created_at) <= fsm.date
                      ORDER BY p.created_at DESC
-                     LIMIT 1),
-                    (SELECT u.followers
-                     FROM users u
-                     WHERE u.username = fsm.username
-                     AND u.platform = ?
-                     LIMIT 1) -- Ambil dari tabel users jika tidak ditemukan di posts
+                     LIMIT 1)
                 )
             ) AS followers,
         
@@ -145,7 +140,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
     `;
 
     const [data] = await connection.query(query, [
-        platform, platform,
+        platform,
         kategori, platform, date, date, daysInMonth,
         kategori, platform,
         kategori, platform, date, date,

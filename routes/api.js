@@ -528,8 +528,7 @@ router.get('/getFairRanking', async (req, res) => {
         WHERE 
         kategori = ?
           AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-          GROUP BY list_id, platform, username, date, client_account, kategori;
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -550,7 +549,6 @@ router.get('/getFairRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY fair_score DESC;
       `, [kategori, platform, max_date]);
 
@@ -566,7 +564,6 @@ router.get('/getFairRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY fair_score DESC;
       `, [kategori, platform, prev_date]);
 
@@ -608,8 +605,7 @@ router.get('/getFollowersRanking', async (req, res) => {
         WHERE 
         kategori = ?
           AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori;
+          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
       `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -630,7 +626,6 @@ router.get('/getFollowersRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY followers DESC;
       `, [kategori, platform, max_date]);
 
@@ -646,7 +641,6 @@ router.get('/getFollowersRanking', async (req, res) => {
         kategori = ?
           AND platform = ? 
           AND DATE(date) = DATE(?)
-        GROUP BY list_id, platform, username, date, client_account, kategori
         ORDER BY followers DESC;
       `, [kategori, platform, prev_date]);
 

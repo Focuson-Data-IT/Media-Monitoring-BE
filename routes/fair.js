@@ -81,10 +81,10 @@ const getGrowthImpactRate = (posts) => {
         const engagement = (likes + comments) / (playCount || 1);
         const baseImpact = playCount / 10000;
 
-        if (engagement > 0.3) totalImpact += baseImpact * 0.3;
-        else if (engagement > 0.1) totalImpact += baseImpact * 0.1;
-        else if (engagement > 0.05) totalImpact += baseImpact * 0.05;
-        else totalImpact += baseImpact * 0.05;
+        if (engagement > 0.5) totalImpact += baseImpact * 0.3;
+        else if (engagement > 0.3) totalImpact += baseImpact * 0.1;
+        else if (engagement > 0.1) totalImpact += baseImpact * 0.01;
+        else totalImpact += baseImpact * 0.001;
     }
 
     return Math.min(Math.max(totalImpact, 0.00001), 0.01); // batasi
