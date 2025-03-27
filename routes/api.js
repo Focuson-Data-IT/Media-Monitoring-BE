@@ -706,7 +706,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         ORDER BY activities DESC;
       `, [kategori, platform, max_date]);
 
-      console.info(max_date)
+        console.info(max_date)
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
@@ -723,7 +723,7 @@ router.get('/getActivitiesRanking', async (req, res) => {
         ORDER BY activities DESC;
       `, [kategori, platform, prev_date]);
 
-      console.info(prev_date)
+        console.info(prev_date)
 
         // Helper function untuk mendapatkan peringkat berdasarkan username
         const getRank = (username, rows) => {
@@ -817,17 +817,36 @@ router.get('/getInteractionsRanking', async (req, res) => {
             ORDER BY interactions DESC;
         `, [kategori, platform, prev_date]);
 
-        // 🔹 Helper function untuk mendapatkan peringkat berdasarkan username
+        // 🔹 Ambil daftar username untuk ambil profile_pic_url
+        const usernames = latestRows.map(row => row.username);
+
+        // 🔹 Ambil profile picture dari tabel users
+        let profileMap = {};
+        if (usernames.length) {
+            const [profiles] = await db.query(`
+                SELECT username, profile_pic_url
+                FROM users
+                WHERE username IN (?)
+            `, [usernames]);
+
+            profileMap = profiles.reduce((map, user) => {
+                map[user.username] = user.profile_pic_url;
+                return map;
+            }, {});
+        }
+
+        // 🔹 Helper function untuk mendapatkan peringkat sebelumnya
         const getRank = (username, rows) => {
             const rank = rows.findIndex(item => item.username === username);
-            return rank !== -1 ? rank + 1 : null; // +1 karena array dimulai dari 0
+            return rank !== -1 ? rank + 1 : null;
         };
 
-        // 🔹 Gabungkan data: tambahkan ranking saat ini & ranking sebelumnya
+        // 🔹 Gabungkan data
         const mergedData = latestRows.map((item, index) => ({
             ...item,
             ranking: index + 1,
-            previous_rank: getRank(item.username, prevRows)
+            previous_rank: getRank(item.username, prevRows),
+            profile_pic_url: profileMap[item.username] || null
         }));
 
         res.json({
@@ -882,12 +901,12 @@ router.get('/getResponsivenessRanking', async (req, res) => {
 
         // Jika tidak ada data di tanggal terbaru, kirimkan respons kosong
         if (!latestRows.length) {
-        return res.json({
-            code: 200,
-            status: 'OK',
-            data: [],
-            errors: null
-        });
+            return res.json({
+                code: 200,
+                status: 'OK',
+                data: [],
+                errors: null
+            });
         }
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
@@ -905,6 +924,24 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         ORDER BY responsiveness DESC;
       `, [kategori, platform, prev_date]);
 
+        // 🔹 Ambil daftar username untuk ambil profile_pic_url
+        const usernames = latestRows.map(row => row.username);
+
+        // 🔹 Ambil profile picture dari tabel users
+        let profileMap = {};
+        if (usernames.length) {
+            const [profiles] = await db.query(`
+              SELECT username, profile_pic_url
+              FROM users
+              WHERE username IN (?)
+          `, [usernames]);
+
+            profileMap = profiles.reduce((map, user) => {
+                map[user.username] = user.profile_pic_url;
+                return map;
+            }, {});
+        }
+
         // Helper function untuk mendapatkan peringkat berdasarkan username
         const getRank = (username, rows) => {
             const rank = rows.findIndex(item => item.username === username);
@@ -915,7 +952,8 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         const mergedData = latestRows.map((item, index) => ({
             ...item,
             ranking: index + 1,
-            previous_rank: getRank(item.username, prevRows)
+            previous_rank: getRank(item.username, prevRows),
+            profile_pic_url: profileMap[item.username] || null
         }));
 
         res.json({
@@ -1246,8 +1284,8 @@ router.get('/getAllUsername', async (req, res) => {
 );
 
 router.get('/getAllSearchUsername', async (req, res) => {
-        try {
-            const query = `
+    try {
+        const query = `
             SELECT DISTINCT username
             FROM users
             WHERE FIND_IN_SET(?, kategori)
@@ -1255,25 +1293,25 @@ router.get('/getAllSearchUsername', async (req, res) => {
             AND username LIKE CONCAT('%', ?, '%')
         `;
 
-            const queryParams = [
-                req.query['kategori'],
-                req.query['platform'],
-                req.query['search'],
-            ];
+        const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
+            req.query['search'],
+        ];
 
-            const [rows] = await db.query(query, queryParams);
+        const [rows] = await db.query(query, queryParams);
 
-            res.json({
-                code: 200,
-                status: 'OK',
-                data: rows,
-                errors: null
-            });
-        } catch (error) {
-            console.error('Error fetching dates:', error);
-            res.status(500).send('Failed to fetch dates');
-        }
+        res.json({
+            code: 200,
+            status: 'OK',
+            data: rows,
+            errors: null
+        });
+    } catch (error) {
+        console.error('Error fetching dates:', error);
+        res.status(500).send('Failed to fetch dates');
     }
+}
 );
 
 router.get('/getTotalPost', async (req, res) => {
@@ -1804,7 +1842,7 @@ router.get('/getGrowthData', async (req, res) => {
             result.forEach(item => {
                 const date = item.date;
                 if (!dataMap[date]) {
-                    dataMap[date] = { date, followers: 0, posts: 0, likes: 0, views: 0, comments: 0, saves:0, shares:0 };
+                    dataMap[date] = { date, followers: 0, posts: 0, likes: 0, views: 0, comments: 0, saves: 0, shares: 0 };
                 }
                 dataMap[date][key] = item[key] ?? 0;
             });
