@@ -82,7 +82,7 @@ const getDataUser = async (kategori = null, platform = null) => {
                         };
 
                         console.info(`✅ Successfully saved data for user: ${row.username}`);
-                        break; 
+                        break;
 
                     } catch (error) {
                         retryCount++;
@@ -97,7 +97,7 @@ const getDataUser = async (kategori = null, platform = null) => {
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); 
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         console.log('✅ All Instagram users have been successfully updated.');
@@ -108,34 +108,26 @@ const getDataUser = async (kategori = null, platform = null) => {
 
 const getDataPost = async (kategori = null, platform = null) => {
     try {
-        // Panggil getDataUser terlebih dahulu agar userCache terisi
-        await getDataUser(kategori, platform);
-
-        // Ambil daftar akun dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
-            SELECT 
-                *
-            FROM listAkun
-            WHERE platform = ? 
-                AND kategori = ?
+            SELECT * FROM listAkun
+            WHERE platform = ? AND FIND_IN_SET(?, kategori)
         `, [platform, kategori]);
 
         if (!rows.length) {
-            console.log('No users found in the database.');
+            console.log('No users found.');
             return;
         }
 
-        // Ambil startDate dari server
-        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        // const data = await response.json();
-        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        // const endDateObj = new Date(endDate).getTime();
+        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        const data = await response.json();
+        const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        const endDateObj = new Date(endDate).getTime();
 
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
-        const endDateObj = endDate.toISOString().split('T')[0];
+        // const endDate = new Date();
+        // endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
+        // const endDateObj = endDate.toISOString().split('T')[0];
 
-        const batchSize = 5; // Jumlah akun yang diproses per batch
+        const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -143,25 +135,49 @@ const getDataPost = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3; // Maksimal retry per user
+                const maxRetries = 3;
 
                 while (retryCount < maxRetries) {
-                    
-                    // **Tambahkan ke cache**
-                    userCache[row.username] = {
-                        followers: userData.stats.followerCount || 0,
-                        following: userData.stats.followingCount || 0
-                    };
-
                     try {
-                        console.info(`🔍 Fetching posts for user: ${row.username} (Attempt ${retryCount + 1})`);
+                        console.info(`🔍 Fetching USER info for ${row.username}`);
+                        const userInfoRes = await axios.request({
+                            method: 'GET',
+                            url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                            params: {
+                                username_or_id_or_url: row.username,
+                                include_about: 'true',
+                                url_embed_safe: 'true'
+                            },
+                            headers: {
+                                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                            }
+                        });
+
+                        const userData = userInfoRes.data?.data;
+                        if (!userData) {
+                            console.warn(`🚫 No user data for ${row.username}`);
+                            break;
+                        }
+
+                        // Simpan ke DB (opsional)
+                        await save.saveUser({
+                            client_account: row.client_account,
+                            kategori: kategori,
+                            platform: platform,
+                            username: row.username,
+                            user_id: userData.id,
+                            followers: userData.follower_count || 0,
+                            following: userData.following_count || 0,
+                            mediaCount: userData.media_count || 0,
+                            profile_pic_url: userData.profile_pic_url,
+                        });
 
                         let paginationToken = null;
                         let morePosts = true;
-                        let pageCount = 0;
 
                         while (morePosts) {
-                            const getPost = {
+                            const getPost = await axios.request({
                                 method: 'GET',
                                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
                                 params: {
@@ -170,21 +186,15 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     ...(paginationToken && { pagination_token: paginationToken })
                                 },
                                 headers: {
-                                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
+                                    'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                                    'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
                                 }
-                            };
+                            });
 
-                            const response = await axios.request(getPost);
+                            const items = getPost.data?.data?.items;
+                            if (!items || items.length === 0) break;
 
-                            if (!response.data?.data?.items) {
-                                console.warn(`🚫 No posts found for user: ${row.username}`);
-                                break;
-                            }
-
-                            const userPosts = response.data.data.items;
-
-                            for (const item of userPosts) {
+                            for (const item of items) {
                                 const isPinned = item.is_pinned ? 1 : 0;
                                 const postDate = new Date(item.taken_at * 1000).getTime();
                                 const captionText = item.caption || "No Caption";
@@ -207,8 +217,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                         product_type: item.product_type,
                                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                                         is_pinned: isPinned,
-                                        followers: userCache[row.username]?.followers || 0,
-                                        following: userCache[row.username]?.following || 0,
+                                        followers: userData.follower_count || 0,
+                                        following: userData.following_count || 0,
                                         playCount: item.play_count || 0,
                                         shareCount: item.share_count || 0,
                                         collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
@@ -244,8 +254,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     product_type: item.product_type,
                                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                                     is_pinned: isPinned,
-                                    followers: userCache[row.username]?.followers || 0,
-                                    following: userCache[row.username]?.following || 0,
+                                    followers: userData.follower_count || 0,
+                                    following: userData.following_count || 0,
                                     playCount: item.play_count || 0,
                                     shareCount: item.share_count || 0,
                                     collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
@@ -258,33 +268,26 @@ const getDataPost = async (kategori = null, platform = null) => {
 
                                 await save.savePost(post);
                             }
-                            paginationToken = response.data.pagination_token;
-                            pageCount++;
-                            if (!paginationToken) morePosts = false;
-                            console.log(`Page count: ${pageCount}`);
+                            paginationToken = response.data?.pagination_token;
+                            morePosts = !!paginationToken;
                         }
-                        console.info(`✅ Finished processing posts for user: ${row.username}`);
-                        break; // Jika berhasil, keluar dari loop retry
+
+                        console.info(`✅ Finished for ${row.username}`);
+                        break;
                     } catch (error) {
                         retryCount++;
-                        console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
-
-                        if (retryCount >= maxRetries) {
-                            console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
-                        } else {
-                            console.warn(`⚠️ Retrying for ${row.username} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 2000)); // Delay 5 detik sebelum retry
-                        }
+                        console.error(`❌ Error for ${row.username} (try ${retryCount}):`, error.message);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                     }
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch akun
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ All Instagram posts have been successfully updated.');
-    } catch (error) {
-        console.error('❌ Error executing function:', error.message);
+        console.log('✅ Semua data user & postingan berhasil diproses.');
+    } catch (err) {
+        console.error('❌ Error utama:', err.message);
     }
 };
 
@@ -812,7 +815,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
                                     };
 
                                     await save.saveComment(comment);
-                                    
+
                                     const uniqueIdPost = dataUser?.id || row.unique_id_post || ""; // Gunakan fallback jika tidak ada
                                     if (uniqueIdPost) { // Pastikan tidak null sebelum update
                                         await db.query(`
@@ -820,7 +823,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
                                             SET unique_id_post = ?
                                             WHERE post_code = ?
                                         `, [uniqueIdPost, row.post_code]);
-                                        
+
                                         console.info(`✅ Updated listCustomRequest for post_code: ${row.post_code}`);
                                     } else {
                                         console.warn(`⚠️ Skipping update for post_code: ${row.post_code}, unique_id_post not found.`);
