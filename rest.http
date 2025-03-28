@@ -390,3 +390,6 @@ https://vt.tiktok.com/ZSMomaajM/
 
 ###
 GET http://localhost:7770/tiktok/getCommentByCode?kategori=kdm&url=https://www.tiktok.com/@trendradio.id/video/7486072741876239637
+
+###
+GET http://localhost:7770/api/file/exportFair?kategori=disparbud&platform=Instagram&start_date=2025-03-01&end_date=2025-03-31
