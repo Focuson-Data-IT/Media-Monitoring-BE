@@ -49,6 +49,23 @@ const savePost = async (post) => {
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
+        client_account = IF(
+                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
+                        client_account, 
+                        CONCAT_WS(',', client_account, VALUES(client_account))
+                    ),
+                    kategori = IF(
+                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
+                        kategori, 
+                        CONCAT_WS(',', kategori, VALUES(kategori))
+                    ),
+            platform = VALUES(platform),
+            user_id = VALUES(user_id),
+            username = VALUES(username),
+            created_at = VALUES(created_at),
+            thumbnail_url = VALUES(thumbnail_url),
+            caption = VALUES(caption),
+            post_code = VALUES(post_code),
             comments = VALUES(comments),
             likes = VALUES(likes),
             media_name = VALUES(media_name),

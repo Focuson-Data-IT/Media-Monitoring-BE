@@ -106,6 +106,7 @@ Content-Type: application/json
     "username": "ismailisme"
 }
 
+###
 List Akun Mitra / Kategori nya
 - opdbekasikab bekasi khusus (instagram) doang
 - prokopim_bekasikab (Instagram)
@@ -113,28 +114,29 @@ List Akun Mitra / Kategori nya
 - disparbud_competitor (Instagram dan TikTok) 
 - disparbud_ambassador (Instagram dan TikTok)
 - kdm_media (Instagram & TikTok)
-- bkkbn_jabar (Instagram) Deprecated
+- opdjabar (Instagram & TikTok)
+- gubernur_jabar (Instagram & TikTok)
 
 ### Get Instagram User Data (Deprecated // langsung panggil user post nya saja)
-GET http://localhost:7770/instagram/getData?kategori=disparbud
+GET http://localhost:7780/instagram/getData?kategori=opdbekasikab
 
 ### Get Tiktok User Data
-GET http://localhost:7770/tiktok/getData?kategori=disparbud
+GET http://localhost:7770/tiktok/getData?kategori=tmii
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=prokopim_bekasikab
+GET http://localhost:7770/instagram/getPost?kategori=opdjabar
 
 ### Get TikTok User Post
-GET http://localhost:7770/tiktok/getPost?kategori=kdm_media
+GET http://localhost:7770/tiktok/getPost?kategori=tmii
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=disparbud
+GET http://localhost:7770/instagram/getComment?kategori=opdbekasikab
 
 ### Get Instagram User Comment custom request
 GET http://localhost:7780/instagram/getCommentByCode?kategori=custom_request
 
 ### Get TikTok User Comment
-GET http://localhost:7770/tiktok/getComment?kategori=disparbud_competitor
+GET http://localhost:7770/tiktok/getComment?kategori=tmii
 
 ### STEP 2
 
@@ -145,14 +147,15 @@ List Akun Mitra / Kategori nya
 - opdbekasikab bekasi khusus (instagram) doang
 - prokopim_bekasikab (Instagram)
 - kdm_media (Instagram & TikTok)
-- bkkbn_jabar (Instagram) Deprecated
+- opdjabar (Instagram & TikTok)
+- gubernur_jabar (Instagram & TikTok)
 
 ### post addDataUser per hari
-POST http://localhost:7770/fair/addDataUser
+POST http://localhost:7780/fair/addDataUser
 Content-Type: application/json
 
 {
-    "kategori": "disparbud",
+    "kategori": "tmii",
     "platform": "TikTok"
 }
 
@@ -161,10 +164,21 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-    "start_date": "2025-03-01",
+    "start_date": "2025-02-01",
     "end_date": "2025-03-31",
-    "kategori": "disparbud_competitor",
-    "platform": "Instagram"
+    "kategori": "tmii",
+    "platform": "TikTok"
+}
+
+### post processData
+POST http://localhost:7780/fair/processDataFair
+Content-Type: application/json
+
+{
+    "start_date": "2025-01-01",
+    "end_date": "2025-03-31",
+    "kategori": "tmii",
+    "platform": "TikTok"
 }
 
 ### post processData
@@ -174,17 +188,17 @@ Content-Type: application/json
 {
     "start_date": "2025-03-01",
     "end_date": "2025-03-31",
-    "kategori": "disparbud_competitor",
-    "platform": "TikTok"
+    "kategori": "prokopim_bekasikab",
+    "platform": "Instagram"
 }
 
 ### Proses Performa Konten
-POST http://localhost:7780/api/prosesPerformaKonten
+POST http://localhost:7790/api/prosesPerformaKonten
 Content-Type: application/json
 
 {
-  "startDate": "2025-01-01",
-  "endDate": "2025-03-31"
+  "startDate": "2000-01-01",
+  "endDate": "2025-12-31"
 }
 
 ### Get Instagram User Data
@@ -286,10 +300,10 @@ GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=kdm
 GET http://localhost:7780/tiktok/getDataPostByKeywords?kategori=kdm
 
 ###
-GET http://localhost:7780/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-31
+GET http://localhost:7780/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-03-01&end_date=2025-04-30
 
 ###
-GET http://localhost:7780/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-02-01&end_date=2025-03-31
+GET http://localhost:7780/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-03-01&end_date=2025-04-30
 
 ###
 GET http://localhost:7770/

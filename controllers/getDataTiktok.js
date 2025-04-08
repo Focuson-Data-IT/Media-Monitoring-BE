@@ -115,14 +115,14 @@ const getDataPost = async (kategori = null, platform = null) => {
             return;
         }
 
-        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        const data = await response.json();
-        const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        const endDateObj = new Date(endDate).getTime();
+        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        // const data = await response.json();
+        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        // const endDateObj = new Date(endDate).getTime();
 
-        // const endDate = new Date();
-        // endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
-        // const endDateObj = endDate.toISOString().split('T')[0];
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - 100); // Kurangi 1 hari dari hari ini
+        const endDateObj = endDate.toISOString().split('T')[0];
 
         const batchSize = 5; // Jumlah akun yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
@@ -218,8 +218,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                         product_type: item.media_type || '',
                                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                                         is_pinned: isPinned,
-                                        followers: userData.follower_count || 0,
-                                        following: userData.following_count || 0,
+                                        followers: userData.stats.followerCount || 0,
+                                        following: userData.stats.followingCount || 0,
                                         playCount: item.play_count || 0,
                                         collectCount: item.collect_count || 0,
                                         shareCount: item.share_count || 0,
@@ -251,8 +251,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     product_type: item.media_type || '',
                                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
                                     is_pinned: isPinned,
-                                    followers: userData.follower_count || 0,
-                                    following: userData.following_count || 0,
+                                    followers: userData.stats.followerCount || 0,
+                                    following: userData.stats.followingCount || 0,
                                     playCount: item.play_count || 0,
                                     collectCount: item.collect_count || 0,
                                     shareCount: item.share_count || 0,

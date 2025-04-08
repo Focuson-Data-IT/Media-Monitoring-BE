@@ -63,8 +63,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
             (
                 SELECT COUNT(*) 
                 FROM posts p
-                WHERE p.client_account = fsm.client_account 
-                  AND FIND_IN_SET(?, p.kategori)
+                WHERE FIND_IN_SET(?, p.kategori)
                   AND p.platform = ?
                   AND p.username = fsm.username 
                   AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -74,8 +73,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
             (
                 SELECT COUNT(*) 
                 FROM posts p
-                WHERE p.client_account = fsm.client_account
-                  AND FIND_IN_SET(?, p.kategori)
+                WHERE FIND_IN_SET(?, p.kategori)
                   AND p.platform = ?
                   AND p.username = fsm.username  
                   AND DATE(p.created_at) = fsm.date
@@ -85,8 +83,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
             (
                 SELECT SUM(likes) 
                 FROM posts p
-                WHERE p.client_account = fsm.client_account 
-                  AND FIND_IN_SET(?, p.kategori)
+                WHERE FIND_IN_SET(?, p.kategori)
                   AND p.platform = ?
                   AND p.username = fsm.username 
                   AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -94,8 +91,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
             (
                 SELECT COUNT(*) 
                 FROM posts p
-                WHERE p.client_account = fsm.client_account 
-                  AND FIND_IN_SET(?, p.kategori)
+                WHERE FIND_IN_SET(?, p.kategori)
                   AND p.platform = ?
                   AND p.username = fsm.username 
                   AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
@@ -126,8 +122,7 @@ const getDataForBatchProcessing = async (date, kategori, platform) => {
                     FROM posts p
                     LEFT JOIN mainComments mc ON mc.unique_id_post = p.unique_id_post
                     LEFT JOIN childComments cc ON cc.unique_id_post = p.unique_id_post
-                    WHERE p.client_account = fsm.client_account 
-                      AND FIND_IN_SET(?, p.kategori)
+                    WHERE FIND_IN_SET(?, p.kategori)
                       AND p.platform = ?
                       AND p.username = fsm.username
                       AND DATE(p.created_at) BETWEEN DATE_FORMAT(?, '%Y-%m-01') AND ?
