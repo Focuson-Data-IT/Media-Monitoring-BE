@@ -12,7 +12,7 @@ const chunkArray = (array, size) => {
 };
 
 // Cache untuk menyimpan data user sementara
-let userCache = {};
+// let userCache = {};
 
 // Fungsi untuk mendapatkan data User dari API dan menyimpannya ke database
 const getDataUser = async (kategori = null, platform = null) => {
@@ -39,7 +39,7 @@ const getDataUser = async (kategori = null, platform = null) => {
 
                         const getUser = {
                             method: 'GET',
-                            url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                            url: 'https://social-api4.p.rapidapi.com/v1/info',
                             params: {
                                 username_or_id_or_url: row.username,
                                 include_about: 'true',
@@ -76,10 +76,10 @@ const getDataUser = async (kategori = null, platform = null) => {
                         await save.saveUser(user);
 
                         // Simpan ke cache
-                        userCache[row.username] = {
-                            followers: userData.follower_count || 0,
-                            following: userData.following_count || 0
-                        };
+                        // userCache[row.username] = {
+                        //     followers: userData.follower_count || 0,
+                        //     following: userData.following_count || 0
+                        // };
 
                         console.info(`✅ Successfully saved data for user: ${row.username}`);
                         break;
@@ -91,13 +91,13 @@ const getDataUser = async (kategori = null, platform = null) => {
                             console.error(`❌ API Error for ${row.username}:`, error.response.status, error.response.data);
                         } else {
                             console.error(`❌ Request failed for ${row.username}:`, error.message);
-                            await new Promise(resolve => setTimeout(resolve, 5000));
+                            await new Promise(resolve => setTimeout(resolve, 10));
                         }
                     }
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 10));
         }
 
         console.log('✅ All Instagram users have been successfully updated.');
@@ -118,14 +118,15 @@ const getDataPost = async (kategori = null, platform = null) => {
             return;
         }
 
-        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        const data = await response.json();
-        const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        const endDateObj = new Date(endDate).getTime();
+        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        // const data = await response.json();
+        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        // const endDateObj = new Date(endDate).getTime();
 
-        // const endDate = new Date();
-        // endDate.setDate(endDate.getDate() - 1); // Kurangi 1 hari dari hari ini
-        // const endDateObj = endDate.toISOString().split('T')[0];
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - 35); // Kurangi 1 hari dari hari ini
+        const endDates = endDate.toISOString().split('T')[0];
+        const endDateObj = new Date(endDates).getTime();
 
         const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
@@ -135,17 +136,18 @@ const getDataPost = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3;
+                const maxRetries = 10;
 
                 while (retryCount < maxRetries) {
                     try {
-                        console.info(`🔍 Fetching USER info for ${row.username}`);
+                        console.info(`Fetching data for user: ${row.username}`);
+
                         const userInfoRes = await axios.request({
                             method: 'GET',
-                            url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/info',
+                            url: 'https://social-api4.p.rapidapi.com/v1/info',
                             params: {
                                 username_or_id_or_url: row.username,
-                                include_about: 'true',
+                                // include_about: 'true',
                                 url_embed_safe: 'true'
                             },
                             headers: {
@@ -175,11 +177,12 @@ const getDataPost = async (kategori = null, platform = null) => {
 
                         let paginationToken = null;
                         let morePosts = true;
+                        let pageCount = 0;
 
                         while (morePosts) {
-                            const getPost = await axios.request({
+                            const getPost = {
                                 method: 'GET',
-                                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
+                                url: 'https://social-api4.p.rapidapi.com/v1/posts',
                                 params: {
                                     username_or_id_or_url: row.username,
                                     url_embed_safe: 'true',
@@ -189,10 +192,16 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
                                     'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
                                 }
-                            });
+                            };
 
-                            const items = getPost.data?.data?.items;
-                            if (!items || items.length === 0) break;
+                            const response = await axios.request(getPost);
+
+                            if (!response.data?.data?.items) {
+                                console.warn(`No Posts found for user: ${row.username}`);
+                                break;
+                            }
+
+                            const items = response.data?.data?.items;
 
                             for (const item of items) {
                                 const isPinned = item.is_pinned ? 1 : 0;
@@ -270,14 +279,21 @@ const getDataPost = async (kategori = null, platform = null) => {
                             }
                             paginationToken = response.data?.pagination_token;
                             morePosts = !!paginationToken;
+                            pageCount++;
+                            console.log(`Page count: ${pageCount}`);
                         }
-
-                        console.info(`✅ Finished for ${row.username}`);
-                        break;
+                        console.info(`✅ Finished processing posts for user: ${row.username}`);
+                        break; // Jika berhasil, keluar dari loop retry
                     } catch (error) {
                         retryCount++;
-                        console.error(`❌ Error for ${row.username} (try ${retryCount}):`, error.message);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
+
+                        if (retryCount >= maxRetries) {
+                            console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
+                        } else {
+                            console.warn(`⚠️ Retrying for ${row.username} in 5 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 2000)); // Delay 5 detik sebelum retry
+                        }
                     }
                 }
             }));
@@ -285,24 +301,21 @@ const getDataPost = async (kategori = null, platform = null) => {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ Semua data user & postingan berhasil diproses.');
-    } catch (err) {
-        console.error('❌ Error utama:', err.message);
+        console.log('Data posts berhasil diperbarui untuk semua pengguna.');
+    } catch (error) {
+        console.error('Error executing function:', error.message);
     }
 };
 
 // Fungsi untuk mendapatkan data Post dari API
-// const getDataPost2 = async (kategori = null, platform = null) => {
+// const getDataPost = async (kategori = null, platform = null) => {
 //     try {
 //         // Ambil daftar akun dari database berdasarkan kategori dan platform
 //         const [rows] = await db.query(`
-//             SELECT 
-//                 u.*, 
-//                 u.followers AS max_followers, 
-//                 ROUND(u.followers * 0.9) AS min_followers
-//             FROM users u
-//             WHERE u.platform = ? 
-//                 AND FIND_IN_SET(?, u.kategori)
+//             SELECT *
+//             FROM users
+//             WHERE platform = ? 
+//                 AND FIND_IN_SET(?, kategori)
 //         `, [platform, kategori]);
 
 //         if (!rows.length) {
@@ -366,10 +379,6 @@ const getDataPost = async (kategori = null, platform = null) => {
 //                                 const postDate = new Date(item.taken_at * 1000).getTime();
 //                                 const captionText = item.caption || "No Caption";
 
-//                                 // Naik bertahap tapi tidak melebihi max_followers
-//                                 const increaseAmount = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
-//                                 currentFollowers = Math.min(currentFollowers + increaseAmount, maxFollowers);
-
 //                                 if (isPinned) {
 //                                     const post = {
 //                                         client_account: row.client_account,
@@ -388,7 +397,7 @@ const getDataPost = async (kategori = null, platform = null) => {
 //                                         product_type: item.product_type,
 //                                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
 //                                         is_pinned: isPinned,
-//                                         followers: currentFollowers || 0,
+//                                         followers: row.followers || 0,
 //                                         following: row.following || 0,
 //                                         playCount: item.play_count || 0,
 //                                         shareCount: item.share_count || 0,
@@ -426,7 +435,7 @@ const getDataPost = async (kategori = null, platform = null) => {
 //                                     product_type: item.product_type,
 //                                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
 //                                     is_pinned: isPinned,
-//                                     followers: currentFollowers || 0,
+//                                     followers: row.followers || 0,
 //                                     following: row.following || 0,
 //                                     playCount: item.play_count || 0,
 //                                     shareCount: item.share_count || 0,
