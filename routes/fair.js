@@ -3,6 +3,7 @@ const router = express.Router();
 const saveData = require('../controllers/saveData');
 const fairScoreDaily = require('../controllers/fairScoreDaily');
 const fairScoreMonthly = require('../controllers/fairScoreMonthly');
+const fairScores = require('../controllers/fairScores');
 const connection = require('../models/db');
 const moment = require('moment');
 
@@ -27,6 +28,60 @@ const getCategoriesFromListAkun = async () => {
     const [rows] = await connection.query(query);
     return rows.map(row => row.kategori);
 };
+
+router.post('/processDataFair', async (req, res) => {
+    try {
+        let { start_date, end_date, kategori, platform } = req.body;
+
+        const today = new Date().toISOString().split('T')[0];
+        start_date = start_date || today;
+        end_date = end_date || today;
+
+        console.info(`Processing data from ${start_date} to ${end_date}...`);
+
+        let categories = kategori ? [kategori] : await getCategoriesFromListAkun();
+        console.info(`Processing categories: ${categories.join(', ')}`);
+
+        let platforms = platform ? [platform] : PLATFORMS;
+        console.info(`Processing platforms: ${platforms.join(', ')}`);
+
+        const allResults = [];
+
+        // Jalankan proses secara paralel per kombinasi kategori+platform
+        const tasks = [];
+
+        for (const cat of categories) {
+            for (const plat of platforms) {
+                tasks.push(
+                    fairScores.processDataFair(start_date, end_date, cat, plat)
+                        .then(data => {
+                            allResults.push({
+                                kategori: cat,
+                                platform: plat,
+                                data
+                            });
+                        })
+                );
+            }
+        }
+
+        await Promise.all(tasks);
+
+        res.json({
+            success: true,
+            message: `Data berhasil diproses untuk kategori: ${categories.join(', ')}, platform: ${platforms.join(', ')}.`,
+            result: allResults
+        });
+
+    } catch (error) {
+        console.error('Error processing data:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Gagal memproses data FAIR Score.',
+            error: error.message
+        });
+    }
+});
 
 // Endpoint untuk memasukkan data mentah, memproses, dan menyimpan ke tabel dailyFairScores
 router.post('/processData', async (req, res) => {
