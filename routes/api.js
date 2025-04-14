@@ -33,7 +33,7 @@ router.post('/prosesPerformaKonten', async (req, res) => {
 
         // 2️⃣ Ambil semua data yang akan diupdate
         const selectQuery = `
-            SELECT 
+            SELECT
                 post_id,
                 platform,
                 kategori,
@@ -93,10 +93,10 @@ router.post('/prosesPerformaKonten', async (req, res) => {
         // 4️⃣ Buat batch update query
         if (updateCases.length > 0) {
             const updateQuery = `
-                UPDATE posts 
-                SET performa_konten = CASE 
+                UPDATE posts
+                SET performa_konten = CASE
                     ${updateCases.join(" ")}
-                END
+                    END
                 WHERE post_id IN (${postIds.join(",")})
             `;
 
@@ -132,7 +132,7 @@ router.post('/auth/login', async (req, res) => {
         const query = `
             SELECT * FROM mitra
             WHERE login_mail = ?
-            AND password = ?
+              AND password = ?
         `;
 
         const queryParams = [
@@ -225,8 +225,8 @@ router.get('/getDailyActivities', async (req, res) => {
             FROM fairScoresDaily
             WHERE
                 kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
                 date ASC
         `;
@@ -255,24 +255,24 @@ router.get('/getDailyActivities', async (req, res) => {
 router.get('/getActivities', async (req, res) => {
     try {
         const query = `
-        SELECT
-            username,
-            client_account,
-            activities AS value, -- Langsung ambil nilai activities dari tanggal terbaru
+            SELECT
+                username,
+                client_account,
+                activities AS value, -- Langsung ambil nilai activities dari tanggal terbaru
             platform,
             MAX(activities) OVER () AS max_value -- Mengambil nilai activities tertinggi dari tanggal terbaru
-        FROM fairScoresDaily
-        WHERE FIND_IN_SET(?, kategori)
-            AND platform = ?
-            AND DATE(date) = (
-                SELECT MAX(date) 
-                FROM fairScoresDaily 
-                WHERE 
-                kategori = ? 
-                AND platform = ? 
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        )
-        ORDER BY value DESC;
+            FROM fairScoresDaily
+            WHERE FIND_IN_SET(?, kategori)
+              AND platform = ?
+              AND DATE(date) = (
+                SELECT MAX(date)
+                FROM fairScoresDaily
+                WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                )
+            ORDER BY value DESC;
         `;
 
         const queryParams = [
@@ -310,8 +310,8 @@ router.get('/getDailyInteractions', async (req, res) => {
             FROM fairScoresDaily
             WHERE
                 kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
                 date ASC
         `;
@@ -340,27 +340,27 @@ router.get('/getDailyInteractions', async (req, res) => {
 router.get('/getInteractions', async (req, res) => {
     try {
         const query = `
-        SELECT 
-            fsd.username,
-            fsd.client_account,
-            fsd.interactions AS value,
+            SELECT
+                fsd.username,
+                fsd.client_account,
+                fsd.interactions AS value,
             fsd.platform,
             MAX(fsd.interactions) OVER () AS max_value,
             u.profile_pic_url
-        FROM fairScoresDaily fsd
-        LEFT JOIN users u ON fsd.username = u.username
-        WHERE 
-            fsd.kategori = ?
-            AND fsd.platform = ?
-            AND DATE(fsd.date) = (
-                SELECT MAX(date) 
-                FROM fairScoresDaily 
+            FROM fairScoresDaily fsd
+                LEFT JOIN users u ON fsd.username = u.username
+            WHERE
+                fsd.kategori = ?
+              AND fsd.platform = ?
+              AND DATE(fsd.date) = (
+                SELECT MAX(date)
+                FROM fairScoresDaily
                 WHERE
-                    kategori = ?
-                    AND platform = ? 
-                    AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            )
-        ORDER BY value DESC;
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                )
+            ORDER BY value DESC;
         `;
 
         const queryParams = [
@@ -398,8 +398,8 @@ router.get('/getDailyResponsiveness', async (req, res) => {
             FROM fairScoresDaily
             WHERE
                 kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
                 date ASC
         `;
@@ -428,24 +428,24 @@ router.get('/getDailyResponsiveness', async (req, res) => {
 router.get('/getResponsiveness', async (req, res) => {
     try {
         const query = `
-        SELECT 
-            username,
-            client_account,
-            responsiveness AS value, -- Langsung ambil nilai responsiveness dari tanggal terbaru
+            SELECT
+                username,
+                client_account,
+                responsiveness AS value, -- Langsung ambil nilai responsiveness dari tanggal terbaru
             platform,
             MAX(responsiveness) OVER () AS max_value -- Mengambil nilai responsiveness tertinggi dari tanggal terbaru
-        FROM fairScoresDaily
-        WHERE FIND_IN_SET(?, kategori)
-            AND platform = ?
-            AND DATE(date) = (
-                SELECT MAX(date) 
-                FROM fairScoresDaily 
-                WHERE 
+            FROM fairScoresDaily
+            WHERE FIND_IN_SET(?, kategori)
+              AND platform = ?
+              AND DATE(date) = (
+                SELECT MAX(date)
+                FROM fairScoresDaily
+                WHERE
                 kategori = ?
-                AND platform = ? 
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        )
-        ORDER BY value DESC;
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                )
+            ORDER BY value DESC;
         `;
 
         const queryParams = [
@@ -474,7 +474,7 @@ router.get('/getResponsiveness', async (req, res) => {
 router.get('/getFairScores', async (req, res) => {
     try {
         const query = `
-            SELECT 
+            SELECT
                 client_account,
                 username,
                 username AS akun,
@@ -487,10 +487,10 @@ router.get('/getFairScores', async (req, res) => {
                 platform,
                 RANK() OVER (PARTITION BY kategori, DATE(date) ORDER BY fair_score DESC) AS ranking
             FROM fairScoresDaily
-            WHERE 
+            WHERE
                 kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             GROUP BY list_id, platform, username, date, client_account, kategori
         `;
 
@@ -521,15 +521,15 @@ router.get('/getFairRanking', async (req, res) => {
 
         // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
         const [dateRows] = await db.query(`
-        SELECT 
-          MAX(date) AS max_date,
-          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
-      `, [kategori, platform, start_date, end_date]);
+            SELECT
+                MAX(date) AS max_date,
+                DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+        `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
 
@@ -539,33 +539,33 @@ router.get('/getFairRanking', async (req, res) => {
 
         // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          fair_score AS value,
+            SELECT
+                client_account,
+                username,
+                fair_score AS value,
           platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY fair_score DESC;
-      `, [kategori, platform, max_date]);
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) = DATE(?)
+            ORDER BY fair_score DESC;
+        `, [kategori, platform, max_date]);
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          fair_score AS value,
+            SELECT
+                client_account,
+                username,
+                fair_score AS value,
           platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY fair_score DESC;
-      `, [kategori, platform, prev_date]);
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) = DATE(?)
+            ORDER BY fair_score DESC;
+        `, [kategori, platform, prev_date]);
 
         // Helper function untuk mendapatkan peringkat berdasarkan username
         const getRank = (username, rows) => {
@@ -598,16 +598,16 @@ router.get('/getFollowersRanking', async (req, res) => {
 
         // Ambil semua user dengan kategori dan platform sesuai
         const [users] = await db.query(`
-            SELECT 
+            SELECT
                 client_account,
                 username,
                 followers AS value,
                 platform,
                 profile_pic_url
             FROM users
-            WHERE 
+            WHERE
                 FIND_IN_SET(?, kategori)
-                AND platform = ?
+              AND platform = ?
             ORDER BY followers DESC;
         `, [kategori, platform]);
 
@@ -657,15 +657,15 @@ router.get('/getActivitiesRanking', async (req, res) => {
 
         // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
         const [dateRows] = await db.query(`
-        SELECT 
-          MAX(date) AS max_date,
-          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ?
-          AND DATE(date) BETWEEN DATE(?) AND DATE(?);
-      `, [kategori, platform, start_date, end_date]);
+            SELECT
+                MAX(date) AS max_date,
+                DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?);
+        `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
 
@@ -675,35 +675,35 @@ router.get('/getActivitiesRanking', async (req, res) => {
 
         // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          COALESCE(activities, 0) AS value,
+            SELECT
+                client_account,
+                username,
+                COALESCE(activities, 0) AS value,
           platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY activities DESC;
-      `, [kategori, platform, max_date]);
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) = DATE(?)
+            ORDER BY activities DESC;
+        `, [kategori, platform, max_date]);
 
         console.info(max_date)
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          COALESCE(activities, 0) AS value,
+            SELECT
+                client_account,
+                username,
+                COALESCE(activities, 0) AS value,
           platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY activities DESC;
-      `, [kategori, platform, prev_date]);
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) = DATE(?)
+            ORDER BY activities DESC;
+        `, [kategori, platform, prev_date]);
 
         console.info(prev_date)
 
@@ -738,14 +738,14 @@ router.get('/getInteractionsRanking', async (req, res) => {
 
         // 🔹 Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
         const [dateRows] = await db.query(`
-            SELECT 
+            SELECT
                 MAX(date) AS max_date,
                 DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
             FROM fairScoresMonthly
-            WHERE 
+            WHERE
                 kategori = ?
-                AND platform = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
         `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
@@ -761,16 +761,16 @@ router.get('/getInteractionsRanking', async (req, res) => {
 
         // 🔹 Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
-            SELECT 
+            SELECT
                 client_account,
                 username,
                 COALESCE(interactions, 0) AS value,
                 platform
             FROM fairScoresMonthly
-            WHERE 
+            WHERE
                 kategori = ?
-                AND platform = ? 
-                AND DATE(date) = DATE(?)
+              AND platform = ?
+              AND DATE(date) = DATE(?)
             ORDER BY interactions DESC;
         `, [kategori, platform, max_date]);
 
@@ -786,16 +786,16 @@ router.get('/getInteractionsRanking', async (req, res) => {
 
         // 🔹 Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
-            SELECT 
+            SELECT
                 client_account,
                 username,
                 COALESCE(interactions, 0) AS value,
                 platform
             FROM fairScoresMonthly
-            WHERE 
+            WHERE
                 kategori = ?
-                AND platform = ? 
-                AND DATE(date) = DATE(?)
+              AND platform = ?
+              AND DATE(date) = DATE(?)
             ORDER BY interactions DESC;
         `, [kategori, platform, prev_date]);
 
@@ -850,15 +850,15 @@ router.get('/getResponsivenessRanking', async (req, res) => {
 
         // Query untuk mendapatkan tanggal terbaru (max_date) dan tanggal sebelumnya (prev_date)
         const [dateRows] = await db.query(`
-        SELECT 
-          MAX(date) AS max_date,
-          DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
-        FROM fairScoresMonthly
-        WHERE 
-            kategori = ?
-            AND platform = ?
-            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-      `, [kategori, platform, start_date, end_date]);
+            SELECT
+                MAX(date) AS max_date,
+                DATE_SUB(MAX(date), INTERVAL 1 DAY) AS prev_date
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+        `, [kategori, platform, start_date, end_date]);
 
         const { max_date, prev_date } = dateRows[0];
 
@@ -868,18 +868,18 @@ router.get('/getResponsivenessRanking', async (req, res) => {
 
         // Query untuk mendapatkan ranking di tanggal terbaru (max_date)
         const [latestRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          COALESCE(responsiveness, 0) AS value,
+            SELECT
+                client_account,
+                username,
+                COALESCE(responsiveness, 0) AS value,
           platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY responsiveness DESC;
-      `, [kategori, platform, max_date]);
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) = DATE(?)
+            ORDER BY responsiveness DESC;
+        `, [kategori, platform, max_date]);
 
         // Jika tidak ada data di tanggal terbaru, kirimkan respons kosong
         if (!latestRows.length) {
@@ -893,18 +893,18 @@ router.get('/getResponsivenessRanking', async (req, res) => {
 
         // Query untuk mendapatkan ranking di tanggal sebelumnya (prev_date)
         const [prevRows] = await db.query(`
-        SELECT 
-          client_account,
-          username,
-          COALESCE(responsiveness, 0) AS value,
+            SELECT
+                client_account,
+                username,
+                COALESCE(responsiveness, 0) AS value,
           platform
-        FROM fairScoresMonthly
-        WHERE 
-        kategori = ?
-          AND platform = ? 
-          AND DATE(date) = DATE(?)
-        ORDER BY responsiveness DESC;
-      `, [kategori, platform, prev_date]);
+            FROM fairScoresMonthly
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) = DATE(?)
+            ORDER BY responsiveness DESC;
+        `, [kategori, platform, prev_date]);
 
         // 🔹 Ambil daftar username untuk ambil profile_pic_url
         const usernames = latestRows.map(row => row.username);
@@ -913,10 +913,10 @@ router.get('/getResponsivenessRanking', async (req, res) => {
         let profileMap = {};
         if (usernames.length) {
             const [profiles] = await db.query(`
-              SELECT username, profile_pic_url
-              FROM users
-              WHERE username IN (?)
-          `, [usernames]);
+                SELECT username, profile_pic_url
+                FROM users
+                WHERE username IN (?)
+            `, [usernames]);
 
             profileMap = profiles.reduce((map, user) => {
                 map[user.username] = user.profile_pic_url;
@@ -958,7 +958,7 @@ router.get('/getAllData', async (req, res) => {
             FROM fairScoresMonthly
             WHERE
                 kategori = ?
-                AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY DATE(date) DESC
         `;
 
@@ -1005,8 +1005,8 @@ router.get('/getAllPost', async (req, res) => {
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM posts
-            WHERE 
-            kategori = ?
+            WHERE
+                kategori = ?
               AND platform = ?
               AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
               AND username LIKE CONCAT('%', ?, '%')
@@ -1034,7 +1034,7 @@ router.get('/getAllPost', async (req, res) => {
         // 2️⃣ Hitung persentil 10% & 90% dengan grup yang diminta
         const percentileQuery = `
             WITH ordered AS (
-                SELECT 
+                SELECT
                     performa_konten,
                     ROW_NUMBER() OVER (
                         PARTITION BY 
@@ -1052,7 +1052,7 @@ router.get('/getAllPost', async (req, res) => {
                             END
                         ORDER BY performa_konten
                     ) AS row_num,
-                    COUNT(*) OVER (
+                        COUNT(*) OVER (
                         PARTITION BY 
                             platform,
                             kategori,
@@ -1071,34 +1071,34 @@ router.get('/getAllPost', async (req, res) => {
                 WHERE kategori = ?
                   AND platform = ?
                   AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-                  AND media_name = ?
-            ),
-            positions AS (
-                SELECT
-                    ((0.1 * (total_rows + 1))) AS pos_10,
-                    ((0.9 * (total_rows + 1))) AS pos_90
-                FROM ordered
+                AND media_name = ?
+                ),
+                positions AS (
+            SELECT
+                ((0.1 * (total_rows + 1))) AS pos_10,
+                ((0.9 * (total_rows + 1))) AS pos_90
+            FROM ordered
                 LIMIT 1
-            ),
-            percentile_10_calc AS (
-                SELECT performa_konten AS percentile_10
-                FROM ordered, positions
-                WHERE row_num = FLOOR(pos_10)
-                ORDER BY row_num
+                ),
+                percentile_10_calc AS (
+            SELECT performa_konten AS percentile_10
+            FROM ordered, positions
+            WHERE row_num = FLOOR(pos_10)
+            ORDER BY row_num
                 LIMIT 1
-            ),
-            percentile_90_calc AS (
-                SELECT performa_konten AS percentile_90
-                FROM ordered, positions
-                WHERE row_num = FLOOR(pos_90)
-                ORDER BY row_num
+                ),
+                percentile_90_calc AS (
+            SELECT performa_konten AS percentile_90
+            FROM ordered, positions
+            WHERE row_num = FLOOR(pos_90)
+            ORDER BY row_num
                 LIMIT 1
-            )
-            SELECT 
+                )
+            SELECT
                 p10.percentile_10,
                 p90.percentile_90
             FROM percentile_10_calc p10
-            CROSS JOIN percentile_90_calc p90;
+                     CROSS JOIN percentile_90_calc p90;
         `;
 
         const [percentileRows] = await db.query(percentileQuery, [kategori, platform, start_date, end_date, media_name]);
@@ -1110,26 +1110,26 @@ router.get('/getAllPost', async (req, res) => {
         // 3️⃣ Ambil data dengan filtering media_name
         const dataQuery = `
             WITH all_data AS (
-                SELECT 
+                SELECT
                     *,
-                    (CASE 
-                        WHEN platform = 'TikTok' AND (media_name IS NULL OR media_name = '') THEN 'Video'
-                        WHEN media_name = 'reel' THEN 'Reel'
-                        WHEN media_name IN ('post') THEN 'Single Post'
-                        WHEN media_name IN ('album') THEN 'Carousel'
-                        ELSE media_name
-                    END) AS formatted_media_name,
-                    (CASE 
-                        WHEN performa_konten <= ? THEN 'red'
-                        WHEN performa_konten >= ? THEN 'green'
-                        ELSE 'yellow'
-                    END) AS performa_color
+                    (CASE
+                         WHEN platform = 'TikTok' AND (media_name IS NULL OR media_name = '') THEN 'Video'
+                         WHEN media_name = 'reel' THEN 'Reel'
+                         WHEN media_name IN ('post') THEN 'Single Post'
+                         WHEN media_name IN ('album') THEN 'Carousel'
+                         ELSE media_name
+                        END) AS formatted_media_name,
+                    (CASE
+                         WHEN performa_konten <= ? THEN 'red'
+                         WHEN performa_konten >= ? THEN 'green'
+                         ELSE 'yellow'
+                        END) AS performa_color
                 FROM posts
                 WHERE kategori = ?
-                    AND platform = ?
-                    AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-                    AND media_name = ? -- Filter media_name jika tersedia
-            )
+                  AND platform = ?
+                  AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+                AND media_name = ? -- Filter media_name jika tersedia
+                )
             SELECT all_data.*, formatted_media_name AS media_name
             FROM all_data
             WHERE username LIKE CONCAT('%', ?, '%')
@@ -1175,23 +1175,23 @@ router.get('/getAllPost', async (req, res) => {
 router.get('/getPost', async (req, res) => {
     try {
         const query = `
-            SELECT 
-            CONVERT_TZ(created_at, '+00:00', '+07:00') AS created_at,
-            followers as Followers,
-            comments as Comments,
-            likes as Likes,
-            playCount as Views,
-            shareCount as Shares,
-            downloadCount as Downloads,
-            collectCount as Saves,
-            media_name
+            SELECT
+                CONVERT_TZ(created_at, '+00:00', '+07:00') AS created_at,
+                followers as Followers,
+                comments as Comments,
+                likes as Likes,
+                playCount as Views,
+                shareCount as Shares,
+                downloadCount as Downloads,
+                collectCount as Saves,
+                media_name
             FROM posts
             WHERE
                 FIND_IN_SET(?, kategori)
-                AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
-                AND username = ?
-                AND platform = ?
-                ORDER BY created_at ASC
+              AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+              AND username = ?
+              AND platform = ?
+            ORDER BY created_at ASC
         `;
 
         const queryParams = [
@@ -1223,8 +1223,8 @@ router.get('/getAllUsers', async (req, res) => {
             FROM users
             WHERE
                 FIND_IN_SET(?, kategori)
-                AND platform = ?
-                AND username = ?
+              AND platform = ?
+              AND username = ?
         `;
 
         const queryParams = [
@@ -1248,76 +1248,76 @@ router.get('/getAllUsers', async (req, res) => {
 });
 
 router.get('/getAllUsername', async (req, res) => {
-    try {
-        const query = `
-            SELECT DISTINCT username
-            FROM users
-            WHERE FIND_IN_SET(?, kategori)
-                AND platform = ?
-        `;
+        try {
+            const query = `
+                SELECT DISTINCT username
+                FROM users
+                WHERE FIND_IN_SET(?, kategori)
+                  AND platform = ?
+            `;
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform']
-        ];
+            const queryParams = [
+                req.query['kategori'],
+                req.query['platform']
+            ];
 
-        const [rows] = await db.query(query, queryParams);
+            const [rows] = await db.query(query, queryParams);
 
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
-    } catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
+            res.json({
+                code: 200,
+                status: 'OK',
+                data: rows,
+                errors: null
+            });
+        } catch (error) {
+            console.error('Error fetching dates:', error);
+            res.status(500).send('Failed to fetch dates');
+        }
     }
-}
 );
 
 router.get('/getAllSearchUsername', async (req, res) => {
-    try {
-        const query = `
-            SELECT DISTINCT username
-            FROM users
-            WHERE FIND_IN_SET(?, kategori)
-                AND platform = ?
-            AND username LIKE CONCAT('%', ?, '%')
-        `;
+        try {
+            const query = `
+                SELECT DISTINCT username
+                FROM users
+                WHERE FIND_IN_SET(?, kategori)
+                  AND platform = ?
+                  AND username LIKE CONCAT('%', ?, '%')
+            `;
 
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['search'],
-        ];
+            const queryParams = [
+                req.query['kategori'],
+                req.query['platform'],
+                req.query['search'],
+            ];
 
-        const [rows] = await db.query(query, queryParams);
+            const [rows] = await db.query(query, queryParams);
 
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
-    } catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
+            res.json({
+                code: 200,
+                status: 'OK',
+                data: rows,
+                errors: null
+            });
+        } catch (error) {
+            console.error('Error fetching dates:', error);
+            res.status(500).send('Failed to fetch dates');
+        }
     }
-}
 );
 
 router.get('/getTotalPost', async (req, res) => {
     try {
         const query = `
-            SELECT username, 
-            COUNT(post_id) AS totalPosts
+            SELECT username,
+                   COUNT(post_id) AS totalPosts
             FROM posts
             WHERE FIND_IN_SET(?, kategori)
-                AND platform = ?
-                AND created_at BETWEEN ? AND ?
-                AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
-                AND username LIKE CONCAT('%', ?, '%')
+              AND platform = ?
+              AND created_at BETWEEN ? AND ?
+              AND (media_name = ? OR ? IS NULL) -- Filter media_name jika tersedia
+              AND username LIKE CONCAT('%', ?, '%')
             GROUP BY username
         `;
 
@@ -1348,33 +1348,33 @@ router.get('/getTotalPost', async (req, res) => {
 });
 
 router.get('/getPictureData', async (req, res) => {
-    try {
-        const query = `
-        SElECT *
-        from users
-        WHERE
-        FIND_IN_SET(?, kategori)
-        AND platform = ?
-        AND username = ?
-        `;
-        const queryParams = [
-            req.query['kategori'],
-            req.query['platform'],
-            req.query['username']
-        ];
-        const [rows] = await db.query(query, queryParams);
-        res.json({
-            code: 200,
-            status: 'OK',
-            data: rows,
-            errors: null
-        });
+        try {
+            const query = `
+                SElECT *
+                from users
+                WHERE
+                    FIND_IN_SET(?, kategori)
+                  AND platform = ?
+                  AND username = ?
+            `;
+            const queryParams = [
+                req.query['kategori'],
+                req.query['platform'],
+                req.query['username']
+            ];
+            const [rows] = await db.query(query, queryParams);
+            res.json({
+                code: 200,
+                status: 'OK',
+                data: rows,
+                errors: null
+            });
+        }
+        catch (error) {
+            console.error('Error fetching dates:', error);
+            res.status(500).send('Failed to fetch dates');
+        }
     }
-    catch (error) {
-        console.error('Error fetching dates:', error);
-        res.status(500).send('Failed to fetch dates');
-    }
-}
 );
 
 // Daily Data Api || Growth Metrics
@@ -1382,19 +1382,18 @@ router.get('/getPictureData', async (req, res) => {
 router.get('/getDailyFollowers', async (req, res) => {
     try {
         const query = `
-        SELECT
-            username,
-            client_account,
-            followers AS value,
+            SELECT
+                username,
+                followers AS value,
             platform,
             CONVERT_TZ(date, '+00:00', '+07:00') AS date
-        FROM fairScoresDaily
-        WHERE
-            FIND_IN_SET(?, kategori)
-            AND platform = ?
-            AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-        ORDER BY
-            date ASC
+            FROM fairScoresDaily
+            WHERE
+                kategori = ?
+              AND platform = ?
+              AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+            ORDER BY
+                date ASC
         `;
 
         const queryParams = [
@@ -1421,19 +1420,19 @@ router.get('/getDailyFollowers', async (req, res) => {
 router.get('/getDailyLikes', async (req, res) => {
     try {
         const query = `
-        SELECT
-            p.username,
-            p.client_account,
-            SUM(p.likes) AS value, -- Total likes per hari
+            SELECT
+                p.username,
+                p.client_account,
+                SUM(p.likes) AS value, -- Total likes per hari
             p.platform,
             CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
-        FROM posts p
-        WHERE
-            FIND_IN_SET(?, p.kategori)
-            AND p.platform = ?
-            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, date
-        ORDER BY date ASC;
+            FROM posts p
+            WHERE
+                FIND_IN_SET(?, p.kategori)
+              AND p.platform = ?
+              AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY p.username, p.client_account, p.platform, date
+            ORDER BY date ASC;
         `;
 
         const queryParams = [
@@ -1461,19 +1460,19 @@ router.get('/getDailyLikes', async (req, res) => {
 router.get('/getDailyViews', async (req, res) => {
     try {
         const query = `
-        SELECT
-            p.username,
-            p.client_account,
-            SUM(p.playCount) AS value, -- Total likes per hari
+            SELECT
+                p.username,
+                p.client_account,
+                SUM(p.playCount) AS value, -- Total likes per hari
             p.platform,
             CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
-        FROM posts p
-        WHERE
-            FIND_IN_SET(?, p.kategori)
-            AND p.platform = ?
-            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, date
-        ORDER BY date ASC;
+            FROM posts p
+            WHERE
+                FIND_IN_SET(?, p.kategori)
+              AND p.platform = ?
+              AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY p.username, p.client_account, p.platform, date
+            ORDER BY date ASC;
         `;
 
         const queryParams = [
@@ -1500,19 +1499,19 @@ router.get('/getDailyViews', async (req, res) => {
 router.get('/getDailyComments', async (req, res) => {
     try {
         const query = `
-        SELECT
-            p.username,
-            p.client_account,
-            SUM(p.comments) AS value, -- Total likes per hari
+            SELECT
+                p.username,
+                p.client_account,
+                SUM(p.comments) AS value, -- Total likes per hari
             p.platform,
             CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
-        FROM posts p
-        WHERE
-            FIND_IN_SET(?, p.kategori)
-            AND p.platform = ?
-            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, date
-        ORDER BY date ASC;
+            FROM posts p
+            WHERE
+                FIND_IN_SET(?, p.kategori)
+              AND p.platform = ?
+              AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY p.username, p.client_account, p.platform, date
+            ORDER BY date ASC;
         `;
 
         const queryParams = [
@@ -1539,19 +1538,19 @@ router.get('/getDailyComments', async (req, res) => {
 router.get('/getDailySaves', async (req, res) => {
     try {
         const query = `
-        SELECT
-            p.username,
-            p.client_account,
-            SUM(p.collectCount) AS value, -- Total likes per hari
+            SELECT
+                p.username,
+                p.client_account,
+                SUM(p.collectCount) AS value, -- Total likes per hari
             p.platform,
             CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
-        FROM posts p
-        WHERE
-            FIND_IN_SET(?, p.kategori)
-            AND p.platform = ?
-            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, date
-        ORDER BY date ASC;
+            FROM posts p
+            WHERE
+                FIND_IN_SET(?, p.kategori)
+              AND p.platform = ?
+              AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY p.username, p.client_account, p.platform, date
+            ORDER BY date ASC;
         `;
 
         const queryParams = [
@@ -1578,19 +1577,19 @@ router.get('/getDailySaves', async (req, res) => {
 router.get('/getDailyShares', async (req, res) => {
     try {
         const query = `
-        SELECT
-            p.username,
-            p.client_account,
-            SUM(p.shareCount) AS value, -- Total likes per hari
+            SELECT
+                p.username,
+                p.client_account,
+                SUM(p.shareCount) AS value, -- Total likes per hari
             p.platform,
             CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
-        FROM posts p
-        WHERE
-            FIND_IN_SET(?, p.kategori)
-            AND p.platform = ?
-            AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY p.username, p.client_account, p.platform, date
-        ORDER BY date ASC;
+            FROM posts p
+            WHERE
+                FIND_IN_SET(?, p.kategori)
+              AND p.platform = ?
+              AND DATE(p.created_at) BETWEEN DATE(?) AND DATE(?)
+            GROUP BY p.username, p.client_account, p.platform, date
+            ORDER BY date ASC;
         `;
 
         const queryParams = [
@@ -1663,10 +1662,10 @@ router.get('/getFairDataInsights', async (req, res) => {
         // 🔍 Cari MAX(date) dengan konversi ke UTC+7
         const [maxDateResult] = await db.query(
             `SELECT MAX((CONVERT_TZ(date, '+00:00', '+07:00'))) AS maxDate
-             FROM fairScoresMonthly 
+             FROM fairScoresMonthly
              WHERE kategori = ?
-             AND LOWER(platform) = LOWER(?) 
-             AND DATE(CONVERT_TZ(date, '+00:00', '+07:00')) BETWEEN DATE(?) AND DATE(?)`,
+               AND LOWER(platform) = LOWER(?)
+               AND DATE(CONVERT_TZ(date, '+00:00', '+07:00')) BETWEEN DATE(?) AND DATE(?)`,
             [kategori, platform, startDate, endDate]
         );
 
@@ -1682,7 +1681,7 @@ router.get('/getFairDataInsights', async (req, res) => {
             `SELECT *, CONVERT_TZ(date, '+00:00', '+07:00') AS local_date
              FROM fairScoresMonthly
              WHERE kategori = ?
-             AND LOWER(platform) = LOWER(?) AND CONVERT_TZ(date, '+00:00', '+07:00') = ?`,
+               AND LOWER(platform) = LOWER(?) AND CONVERT_TZ(date, '+00:00', '+07:00') = ?`,
             [kategori, platform, maxDate]
         );
 
@@ -1733,10 +1732,10 @@ router.get('/getGrowthData', async (req, res) => {
         // Followers Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
         const [followersResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
-            FROM fairScoresDaily
-            WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
+                FROM fairScoresDaily
+                WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
@@ -1746,10 +1745,10 @@ router.get('/getGrowthData', async (req, res) => {
         // Posts Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
         const [postsResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, nilai_aktifitas AS posts
-            FROM fairScoresDaily
-            WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, nilai_aktifitas AS posts
+                FROM fairScoresDaily
+                WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
@@ -1759,11 +1758,11 @@ router.get('/getGrowthData', async (req, res) => {
         // Likes Query (tetap gunakan CONVERT_TZ karena kolom bertipe DATETIME)
         const [likesResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(likes) AS likes
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(likes) AS likes
+                FROM posts
+                WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+                GROUP BY date
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
@@ -1773,11 +1772,11 @@ router.get('/getGrowthData', async (req, res) => {
         // Views Query
         const [viewsResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(playCount) AS views
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(playCount) AS views
+                FROM posts
+                WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+                GROUP BY date
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
@@ -1787,11 +1786,11 @@ router.get('/getGrowthData', async (req, res) => {
         // Comments Query
         const [commentsResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(comments) AS comments
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(comments) AS comments
+                FROM posts
+                WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+                GROUP BY date
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
@@ -1801,11 +1800,11 @@ router.get('/getGrowthData', async (req, res) => {
         // Views Query
         const [savesResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(collectCount) AS saves
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(collectCount) AS saves
+                FROM posts
+                WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+                GROUP BY date
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
@@ -1815,11 +1814,11 @@ router.get('/getGrowthData', async (req, res) => {
         // Comments Query
         const [sharesResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(shareCount) AS shares
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
+                SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(shareCount) AS shares
+                FROM posts
+                WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
+                GROUP BY date
+                ORDER BY date ASC;
             `,
             [username, platform, start_date, end_date]
         );
