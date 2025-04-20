@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../models/db');
 const ExcelJS = require('exceljs');
 const moment = require('moment-timezone');
-
+const { calculateResponsivenessPerPost } = require('../controllers/calculateResponsivenessPerPost');
 const router = express.Router();
 
 router.post('/exportPosts', async (req, res) => {
@@ -186,6 +186,155 @@ router.post('/exportPosts', async (req, res) => {
     }
 });
 
+router.post("/exportAllComments", async (req, res) => {
+    try {
+        const { kategori, platform, start_date, end_date, username } = req.body;
+
+        if (!kategori || !platform || !start_date || !end_date) {
+            return res.status(400).json({ message: "Kategori, platform, start_date, dan end_date wajib diisi." });
+        }
+
+        const filters = [kategori, platform, start_date, end_date];
+        let usernameClause = "";
+        if (username && username.trim()) {
+            filters.push(username);
+            usernameClause = "AND username = ?";
+        }
+
+        // 🚀 Query mainComments
+        const [mainRows] = await db.query(`
+            SELECT * FROM mainComments
+            WHERE FIND_IN_SET(?, kategori)
+              AND platform = ?
+              AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+              ${usernameClause}
+        `, filters);
+
+        // 🚀 Query childComments
+        const [childRows] = await db.query(`
+            SELECT * FROM childComments
+            WHERE FIND_IN_SET(?, kategori)
+              AND platform = ?
+              AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+              ${usernameClause}
+        `, filters);
+
+        if (mainRows.length === 0 && childRows.length === 0) {
+            return res.status(404).json({ message: "No comments found to export." });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+
+        // 📄 Worksheet 1: Main Comments
+        const mainSheet = workbook.addWorksheet("Main Comments");
+        mainSheet.columns = [
+            { header: "Platform", key: "platform", width: 10 },
+            { header: "Username", key: "username", width: 20 },
+            { header: "Link", key: "link", width: 50 },
+            { header: "Commenter", key: "commenter_username", width: 20 },
+            { header: "Comment Text", key: "comment_text", width: 40 },
+            { header: "Likes", key: "comment_like_count", width: 10 },
+            { header: "Date", key: "created_at", width: 20 },
+            { header: "Kategori", key: "kategori", width: 15 },
+            { header: "Label", key: "label", width: 10 },
+            { header: "Sentiment", key: "sentiment", width: 10 },
+        ];
+
+        mainRows.forEach(row => {
+            let platformLink = "";
+            switch (row.platform) {
+                case "TikTok":
+                    platformLink = `https://www.tiktok.com/@${row.username}/video/${row.unique_id_post}`;
+                    break;
+                case "Instagram":
+                    platformLink = `https://www.instagram.com/p/${row.comment_unique_id}`;
+                    break;
+                case "Facebook":
+                    platformLink = `https://www.facebook.com/${row.username}/posts/${row.unique_id_post}`;
+                    break;
+                case "Youtube":
+                    platformLink = `https://www.youtube.com/watch?v=${row.unique_id_post}`;
+                    break;
+                default:
+                    platformLink = "";
+            }
+
+            mainSheet.addRow({
+                platform: row.platform,
+                username: row.username,
+                link: platformLink,
+                commenter_username: row.commenter_username,
+                comment_text: row.comment_text,
+                comment_like_count: row.comment_like_count,
+                created_at: moment(row.created_at).tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss"),
+                kategori: row.kategori,
+                label: row.label,
+                sentiment: row.sentiment,
+            });
+        });
+
+        // 📄 Worksheet 2: Child Comments
+        const childSheet = workbook.addWorksheet("Child Comments");
+        childSheet.columns = [
+            { header: "Platform", key: "platform", width: 10 },
+            { header: "Username", key: "username", width: 20 },
+            { header: "Link", key: "link", width: 50 },
+            { header: "Child Commenter", key: "child_commenter_username", width: 20 },
+            { header: "Child Text", key: "child_comment_text", width: 40 },
+            { header: "Likes", key: "child_comment_like_count", width: 10 },
+            { header: "Date", key: "created_at", width: 20 },
+            { header: "Kategori", key: "kategori", width: 15 },
+            { header: "Label", key: "label", width: 10 },
+            { header: "Sentiment", key: "sentiment", width: 10 },
+        ];
+
+        childRows.forEach(row => {
+            let platformLink = "";
+            switch (row.platform) {
+                case "TikTok":
+                    platformLink = `https://www.tiktok.com/@${row.username}/video/${row.unique_id_post}`;
+                    break;
+                case "Instagram":
+                    platformLink = `https://www.instagram.com/p/${row.comment_unique_id}`;
+                    break;
+                case "Facebook":
+                    platformLink = `https://www.facebook.com/${row.username}/posts/${row.unique_id_post}`;
+                    break;
+                case "Youtube":
+                    platformLink = `https://www.youtube.com/watch?v=${row.unique_id_post}`;
+                    break;
+                default:
+                    platformLink = "";
+            }
+
+            childSheet.addRow({
+                platform: row.platform,
+                username: row.username,
+                link: platformLink,
+                child_commenter_username: row.child_commenter_username,
+                child_comment_text: row.child_comment_text,
+                child_comment_like_count: row.child_comment_like_count,
+                created_at: moment(row.created_at).tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss"),
+                kategori: row.kategori,
+                label: row.label,
+                sentiment: row.sentiment,
+            });
+        });
+
+        // 💾 Save and Send
+        const filename = `comments_${kategori}_${platform}_${start_date}_to_${end_date}${username ? `_for_${username}` : ""}.xlsx`;
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+        await workbook.xlsx.write(res);
+        res.end();
+
+        console.info("✅ Export berhasil dikirim.");
+    } catch (err) {
+        console.error("❌ Export error:", err);
+        res.status(500).json({ message: "Gagal export komentar." });
+    }
+});
+
 router.get('/exportFair', async (req, res) => {
     try {
         const { kategori, platform, start_date, end_date } = req.query;
@@ -262,6 +411,34 @@ router.get('/exportFair', async (req, res) => {
             status: "ERROR",
             message: "Gagal melakukan export fair.",
             error: error.message
+        });
+    }
+});
+
+// POST /api/responsiveness
+router.post('/calculateResponsiveness', async (req, res) => {
+    try {
+        const { kategori } = req.body;
+
+        if (!kategori) {
+            return res.status(400).json({
+                success: false,
+                message: 'kategori dan platform harus diisi.',
+            });
+        }
+
+        await calculateResponsivenessPerPost(kategori);
+
+        res.json({
+            success: true,
+            message: `Proses responsiveness per post selesai untuk kategori: ${kategori}.`,
+        });
+    } catch (error) {
+        console.error('[ERROR] Failed to process responsiveness:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Gagal memproses responsiveness.',
+            error: error.message,
         });
     }
 });
