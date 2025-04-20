@@ -61,7 +61,6 @@ const saveDataUser = async (kategori, platform) => {
             for (const date of dates) {
                 batchValues.push([
                     account.list_id,
-                    account.client_account,
                     account.kategori,
                     account.platform,
                     account.username,
@@ -71,38 +70,20 @@ const saveDataUser = async (kategori, platform) => {
         }
 
         const insertSqlDaily = `
-            INSERT INTO fairScoresDaily (list_id, client_account, kategori, platform, username, date)
+            INSERT INTO fairScoresDaily (list_id, kategori, platform, username, date)
             VALUES ?
             ON DUPLICATE KEY UPDATE
-                client_account = IF(
-                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
-                        client_account, 
-                        CONCAT_WS(',', client_account, VALUES(client_account))
-                    ),
-                kategori = IF(
-                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
-                        kategori, 
-                        CONCAT_WS(',', kategori, VALUES(kategori))
-                    ),
+                kategori = VALUES(kategori),
                 platform = VALUES(platform),
                 username = VALUES(username),
                 date = VALUES(date);
         `;
 
         const insertSqlMonthly = `
-            INSERT INTO fairScoresMonthly (list_id, client_account, kategori, platform, username, date)
+            INSERT INTO fairScoresMonthly (list_id, kategori, platform, username, date)
             VALUES ?
             ON DUPLICATE KEY UPDATE
-                client_account = IF(
-                        FIND_IN_SET(VALUES(client_account), client_account) > 0, 
-                        client_account, 
-                        CONCAT_WS(',', client_account, VALUES(client_account))
-                    ),
-                    kategori = IF(
-                        FIND_IN_SET(VALUES(kategori), kategori) > 0, 
-                        kategori, 
-                        CONCAT_WS(',', kategori, VALUES(kategori))
-                    ),
+                kategori = VALUES(kategori),
                 platform = VALUES(platform),
                 username = VALUES(username),
                 date = VALUES(date);

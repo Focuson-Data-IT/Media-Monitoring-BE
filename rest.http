@@ -108,54 +108,77 @@ Content-Type: application/json
 
 ###
 List Akun Mitra / Kategori nya
-- opdbekasikab bekasi khusus (instagram) doang
-- prokopim_bekasikab (Instagram)
-- disparbud (Instagram dan TikTok) 
-- disparbud_competitor (Instagram dan TikTok) 
-- disparbud_ambassador (Instagram dan TikTok)
-- kdm_media (Instagram & TikTok)
-- opdjabar (Instagram & TikTok)
-- gubernur_jabar (Instagram & TikTok)
+- opdbekasikab bekasi khusus (instagram) doang v
+- prokopim_bekasikab (Instagram) v 
+- disparbud (Instagram dan TikTok) v
+- disparbud_competitor (Instagram dan TikTok) v
+- disparbud_ambassador (Instagram dan TikTok) v
+# - kdm_media (Instagram & TikTok) deprecated
+- opdjabar (Instagram & TikTok) v
+- gubernur_jabar (Instagram & TikTok) v
+- opdbandung (Instagram)
+- sentul_media (tiktok)
+# - tmii (tiktok) deprecated
 
 ### Get Instagram User Data (Deprecated // langsung panggil user post nya saja)
-GET http://localhost:7780/instagram/getData?kategori=opdbekasikab
+GET http://localhost:7770/instagram/getData?kategori=opdbandung
 
 ### Get Tiktok User Data
-GET http://localhost:7770/tiktok/getData?kategori=tmii
+GET http://localhost:7770/tiktok/getData?kategori=gubernur_jabar
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=opdjabar
+GET http://localhost:7770/instagram/getPost?kategori=opdbandung
 
 ### Get TikTok User Post
-GET http://localhost:7770/tiktok/getPost?kategori=tmii
+GET http://localhost:7770/tiktok/getPost?kategori=gubernur_jabar
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=opdbekasikab
+GET http://localhost:7770/instagram/getComment?kategori=opdbandung
 
 ### Get Instagram User Comment custom request
-GET http://localhost:7780/instagram/getCommentByCode?kategori=custom_request
+GET http://localhost:7791/instagram/getCommentByCode?kategori=prokopim_bekasikab
 
 ### Get TikTok User Comment
-GET http://localhost:7770/tiktok/getComment?kategori=tmii
+GET http://localhost:7780/tiktok/getComment?kategori=gubernur_jabar
 
 ### STEP 2
 
-List Akun Mitra / Kategori nya
-- disparbud (Instagram & TikTok) 
-- disparbud_competitor (Instagram & TikTok) 
-- disparbud_ambassador (Instagram & TikTok)
-- opdbekasikab bekasi khusus (instagram) doang
-- prokopim_bekasikab (Instagram)
-- kdm_media (Instagram & TikTok)
-- opdjabar (Instagram & TikTok)
-- gubernur_jabar (Instagram & TikTok)
-
-### post addDataUser per hari
-POST http://localhost:7780/fair/addDataUser
+### Proses Responsiveness khusus 7770
+POST http://localhost:7770/api/file/calculateResponsiveness
 Content-Type: application/json
 
 {
-    "kategori": "tmii",
+    "kategori": "opdbandung"
+}
+
+### Proses Responsiveness
+POST http://localhost:7790/file/calculateResponsiveness
+Content-Type: application/json
+
+{
+    "kategori": "gubernur_jabar"
+}
+
+###
+List Akun Mitra / Kategori nya
+- opdbekasikab bekasi khusus (instagram) doang
+- prokopim_bekasikab (Instagram)
+- disparbud (Instagram & TikTok) 
+- disparbud_competitor (Instagram & TikTok) 
+- disparbud_ambassador (Instagram & TikTok)
+# - kdm_media (Instagram & TikTok) deprecated
+- opdjabar (Instagram & TikTok)
+- gubernur_jabar (Instagram & TikTok)
+- opdbandung (Instagram)
+- sentul_media (tiktok)
+# - tmii (tiktok) deprecated
+
+### post addDataUser per hari
+POST http://localhost:7770/fair/addDataUser
+Content-Type: application/json
+
+{
+    "kategori": "sentul_media",
     "platform": "TikTok"
 }
 
@@ -164,20 +187,9 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-    "start_date": "2025-02-01",
-    "end_date": "2025-03-31",
-    "kategori": "tmii",
-    "platform": "TikTok"
-}
-
-### post processData
-POST http://localhost:7780/fair/processDataFair
-Content-Type: application/json
-
-{
     "start_date": "2025-01-01",
-    "end_date": "2025-03-31",
-    "kategori": "tmii",
+    "end_date": "2025-04-30",
+    "kategori": "sentul_media",
     "platform": "TikTok"
 }
 
@@ -192,13 +204,24 @@ Content-Type: application/json
     "platform": "Instagram"
 }
 
-### Proses Performa Konten
-POST http://localhost:7790/api/prosesPerformaKonten
+### post processData Perbulan Deprecated
+POST http://localhost:7770/fair/processDataFair
 Content-Type: application/json
 
 {
-  "startDate": "2000-01-01",
-  "endDate": "2025-12-31"
+    "start_date": "2025-01-01",
+    "end_date": "2025-03-31",
+    "kategori": "tmii",
+    "platform": "TikTok"
+}
+
+### Proses Performa Konten
+POST http://localhost:7770/api/prosesPerformaKonten
+Content-Type: application/json
+
+{
+  "startDate": "2025-01-01",
+  "endDate": "2025-4-30"
 }
 
 ### Get Instagram User Data
@@ -266,7 +289,7 @@ Content-Type: application/json
 {
   "kategori": "prokopim_bekasikab",
   "platform": "Instagram",
-  "start_date": "2025-02-01",
+  "start_date": "2025-01-01",
   "end_date": "2025-02-28"
 }
 
@@ -300,10 +323,10 @@ GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=kdm
 GET http://localhost:7780/tiktok/getDataPostByKeywords?kategori=kdm
 
 ###
-GET http://localhost:7780/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-03-01&end_date=2025-04-30
+GET http://localhost:7780/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-04-17&end_date=2025-04-30
 
 ###
-GET http://localhost:7780/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-03-01&end_date=2025-04-30
+GET http://localhost:7780/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-04-17&end_date=2025-04-30
 
 ###
 GET http://localhost:7770/
@@ -347,27 +370,23 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7770/facebook/getCommentv2
+POST http://localhost:7790/facebook/getCommentv2
 Content-Type: application/json
 
 {
     "kategori": "kdm",
-    "unique_id_post": "1173801077614373"
+    "unique_id_post": "1A5uWJNh94"
 }
 
 ###
-POST http://localhost:7780/youtube/getCommentv2
+POST http://localhost:7790/youtube/getCommentv2
 Content-Type: application/json
 
 {
     "kategori": "kdm",
     "fromStart": "true",
     "unique_id_post": [
-        "O8k8T8ynKpE",
-        "Rzjw9WxbGGA",
-        "fCBzUwoMSW8",
-        "_MnQdqGIJbw",
-        "V04VmKn6-G0"
+        "0UBLjP4uofM"
         
     ]
 }
@@ -403,7 +422,7 @@ https://vt.tiktok.com/ZSMo2Hesu/
 https://vt.tiktok.com/ZSMomaajM/
 
 ###
-GET http://localhost:7770/tiktok/getCommentByCode?kategori=kdm&url=https://www.tiktok.com/@trendradio.id/video/7486072741876239637
+GET http://localhost:7770/tiktok/getCommentByCode?kategori=kdm&url=https://www.tiktok.com/@rie_seller/video/7494135886255312183
 
 ###
 GET http://localhost:7770/api/file/exportFair?kategori=disparbud&platform=Instagram&start_date=2025-03-01&end_date=2025-03-31

@@ -121,8 +121,9 @@ const getDataPost = async (kategori = null, platform = null) => {
         // const endDateObj = new Date(endDate).getTime();
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 100); // Kurangi 1 hari dari hari ini
-        const endDateObj = endDate.toISOString().split('T')[0];
+        endDate.setDate(endDate.getDate() - 5); // Kurangi 1 hari dari hari ini
+        const endDates = endDate.toISOString().split('T')[0];
+        const endDateObj = new Date(endDates).getTime();
 
         const batchSize = 5; // Jumlah akun yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
@@ -294,270 +295,186 @@ const getDataPost = async (kategori = null, platform = null) => {
 // Fungsi untuk mendapatkan data Comment dari API
 const getDataComment = async (kategori = null, platform = null) => {
     try {
-        // Ambil daftar postingan dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
-            SELECT *
-            FROM posts 
-            WHERE platform = ?
-            AND FIND_IN_SET(?, kategori)
-            AND comments_processed = 0
-            AND comments > 0
+            SELECT * FROM posts 
+            WHERE platform = ? AND FIND_IN_SET(?, kategori)
+              AND comments_processed = 0 AND comments > 0
         `, [platform, kategori]);
 
-        if (!rows.length) {
-            return console.log('No posts found in the database.');
-        }
+        if (!rows.length) return console.log('📭 No posts found to process.');
 
-        const batchSize = 5; // Jumlah postingan yang diproses per batch
-        const rowBatches = chunkArray(rows, batchSize);
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            console.info(`\n🔍 [${i + 1}/${rows.length}] Processing post: ${row.unique_id_post}`);
 
-        for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} posts...`);
+            let retry = 0;
+            let success = false;
 
-            await Promise.all(batch.map(async (row) => {
+            while (retry < 3 && !success) {
+                try {
+                    let cursor = 0;
+                    let hasMore = true;
+                    let pageCount = 0;
 
-                let retryCount = 0;
-                const maxRetries = 3;
-
-                while (retryCount < maxRetries) {
-                    try {
-                        console.info(`🔍 Fetching comments for post: ${row.unique_id_post}`);
-    
-                        let cursor = 0;
-                        let hasMore = true;
-                        let pageCount = 0;
-    
-                        while (hasMore) {
-                            // Konfigurasi request ke TikTok API
-                            const getComment = {
-                                method: 'GET',
-                                url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getCommentListByVideo',
-                                params: {
-                                    url: row.unique_id_post,
-                                    count: 50,
-                                    ...(cursor && { cursor: cursor }) // Hanya tambahkan jika cursor tersedia
-                                },
-                                headers: {
-                                    'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
-                                    'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
-                                }
-                            };
-    
-                            const response = await axios.request(getComment);
-    
-                            if (!response.data?.data?.comments) {
-                                console.log(`🚫 No more comments for post ${row.unique_id_post}`);
-                                hasMore = false;
-                                break;
+                    while (hasMore) {
+                        const response = await axios.get('https://tiktok-api15.p.rapidapi.com/index/Tiktok/getCommentListByVideo', {
+                            params: {
+                                url: row.unique_id_post,
+                                count: 50,
+                                ...(cursor && { cursor })
+                            },
+                            headers: {
+                                'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                                'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
                             }
-    
-                            const userComments = response.data.data.comments;
-    
-                            // Proses data dalam batch kecil untuk menghindari overload
-                            const commentBatches = chunkArray(userComments, batchSize);
-    
-                            for (const commentBatch of commentBatches) {
-                                console.info(`💬 Processing batch of ${commentBatch.length} comments...`);
-                                await Promise.all(commentBatch.map(async (item) => {
-                                    const postDate = new Date(item.create_time * 1000).getTime();
-                                    const comment = {
-                                        client_account: row.client_account,
-                                        kategori: kategori,
-                                        platform: platform,
-                                        user_id: row.user_id,
-                                        username: row.username,
-                                        unique_id_post: row.unique_id_post,
-                                        comment_unique_id: item.id,
-                                        created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                        commenter_username: item.user.unique_id,
-                                        commenter_userid: item.user.id,
-                                        comment_text: item.text,
-                                        comment_like_count: item.digg_count,
-                                        child_comment_count: item.reply_total
-                                    };
-    
-                                    await save.saveComment(comment);
-                                }));
-                            }
-    
-                            cursor = response.data.data.cursor;
-                            hasMore = response.data.data.hasMore;
-                            pageCount++;
-    
-                            console.log(`✅ Processed page: ${pageCount}, Cursor: ${cursor}, HasMore: ${hasMore}`);
+                        });
+
+                        const comments = response?.data?.data?.comments || [];
+                        if (!comments.length) break;
+
+                        for (const item of comments) {
+                            const postDate = new Date(item.create_time * 1000);
+                            await save.saveComment({
+                                client_account: row.client_account,
+                                kategori, platform,
+                                user_id: row.user_id,
+                                username: row.username,
+                                unique_id_post: row.unique_id_post,
+                                comment_unique_id: item.id,
+                                created_at: postDate.toISOString().slice(0, 19).replace('T', ' '),
+                                commenter_username: item.user.unique_id,
+                                commenter_userid: item.user.id,
+                                comment_text: item.text,
+                                comment_like_count: item.digg_count,
+                                child_comment_count: item.reply_total
+                            });
                         }
 
-                        console.info(`✅ Finished processing comments for post: ${row.unique_id_post}`);
-                        // **Update comments_processed = 1 jika berhasil**
-                        await db.query(`
-                            UPDATE posts 
-                            SET comments_processed = 1 
-                            WHERE unique_id_post = ?
-                        `, [row.unique_id_post]);
-
-                        success = true;
-                        break; // Jika berhasil, keluar dari retry loop
-                    } catch (error) {
-                        retryCount++;
-                        console.error(`❌ Error fetching comments for ${row.unique_id_post} (Attempt ${retryCount}):`, error.message);
-
-                        if (retryCount >= maxRetries) {
-                            console.error(`❌ Failed to fetch comments for ${row.unique_id_post} after ${maxRetries} attempts.`);
-                            // **Pastikan comment_processed tetap 0 jika gagal**
-                            await db.query(`
-                                UPDATE posts 
-                                SET comments_processed = 0 
-                                WHERE unique_id_post = ?
-                            `, [row.unique_id_post]);
-                        } else {
-                            console.warn(`⚠️ Retrying for post ${row.unique_id_post} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
-                        }
+                        cursor = response.data.data.cursor;
+                        hasMore = response.data.data.hasMore;
+                        pageCount++;
+                        console.log(`✅ Page ${pageCount} processed`);
                     }
-                }        
-            }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch postingan
+                    await db.query(`UPDATE posts SET comments_processed = 1 WHERE unique_id_post = ?`, [row.unique_id_post]);
+                    console.log(`🎉 Done: ${row.unique_id_post}`);
+                    success = true;
+
+                } catch (err) {
+                    retry++;
+                    console.error(`❌ Error post ${row.unique_id_post} (try ${retry}):`, err.message);
+                    if (retry >= 3) {
+                        await db.query(`UPDATE posts SET comments_processed = 0 WHERE unique_id_post = ?`, [row.unique_id_post]);
+                    } else {
+                        console.warn('⏳ Retrying in 5s...');
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    }
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ All comments have been successfully updated.');
+        console.log('✅ Semua komentar berhasil diproses!');
     } catch (error) {
-        console.error('❌ Error executing function:', error.message);
+        console.error('❌ Fatal error:', error.message);
     }
 };
 
 // Fungsi untuk mendapatkan data Child Comment dari API
 const getDataChildComment = async (kategori = null, platform = null) => {
     try {
-        // Ambil daftar komentar dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
-            SELECT *
-            FROM mainComments mc
+            SELECT * FROM mainComments mc
             JOIN posts p ON mc.unique_id_post = p.unique_id_post
-            WHERE mc.platform = ?
-            AND FIND_IN_SET(?, mc.kategori)
-            AND mc.child_comments_processed = 0
-            AND mc.child_comment_count > 0
+            WHERE mc.platform = ? AND FIND_IN_SET(?, mc.kategori)
+              AND mc.child_comments_processed = 0
+              AND mc.child_comment_count > 0
         `, [platform, kategori]);
 
-        if (!rows.length) {
-            return console.log('No comments found in the database.');
-        }
+        if (!rows.length) return console.log('📭 No child comments to process.');
 
-        const batchSize = 5; // Jumlah komentar yang diproses per batch
-        const rowBatches = chunkArray(rows, batchSize);
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            console.info(`\n🔍 [${i + 1}/${rows.length}] Parent comment: ${row.comment_unique_id}`);
 
-        for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} parent comments...`);
+            let retry = 0;
+            let success = false;
 
-            await Promise.all(batch.map(async (row) => {
-                let retryCount = 0;
-                const maxRetries = 3; // Maksimum retry per parent comment
+            while (retry < 3 && !success) {
+                try {
+                    let cursor = 0;
+                    let hasMore = true;
+                    let pageCount = 0;
 
-                while (retryCount < maxRetries) {
-                    try {
-                        console.info(`🔍 Fetching child comments for parent comment: ${row.comment_unique_id} on post: ${row.unique_id_post}`);
-    
-                        let cursor = 0;
-                        let hasMore = true;
-                        let pageCount = 0;
-                        
-                        while (hasMore) {
-                            // Konfigurasi request ke TikTok API
-                            const getChildComment = {
-                                method: 'GET',
-                                url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getReplyListByCommentId',
-                                params: {
-                                    comment_id: row.comment_unique_id,
-                                    video_id: row.unique_id_post,
-                                    count: 50,
-                                    ...(cursor && { cursor: cursor }) // Hanya tambahkan jika cursor tersedia
-                                },
-                                headers: {
-                                    'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
-                                    'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
-                                }
-                            };
-    
-                            const response = await axios.request(getChildComment);
-    
-                            if (!response.data?.data?.comments) {
-                                console.log(`🚫 No more child comments for post ${row.unique_id_post}`);
-                                hasMore = false;
-                                break;
+                    while (hasMore) {
+                        const response = await axios.get('https://tiktok-api15.p.rapidapi.com/index/Tiktok/getReplyListByCommentId', {
+                            params: {
+                                comment_id: row.comment_unique_id,
+                                video_id: row.unique_id_post,
+                                count: 50,
+                                ...(cursor && { cursor })
+                            },
+                            headers: {
+                                'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                                'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
                             }
-    
-                            const userComments = response.data.data.comments;
-    
-                            // Proses data dalam batch kecil untuk menghindari overload
-                            const commentBatches = chunkArray(userComments, batchSize);
-    
-                            for (const commentBatch of commentBatches) {
-                                console.info(`💬 Processing batch of ${commentBatch.length} child comments...`);
-                                await Promise.all(commentBatch.map(async (item) => {
-                                    const postDate = new Date(item.create_time * 1000).getTime();
-                                    const childComment = {
-                                        client_account: row.client_account,
-                                        kategori: kategori,
-                                        platform: platform,
-                                        user_id: row.user_id,
-                                        username: row.username,
-                                        unique_id_post: row.unique_id_post,
-                                        comment_unique_id: row.comment_unique_id,
-                                        child_comment_unique_id: item.id,
-                                        created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                        child_commenter_username: item.user.unique_id,
-                                        child_commenter_userid: item.user.id,
-                                        child_comment_text: item.text,
-                                        child_comment_like_count: item.digg_count
-                                    };
-    
-                                    await save.saveChildComment(childComment);
-                                }));
-                            }
-    
-                            cursor = response.data.data.cursor;
-                            hasMore = response.data.data.hasMore;
-                            pageCount++;
-    
-                            console.log(`✅ Processed page: ${pageCount}, Cursor: ${cursor}, HasMore: ${hasMore}`);
+                        });
+
+                        const replies = response?.data?.data?.comments || [];
+                        if (!replies.length) break;
+
+                        for (const reply of replies) {
+                            const date = new Date(reply.create_time * 1000);
+                            await save.saveChildComment({
+                                client_account: row.client_account,
+                                kategori, platform,
+                                user_id: row.user_id,
+                                username: row.username,
+                                unique_id_post: row.unique_id_post,
+                                comment_unique_id: row.comment_unique_id,
+                                child_comment_unique_id: reply.id,
+                                created_at: date.toISOString().slice(0, 19).replace('T', ' '),
+                                child_commenter_username: reply.user.unique_id,
+                                child_commenter_userid: reply.user.id,
+                                child_comment_text: reply.text,
+                                child_comment_like_count: reply.digg_count
+                            });
                         }
 
-                        console.info(`✅ Finished processing child comments for parent comment: ${row.comment_unique_id}`);
-                        await db.query(`
-                            UPDATE mainComments 
-                            SET child_comments_processed = 1 
-                            WHERE unique_id_post = ?
-                        `, [row.unique_id_post]);
+                        cursor = response.data.data.cursor;
+                        hasMore = response.data.data.hasMore;
+                        pageCount++;
+                        console.log(`✅ Page ${pageCount} processed`);
+                    }
 
-                        success = true;
-                        break; // Jika berhasil, keluar dari retry loop
-                    } catch (error) {
-                        retryCount++;
-                        console.error(`❌ Error fetching child comments for ${row.comment_unique_id} on post ${row.unique_id_post} (Attempt ${retryCount}):`, error.message);
+                    await db.query(`
+                        UPDATE mainComments 
+                        SET child_comments_processed = 1 
+                        WHERE comment_unique_id = ?
+                    `, [row.comment_unique_id]);
 
-                        if (retryCount >= maxRetries) {
-                            console.error(`❌ Failed to fetch child comments for ${row.comment_unique_id} after ${maxRetries} attempts.`);
+                    console.log(`🎉 Done: ${row.comment_unique_id}`);
+                    success = true;
 
-                            await db.query(`
-                                UPDATE mainComments 
-                                SET child_comments_processed = 0 
-                                WHERE unique_id_post = ?
-                            `, [row.unique_id_post]);
-                        } else {
-                            console.warn(`⚠️ Retrying for comment ${row.comment_unique_id} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
-                        }
+                } catch (err) {
+                    retry++;
+                    console.error(`❌ Error for ${row.comment_unique_id} (try ${retry}):`, err.message);
+                    if (retry >= 3) {
+                        await db.query(`UPDATE mainComments SET child_comments_processed = 0 WHERE comment_unique_id = ?`, [row.comment_unique_id]);
+                    } else {
+                        console.warn('⏳ Retrying in 5s...');
+                        await new Promise(resolve => setTimeout(resolve, 5000));
                     }
                 }
-            }));
+            }
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch komentar induk
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ All child comments have been successfully updated.');
+        console.log('✅ Semua child comments berhasil diproses!');
     } catch (error) {
-        console.error('❌ Error executing function:', error.message);
+        console.error('❌ Fatal error:', error.message);
     }
 };
 

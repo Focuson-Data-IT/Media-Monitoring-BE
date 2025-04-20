@@ -74,18 +74,18 @@ const savePost = async (post) => {
             shareCount = VALUES(shareCount),
             downloadCount = VALUES(downloadCount)
     `;
-    connection.query(sql, [
-        post.client_account, post.kategori, post.platform, post.username,
-        post.user_id, post.unique_id_post, post.created_at, post.thumbnail_url, post.caption, post.post_code, 
-        post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, 
-        post.followers, post.following, post.playCount, post.collectCount, post.shareCount, post.downloadCount
-    ], (err, result) => {
-        if (err) {
-            console.error(`❌ Error saving post ${post.unique_id_post} to database:`, err.message);
-        } else {
-            console.log(`✅ Saved post ${post.unique_id_post} for ${post.client_account} in kategori ${post.kategori}`);
-        }
-    });
+
+    try {
+        await connection.query(sql, [
+            post.client_account, post.kategori, post.platform, post.username,
+            post.user_id, post.unique_id_post, post.created_at, post.thumbnail_url, post.caption, post.post_code, 
+            post.comments, post.likes, post.media_name, post.product_type, post.tagged_users, post.is_pinned, 
+            post.followers, post.following, post.playCount, post.collectCount, post.shareCount, post.downloadCount
+        ]);
+        console.log(`✅ Saved post ${post.unique_id_post} for ${post.username} in kategori ${post.kategori}`);
+    } catch (error) {
+        console.error(`❌ Error saving post ${post.unique_id_post} to database:`, error.message);
+    }
 };
 
 // Fungsi untuk menyimpan data comment ke database
