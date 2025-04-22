@@ -127,19 +127,19 @@ GET http://localhost:7770/instagram/getData?kategori=opdbandung
 GET http://localhost:7770/tiktok/getData?kategori=gubernur_jabar
 
 ### Get Instagram User Post
-GET http://localhost:7770/instagram/getPost?kategori=opdbandung
+GET http://localhost:7770/instagram/getPost?kategori=opdjabar
 
 ### Get TikTok User Post
-GET http://localhost:7770/tiktok/getPost?kategori=gubernur_jabar
+GET http://localhost:7780/tiktok/getPost?kategori=opdjabar
 
 ### Get Instagram User Comment
-GET http://localhost:7770/instagram/getComment?kategori=opdbandung
+GET http://localhost:7770/instagram/getComment?kategori=opdjabar
 
 ### Get Instagram User Comment custom request
 GET http://localhost:7791/instagram/getCommentByCode?kategori=prokopim_bekasikab
 
 ### Get TikTok User Comment
-GET http://localhost:7780/tiktok/getComment?kategori=gubernur_jabar
+GET http://localhost:7780/tiktok/getComment?kategori=opdjabar
 
 ### STEP 2
 
@@ -148,7 +148,7 @@ POST http://localhost:7770/api/file/calculateResponsiveness
 Content-Type: application/json
 
 {
-    "kategori": "opdbandung"
+    "kategori": "opdjabar"
 }
 
 ### Proses Responsiveness
@@ -178,7 +178,7 @@ POST http://localhost:7770/fair/addDataUser
 Content-Type: application/json
 
 {
-    "kategori": "sentul_media",
+    "kategori": "opdjabar",
     "platform": "TikTok"
 }
 
@@ -187,10 +187,10 @@ POST http://localhost:7770/fair/processData
 Content-Type: application/json
 
 {
-    "start_date": "2025-01-01",
+    "start_date": "2025-03-01",
     "end_date": "2025-04-30",
-    "kategori": "sentul_media",
-    "platform": "TikTok"
+    "kategori": "opdjabar",
+    "platform": "Instagram"
 }
 
 ### post processData
@@ -199,9 +199,9 @@ Content-Type: application/json
 
 {
     "start_date": "2025-03-01",
-    "end_date": "2025-03-31",
-    "kategori": "prokopim_bekasikab",
-    "platform": "Instagram"
+    "end_date": "2025-04-30",
+    "kategori": "opdjabar",
+    "platform": "TikTok"
 }
 
 ### post processData Perbulan Deprecated
@@ -317,16 +317,16 @@ GET http://localhost:7780/api/getAllPost?perPage=2&page=1&platform=Instagram&kat
 GET http://localhost:7780/api/getPost?kategori=disparbud&username=disbudpar.bdg&platform=Instagram&start_date=2025-02-01&end_date=2025-02-28
 
 ###
-GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=kdm
+GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=dishub_medmon
 
 ###
-GET http://localhost:7780/tiktok/getDataPostByKeywords?kategori=kdm
+GET http://localhost:7770/tiktok/getDataPostByKeywords?kategori=dishub_medmon
 
 ###
-GET http://localhost:7780/youtube/getDataPostByKeywords?kategori=kdm&start_date=2025-04-17&end_date=2025-04-30
+GET http://localhost:7780/youtube/getDataPostByKeywords?start_date=2025-04-20&end_date=2025-04-30&kategori=dishub_medmon
 
 ###
-GET http://localhost:7780/facebook/getDataPostByKeywords?kategori=kdm&start_date=2025-04-17&end_date=2025-04-30
+GET http://localhost:7770/facebook/getDataPostByKeywords?start_date=2025-04-20&end_date=2025-04-30&kategori=dishub_medmon
 
 ###
 GET http://localhost:7770/
@@ -379,14 +379,14 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7790/youtube/getCommentv2
+POST http://localhost:7770/youtube/getCommentv2
 Content-Type: application/json
 
 {
-    "kategori": "kdm",
+    "kategori": "testing",
     "fromStart": "true",
     "unique_id_post": [
-        "0UBLjP4uofM"
+        "kRAVm6zL858"
         
     ]
 }
@@ -426,3 +426,6 @@ GET http://localhost:7770/tiktok/getCommentByCode?kategori=kdm&url=https://www.t
 
 ###
 GET http://localhost:7770/api/file/exportFair?kategori=disparbud&platform=Instagram&start_date=2025-03-01&end_date=2025-03-31
+
+###
+GET http://localhost:7770/wordCloud/generateWordCloud/kdm_media

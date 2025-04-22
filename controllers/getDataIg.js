@@ -118,15 +118,15 @@ const getDataPost = async (kategori = null, platform = null) => {
             return;
         }
 
-        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        // const data = await response.json();
-        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        // const endDateObj = new Date(endDate).getTime();
+        const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
+        const data = await response.json();
+        const endDate = new Date(data.startDate).toISOString().split('T')[0];
+        const endDateObj = new Date(endDate).getTime();
 
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 5); // Kurangi 1 hari dari hari ini
-        const endDates = endDate.toISOString().split('T')[0];
-        const endDateObj = new Date(endDates).getTime();
+        // const endDate = new Date();
+        // endDate.setDate(endDate.getDate() - 55); // Kurangi 1 hari dari hari ini
+        // const endDates = endDate.toISOString().split('T')[0];
+        // const endDateObj = new Date(endDates).getTime();
 
         const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
@@ -489,6 +489,7 @@ const getDataComment = async (kategori = null, platform = null) => {
               AND FIND_IN_SET(?, kategori)
               AND comments_processed = 0
               AND comments > 0
+              AND created_at > "2024-12-31"
         `, [platform, kategori]);
 
         if (!rows.length) {
