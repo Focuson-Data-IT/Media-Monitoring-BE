@@ -8,7 +8,7 @@ let requestCount = 0;
 const maxRequestsPerMinute = 200;
 const threadRequestLimit = 10;
 const threadRestTime = 60000; // Dalam ms
-const totalThreads = 50;
+const totalThreads = 1;
 const delay = 60000;
 
 const trackRequests = async () => {
