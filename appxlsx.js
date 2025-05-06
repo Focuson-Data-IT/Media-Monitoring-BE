@@ -1,64 +1,130 @@
 const xlsx = require('xlsx');
 const axios = require('axios');
-const path = 'link.xlsx';
+const fs = require('fs');
 
+const path = 'link.xlsx';
 const workbook = xlsx.readFile(path);
 const sheetName = workbook.SheetNames[0];
 const sheet = workbook.Sheets[sheetName];
 const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 
-const run = async () => {
-    for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        const kategori = row[0];
-        const url = row[1];
-        const status = row[2];
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-        if (!kategori || !url || status === 'done') {
-            console.log(`⏭️  Baris ${i + 1} dilewati (sudah done atau kosong)`);
-            continue;
+const PLATFORM_CONFIG = {
+    instagram: { port: 7770, checker: (url) => url.includes("instagram.com") },
+    tiktok: { port: 7771, checker: (url) => url.includes("tiktok.com") },
+    youtube: { port: 7772, checker: (url) => url.includes("youtube.com") },
+    facebook1: {
+        port: 7773,
+        checker: (url, i) => url.includes("facebook.com") && i % 2 === 1
+    },
+    facebook2: {
+        port: 7774,
+        checker: (url, i) => url.includes("facebook.com") && i % 2 === 0
+    }
+};
+
+const retryUntilAvailable = async (fn, label, retryDelay = 5000) => {
+    while (true) {
+        try {
+            return await fn();
+        } catch (err) {
+            console.warn(`❌ [${label}] Error: ${err.message}. Menunggu server kembali...`);
+            await delay(retryDelay);
+        }
+    }
+};
+
+const saveProgress = (rowIndex) => {
+    const cellRef = `C${rowIndex + 1}`;
+    sheet[cellRef] = { t: 's', v: 'done' };
+    xlsx.writeFile(workbook, path);
+};
+
+const getYoutubeVideoId = (url) => {
+    const regex = /(?:v=|\/shorts\/|\/)([0-9A-Za-z_-]{11})(?:[?&]|$)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+};
+
+const getFacebookPostId = (url) => {
+    const match = url.match(/\/posts\/(\d+)|story_fbid=(\d+)/);
+    return match ? (match[1] || match[2]) : null;
+};
+
+const processRow = async (rowIndex, platform) => {
+    const row = data[rowIndex];
+    const kategori = row[0];
+    let url = String(row[1] || '').trim();
+    const status = row[2];
+
+    if (!kategori || !url || status === 'done') return;
+
+    if (!url.startsWith("http")) url = "https://" + url;
+    url = url.replace("facebook.comP", "facebook.com/P");
+
+    const label = `Row ${rowIndex + 1} [${platform}]`;
+    const port = PLATFORM_CONFIG[platform].port;
+
+    try {
+        console.log(`🚀 ${label} - ${url}`);
+
+        if (platform.startsWith("facebook")) {
+            const postId = getFacebookPostId(url);
+            if (!postId) throw new Error("Gagal ambil post ID Facebook");
+            const payload = { kategori, unique_id_post: postId };
+            await retryUntilAvailable(() =>
+                axios.post(`http://localhost:${port}/facebook/getCommentv2`, payload, {
+                    headers: { "Content-Type": "application/json" }
+                }), label);
+        } else if (platform === 'instagram') {
+            const reqUrl = `http://localhost:${port}/instagram/getCommentByCode?kategori=${encodeURIComponent(kategori)}&url=${encodeURIComponent(url)}`;
+            await retryUntilAvailable(() => axios.get(reqUrl), label);
+        } else if (platform === 'tiktok') {
+            const reqUrl = `http://localhost:${port}/tiktok/getCommentByCode?kategori=${encodeURIComponent(kategori)}&url=${encodeURIComponent(url)}`;
+            await retryUntilAvailable(() => axios.get(reqUrl), label);
+        } else if (platform === 'youtube') {
+            const videoId = getYoutubeVideoId(url);
+            if (!videoId) throw new Error("Gagal ambil video ID YouTube");
+            const payload = { kategori, fromStart: "true", unique_id_post: [videoId] };
+            await retryUntilAvailable(() =>
+                axios.post(`http://localhost:${port}/youtube/getCommentv3`, payload, {
+                    headers: { "Content-Type": "application/json" }
+                }), label);
         }
 
-        try {
-            if (url.includes("tiktok.com")) {
-                const requestUrl = `http://localhost:7770/tiktok/getCommentByCode?kategori=${encodeURIComponent(kategori)}&url=${encodeURIComponent(url)}`;
-                await axios.get(requestUrl);
-                console.log(`✅ Baris ${i + 1}: TikTok sukses ambil ${url}`);
-            } else if (url.includes("youtube.com")) {
-                const videoId = getYoutubeVideoId(url);
-                if (!videoId) throw new Error("Gagal ambil video ID YouTube");
+        saveProgress(rowIndex);
+        console.log(`✅ ${label} selesai`);
+    } catch (err) {
+        console.error(`❌ ${label} gagal: ${err.message}`);
+    }
 
-                const payload = {
-                    kategori,
-                    fromStart: "true",
-                    unique_id_post: [videoId]
-                };
+    await delay(500);
+};
 
-                await axios.post("http://localhost:7770/youtube/getCommentv2", payload, {
-                    headers: { "Content-Type": "application/json" }
-                });
-                console.log(`✅ Baris ${i + 1}: YouTube sukses ambil video ID ${videoId}`);
-            } else {
-                console.log(`⚠️  Baris ${i + 1}: Platform tidak dikenali - ${url}`);
-                continue;
-            }
+const runPlatform = async (platform) => {
+    console.log(`▶️ Mulai platform: ${platform.toUpperCase()}`);
+    const checker = PLATFORM_CONFIG[platform].checker;
+    const rowIndexes = [];
 
-            const cellRef = `C${i + 1}`;
-            sheet[cellRef] = { t: 's', v: 'done' };
-        } catch (err) {
-            console.error(`❌ Baris ${i + 1}: Gagal ambil ${url} - ${err.message}`);
+    for (let i = 1; i < data.length; i++) {
+        const url = String(data[i][1] || '');
+        if (checker(url, i)) {
+            rowIndexes.push(i);
         }
     }
 
-    xlsx.writeFile(workbook, path);
-    console.log('📁 File Excel diperbarui dengan status done ✅');
+    for (const i of rowIndexes) {
+        await processRow(i, platform);
+    }
+
+    console.log(`🏁 Platform ${platform.toUpperCase()} selesai!\n`);
 };
 
-// Ekstrak YouTube Video ID dari URL
-function getYoutubeVideoId(url) {
-    const regex = /(?:v=|\/)([0-9A-Za-z_-]{11})(?:&|$)/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-}
+const main = async () => {
+    const platformKeys = Object.keys(PLATFORM_CONFIG);
+    await Promise.all(platformKeys.map((platform) => runPlatform(platform)));
+    console.log("✅ Semua platform selesai!");
+};
 
-run();
+main();

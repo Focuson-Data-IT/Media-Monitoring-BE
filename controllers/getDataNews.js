@@ -3,22 +3,6 @@ const axios = require('axios');
 const save = require('./saveDataNews');
 
 
-// Fungsi helper untuk melakukan permintaan API dengan retry
-const apiRequestWithRetry = async (config, maxRetries = 5) => {
-    let attempts = 0;
-    while (attempts < maxRetries) {
-        try {
-            const response = await axios.request(config);
-            return response; // Jika berhasil, langsung return response
-        } catch (error) {
-            attempts++;
-            console.error(`Error fetching data (Attempt ${attempts} of ${maxRetries}):`, error.message);
-            if (attempts === maxRetries) throw new Error('Max retries reached. Stopping.');
-        }
-    }
-};
-
-
 // Fungsi untuk mendapatkan data News dari API
 const getDataNews = async (query = null) => {
     try {
@@ -31,7 +15,6 @@ const getDataNews = async (query = null) => {
                 time_published: '1d',
                 country: 'ID',
                 lang: 'id'
-
             },
             headers: {
                 'X-RapidAPI-Key': process.env.RAPIDAPI_NEWS_KEY,
@@ -39,36 +22,35 @@ const getDataNews = async (query = null) => {
             }
         };
 
-        const response = await apiRequestWithRetry(getNews);
+        const response = await axios.request(getNews);
 
-        if (!response.data || !response.data.data) {
-            throw new Error('Response does not contain user data');
+        const userNews = response?.data?.data;
+
+        if (!Array.isArray(userNews)) {
+            throw new Error('Response format invalid: data is not array');
         }
 
-        const userNews = response.data.data;
-
         for (const item of userNews) {
-
             const news = {
                 query: query,
-                title: item.title,
-                link: item.link,
-                snippet: item.snippet,
-                photo_url: item.photo_url,
-                thumbnail_url: item.thumbnail_url,
-                published_datetime_utc : new Date(item.published_datetime_utc).toISOString().slice(0, 19).replace('T', ' '),
-                source_url: item.source_url,
-                source_name: item.source_name,
-                source_logo_url: item.source_logo_url,
-                source_favicon_url: item.source_favicon_url,
-                source_publication_id: item.source_publication_id
-
+                title: item?.title || "",
+                link: item?.link || "",
+                snippet: item?.snippet || "",
+                photo_url: item?.photo_url || "",
+                thumbnail_url: item?.thumbnail_url || "",
+                published_datetime_utc: item?.published_datetime_utc
+                    ? new Date(item.published_datetime_utc).toISOString().slice(0, 19).replace('T', ' ')
+                    : null,
+                source_url: item?.source_url || "",
+                source_name: item?.source_name || "",
+                source_favicon_url: item?.source_favicon_url || ""
             };
 
             await save.saveNews(news);
         }
+
     } catch (error) {
-        console.error(`Error fetching data for news ${query}:`, error.message);
+        console.error(`❌ Error fetching data for news "${query}":`, error.message);
     }
 };
 

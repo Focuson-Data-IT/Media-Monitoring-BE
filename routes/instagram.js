@@ -115,7 +115,7 @@ router.get('/getComment', async (req, res) => {
 });
 
 router.get('/getCommentByCode', async (req, res) => {
-    const { kategori } = req.query;
+    const { kategori, url } = req.query;
 
     if (!kategori) {
         return res.status(400).json({ message: '❌ kategori parameter is required.' });
@@ -134,12 +134,12 @@ router.get('/getCommentByCode', async (req, res) => {
 
         // Step 1: Fetch Main Comments
         console.log('🚀 Fetching main comments...');
-        await getDataIg.getDataCommentByCode(kategori, "Instagram");
+        await getDataIg.getDataCommentByUrl(url, kategori, "Instagram");
         console.log('✅ Main comments processing completed.');
 
         // Step 2: Fetch Child Comments
         console.log('🚀 Fetching child comments...');
-        await getDataIg.getDataChildCommentByCode(kategori, "Instagram");
+        await getDataIg.getChildCommentByUrl(url, kategori, "Instagram");
         console.log('✅ Child comments processing completed.');
 
         res.send(`✅ Comments and child comments ${platform} for category "${kategori}" have been fetched and saved.`);
@@ -198,9 +198,9 @@ router.get('/getDataPostByKeywords', async (req, res) => {
         await Promise.all(rows.map(async (row) => {
             console.info(`Fetching posts for keyword: ${row.keyword}...`);
             await getDataIg.getDataPostByKeyword(
-                row.client_account,
                 row.kategori,
                 row.platform,
+                row.client_account,
                 row.keyword
             );
             console.info(`Posts for keyword ${row.keyword} have been fetched and saved.`);

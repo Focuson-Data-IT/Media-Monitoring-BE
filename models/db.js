@@ -1,5 +1,5 @@
-const mysql = require('mysql2/promise');
 require('dotenv').config(); // Load environment variables from .env file
+const mysql = require('mysql2/promise');
 
 // Buat koneksi ke database
 const connection = mysql.createPool({
@@ -11,7 +11,9 @@ const connection = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 3600000,
-  timezone: '+07:00'
+  timezone: '+07:00',
+  keepAliveInitialDelay: 10000,
+  enableKeepAlive: true
 });
 
 module.exports = connection;

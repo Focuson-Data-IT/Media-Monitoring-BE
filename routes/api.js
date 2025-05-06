@@ -475,7 +475,6 @@ router.get('/getFairScores', async (req, res) => {
     try {
         const query = `
             SELECT 
-                client_account,
                 username,
                 username AS akun,
                 fair_score AS value,
@@ -491,7 +490,6 @@ router.get('/getFairScores', async (req, res) => {
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
-            GROUP BY list_id, platform, username, date, client_account, kategori
         `;
 
         const queryParams = [

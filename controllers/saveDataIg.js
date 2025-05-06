@@ -233,7 +233,7 @@ const saveDataPostByKeywords = async (post) => {
                         client_account, 
                         CONCAT_WS(',', client_account, VALUES(client_account))
                     ),
-                    kategori = IF(
+            kategori = IF(
                         FIND_IN_SET(VALUES(kategori), kategori) > 0, 
                         kategori, 
                         CONCAT_WS(',', kategori, VALUES(kategori))

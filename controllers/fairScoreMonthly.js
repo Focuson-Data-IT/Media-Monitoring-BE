@@ -22,25 +22,25 @@ const processData = async (startDate, endDate, kategori, platform) => {
     const dates = getDatesInRange(startDate, endDate);
     const chunkSize = 15;
 
-    // console.info(`[INFO] Monthly Starting processing for ${dates.length} dates with chunk size ${chunkSize}`);
+    console.info(`[INFO] Monthly Starting processing for ${dates.length} dates with chunk size ${chunkSize}`);
 
     for (let i = 0; i < dates.length; i += chunkSize) {
         const chunk = dates.slice(i, i + chunkSize);
-        // console.info(`[INFO] Monthly Processing date chunk: ${chunk.join(', ')}`);
+        console.info(`[INFO] Monthly Processing date chunk: ${chunk.join(', ')}`);
 
         // Jalankan 5 tanggal paralel sekaligus
         await Promise.all(
             chunk.map(date => processSingleDate(date, kategori, platform))
         );
 
-        // console.info(`[SUCCESS] Monthly Completed chunk: ${chunk.join(', ')}`);
+        console.info(`[SUCCESS] Monthly Completed chunk: ${chunk.join(', ')}`);
     }
 
     console.info(`[DONE] Monthly All dates processed.`);
 };
 
 const processSingleDate = async (date, kategori, platform) => {
-    // console.info(`\n[INFO] Monthly Processing ${date} for kategori: ${kategori}, platform: ${platform}`);
+    console.info(`\n[INFO] Monthly Processing ${date} for kategori: ${kategori}, platform: ${platform}`);
     await processMonthlyFollowers(date, kategori, platform);
     await processMonthlyActivities(date, kategori, platform);
     await processMonthlyInteractions(date, kategori, platform);
@@ -49,7 +49,7 @@ const processSingleDate = async (date, kategori, platform) => {
 };
 
 const processMonthlyFollowers = async (date, kategori, platform) => {
-    // console.info(`[INFO] Monthly Processing followers for ${date}`);
+    console.info(`[INFO] Monthly Processing followers for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsm.list_id, fsm.username,
             (SELECT followers FROM posts p 
@@ -70,14 +70,14 @@ const processMonthlyFollowers = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Monthly Updated followers for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Monthly Updated followers for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] Monthly No rows found to update followers.');
     }
 };
 
 const processMonthlyActivities = async (date, kategori, platform) => {
-    // console.info(`[INFO] Monthly Processing activities for ${date}`);
+    console.info(`[INFO] Monthly Processing activities for ${date}`);
     const daysInMonth = getDaysInMonth(date);
 
     const [rows] = await connection.query(`
@@ -102,14 +102,14 @@ const processMonthlyActivities = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Monthly Updated activities for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Monthly Updated activities for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] Monthly No rows found to update activities.');
     }
 };
 
 const processMonthlyInteractions = async (date, kategori, platform) => {
-    // console.info(`[INFO] Monthly Processing interactions for ${date}`);
+    console.info(`[INFO] Monthly Processing interactions for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsm.list_id, fsm.username,
             (SELECT SUM(likes) FROM posts p 
@@ -138,14 +138,14 @@ const processMonthlyInteractions = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Monthly Updated interactions for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Monthly Updated interactions for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] Monthly No rows found to update interactions.');
     }
 };
 
 const processMonthlyResponsiveness = async (date, kategori, platform) => {
-    // console.info(`[INFO] Monthly Processing responsiveness (from posts.responsiveness_post) for ${date}`);
+    console.info(`[INFO] Monthly Processing responsiveness (from posts.responsiveness_post) for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsm.list_id, fsm.username,
             (
@@ -174,14 +174,14 @@ const processMonthlyResponsiveness = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Monthly responsiveness updated from posts.responsiveness_post for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Monthly responsiveness updated from posts.responsiveness_post for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] No rows found to update monthly responsiveness.');
     }
 };
 
 const processMonthlyFairScore = async (date, kategori, platform) => {
-    // console.info(`[INFO] Monthly Calculating final FAIR score for ${date}`);
+    console.info(`[INFO] Monthly Calculating final FAIR score for ${date}`);
     const [maxValues] = await connection.query(`
         SELECT MAX(followers) AS max_followers,
                MAX(activities) AS max_activities,
@@ -240,7 +240,7 @@ const processMonthlyFairScore = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Monthly Final FAIR scores updated for ${kategori} on platform ${platform}.`);
+        console.info(`[SUCCESS] Monthly Final FAIR scores updated for ${kategori} on platform ${platform}.`);
     } else {
         console.warn('[WARN] Monthly No rows found for final FAIR score update.');
     }

@@ -91,7 +91,7 @@ const getDataPost = async (username = null, client_account = null, kategori = nu
         let morePosts = true;
         const endDateObj = new Date(endDate).getTime();
 
-        while (morePosts) {
+        while (morePosts && cursor <= 10) {
             const getPost = {
                 method: 'GET',
                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
@@ -241,8 +241,8 @@ const getDataComment = async (
                     commenter_username: item.author.name,
                     commenter_userid: item.author.id,
                     comment_text: item.message,
-                    comment_like_count: item.reactions_count,
-                    child_comment_count: item.replies_count,
+                    comment_like_count: item.reactions_count || 0,
+                    child_comment_count: item.replies_count || 0,
                     expansion_token: item.expansion_token
                 };
 
@@ -332,7 +332,7 @@ const getDataChildComment = async (
                     commenter_username: child.author.username,
                     commenter_userid: child.author.id,
                     comment_text: child.message,
-                    comment_like_count: child.reactions_count
+                    comment_like_count: child.reactions_count || 0
                 };
 
                 await save.saveChildComment(childComment);
@@ -399,7 +399,7 @@ const getDataPostByKeyword = async (client_account = null, kategori = null, plat
         let hasMore = true;
         let pageCount = 0; // Tambahkan variabel untuk menghitung halaman
         
-        while (hasMore) {
+        while (hasMore && pageCount <= 5) { // Batasi hingga 10 halaman
             const getPost = {
                 method: 'GET',
                 url: 'https://facebook-scraper3.p.rapidapi.com/search/posts',
