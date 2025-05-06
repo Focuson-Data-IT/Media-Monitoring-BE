@@ -3,7 +3,7 @@ const connection = require('../models/db');
 // fungsi untuk menyimpan data news ke database
 const saveNews = async (news) => {
     const sql = `
-    INSERT INTO news (query, title, link, snippet, photo_url, thumbnail_url, published_datetime_utc, source_url, source_name, source_logo_url, source_favicon_url, source_publication_id)
+    INSERT INTO newsNew (query, title, link, snippet, photo_url, thumbnail_url, published_datetime_utc, source_url, source_name, source_logo_url, source_favicon_url, source_publication_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
         query = VALUES(query),

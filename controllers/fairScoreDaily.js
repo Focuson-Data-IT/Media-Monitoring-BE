@@ -14,25 +14,25 @@ const processData = async (startDate, endDate, kategori, platform) => {
     const dates = getDatesInRange(startDate, endDate);
     const chunkSize = 15;
 
-    // console.info(`[INFO] Starting Daily processing for ${dates.length} dates with chunk size ${chunkSize}`);
+    console.info(`[INFO] Starting Daily processing for ${dates.length} dates with chunk size ${chunkSize}`);
 
     for (let i = 0; i < dates.length; i += chunkSize) {
         const chunk = dates.slice(i, i + chunkSize);
-        // console.info(`[INFO] Processing date chunk: ${chunk.join(', ')}`);
+        console.info(`[INFO] Processing date chunk: ${chunk.join(', ')}`);
 
         // Jalankan 5 tanggal paralel sekaligus
         await Promise.all(
             chunk.map(date => processSingleDate(date, kategori, platform))
         );
 
-        // console.info(`[SUCCESS] Daily Completed chunk: ${chunk.join(', ')}`);
+        console.info(`[SUCCESS] Daily Completed chunk: ${chunk.join(', ')}`);
     }
 
     console.info(`[DONE] Daily All dates processed.`);
 };
 
 const processSingleDate = async (date, kategori, platform) => {
-    // console.info(`\n[INFO] Daily Processing ${date} for kategori: ${kategori}, platform: ${platform}`);
+    console.info(`\n[INFO] Daily Processing ${date} for kategori: ${kategori}, platform: ${platform}`);
     await processFollowers(date, kategori, platform);
     await processActivities(date, kategori, platform);
     await processInteractions(date, kategori, platform);
@@ -41,7 +41,7 @@ const processSingleDate = async (date, kategori, platform) => {
 };
 
 const processFollowers = async (date, kategori, platform) => {
-    // console.info(`[INFO] Daily Processing followers for ${date}`);
+    console.info(`[INFO] Daily Processing followers for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsd.list_id, fsd.username, fsd.date,
             (SELECT followers FROM posts p 
@@ -62,14 +62,14 @@ const processFollowers = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Daily Updated followers for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Daily Updated followers for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] Daily No rows found to update followers.');
     }
 };
 
 const processActivities = async (date, kategori, platform) => {
-    // console.info(`[INFO] Daily Processing activities for ${date}`);
+    console.info(`[INFO] Daily Processing activities for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsd.list_id, fsd.username,
             (SELECT COUNT(*) FROM posts p 
@@ -90,14 +90,14 @@ const processActivities = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Daily Updated activities for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Daily Updated activities for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] Daily No rows found to update activities.');
     }
 };
 
 const processInteractions = async (date, kategori, platform) => {
-    // console.info(`[INFO] Daily Processing interactions for ${date}`);
+    console.info(`[INFO] Daily Processing interactions for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsd.list_id, fsd.username,
             (SELECT SUM(likes) FROM posts p 
@@ -123,14 +123,14 @@ const processInteractions = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Daily Updated interactions for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Daily Updated interactions for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] Daily No rows found to update interactions.');
     }
 };
 
 const processResponsiveness = async (date, kategori, platform) => {
-    // console.info(`[INFO] Daily Processing responsiveness (from posts.responsiveness_post) for ${date}`);
+    console.info(`[INFO] Daily Processing responsiveness (from posts.responsiveness_post) for ${date}`);
     const [rows] = await connection.query(`
         SELECT fsd.list_id, fsd.username,
             (
@@ -159,14 +159,14 @@ const processResponsiveness = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Daily responsiveness updated from posts.responsiveness_post for ${updates.length} rows.`);
+        console.info(`[SUCCESS] Daily responsiveness updated from posts.responsiveness_post for ${updates.length} rows.`);
     } else {
         console.warn('[WARN] No rows found to update responsiveness.');
     }
 };
 
 const processFinalFairScore = async (date, kategori, platform) => {
-    // console.info(`[INFO] Daily Calculating final FAIR score for ${date}`);
+    console.info(`[INFO] Daily Calculating final FAIR score for ${date}`);
     const [maxValues] = await connection.query(`
         SELECT MAX(followers) AS max_followers,
                MAX(activities) AS max_activities,
@@ -224,7 +224,7 @@ const processFinalFairScore = async (date, kategori, platform) => {
                 WHERE list_id = ? AND date = ? AND kategori = ? AND platform = ?
             `, update)
         ));
-        // console.info(`[SUCCESS] Daily Final FAIR scores updated for ${kategori} on platform ${platform}.`);
+        console.info(`[SUCCESS] Daily Final FAIR scores updated for ${kategori} on platform ${platform}.`);
     } else {
         console.warn('[WARN] Daily No rows found for final FAIR score update.');
     }

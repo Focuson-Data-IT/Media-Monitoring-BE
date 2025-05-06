@@ -6,6 +6,12 @@ const openai = new OpenAI({
   organization: process.env.ORGANIZATION_ID,
   project: process.env.PROJECT_ID
 });
+
+// const { GoogleGenAI } = require("@google/genai");
+// const genAI = new GoogleGenAI({
+//     apiKey: process.env.GEMINI_API_KEY,
+// });
+
 /**
  * Fungsi untuk mengirim prompt ke OpenAI dan mendapatkan responsenya.
  * @param {string} prompt - Prompt yang dikirim ke OpenAI.
@@ -129,6 +135,46 @@ Label: Larangan Study Tour
   }
 }
 
+// const getNewsLabeling = async (prompt) => {
+//   try {
+//     const response = await genAI.models.generateContent({
+//       model: "gemini-1.5-flash",
+//       contents: [
+//         {
+//           role: "user",
+//           parts: [
+//             { text: `
+// Kamu adalah peneliti yang ahli dalam melakukan thematic coding. Tugas kamu adalah membaca judul atau caption dari berita online atau konten media sosial, lalu memberikan **label tematik** untuk masing-masing konten tersebut.
+
+// Berikut aturan utama yang harus kamu ikuti saat memberikan label:
+
+// 1. Label berisi **minimal 2 kata dan maksimal 3 kata**.
+// 2. Label harus mencerminkan **isu utama** atau inti dari konten yang dibaca.
+// 3. Gunakan **kata atau frasa** yang muncul secara eksplisit atau tersirat dalam konten.
+// 4. Jika ada **dua atau lebih konten yang membahas isu serupa**, gunakan **label yang sama persis** untuk menjaga konsistensi.
+//    - Contoh: Jika ada beberapa konten soal "banjir di Bogor", maka semua dilabeli dengan **Banjir Bogor**.
+// 5. Jika menemukan **isu baru yang tidak berkaitan dengan label sebelumnya**, buat label baru yang relevan.
+// 6. Hindari membuat label yang terlalu umum, terlalu spesifik, atau hanya muncul sekali tanpa relevansi.
+// 7. Ingat dan gunakan kembali label yang sudah pernah kamu buat untuk konten serupa di kemudian hari.
+
+// Tugas kamu adalah **hanya memberikan label**, tanpa penjelasan tambahan, analisis, atau opini.
+
+// Berikut kontennya:
+//           ` },
+//             { text: prompt }
+//           ]
+//         }
+//       ]
+//     });
+
+//     return response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No Label";
+
+//   } catch (error) {
+//     console.error('Error from Gemini:', error.response?.data || error.message);
+//     throw new Error('Gagal mendapatkan label dari Gemini.');
+//   }
+// };
+
 const getCoding = async (prompt) => {
   try {
     const response = await openai.chat.completions.create({
@@ -136,21 +182,8 @@ const getCoding = async (prompt) => {
       max_tokens: 100,
       messages: [
         { role: 'developer', content: `
-Kamu adalah seorang researcher yang jago melakukan thematic coding. Kamu bisa memberikan label atau koding tematik pada komentar netizen di sosial media. Di sini kamu sedang melakukan penelitian mengenai Issue yang berkaitan dengan Gubernur Jawa Barat yang baru yakni Dedi Mulyadi, ada 5 topik yakni mengenai Banjir, Kebijakan Pendidikan, Dana PEN untuk Al-Jabbar, Menegur Kades Wiwin, dan Kelangkaan Gas LPG 3KG. Kamu di sini bertugas untuk memetakan isu dalam bentuk komentar apa saja atas Dedi Mulyadi. Label tematik codingnya itu dilakukan berdasarkan pemahaman dan pembacaan kamu atas komentarnya, dan berikan label minimal 2 kata dan maksimal 3 kata. Meskipun berdasarkan pemahaman, tapi saat kamu melakukan pemberian label, gunakan keyword yang ada di dalam komentarnya juga (contoh, jika inti komentarnya adalah Pencitraan Ridwan Kamil, maka gunakan kata Pencitraan Ridwan Kamil. Jika ada 2 atau lebih komentar yang menggunakan keyword yang sama pake juga keyword yang sama). Ingat, jika ada 2 atau lebih komentar yang mirip, pelabelannya harus konsisten, misalnya ada 2 komentar soal Pencitraan Ridwan Kamil, nah labelnya harus sama-sama Pencitraan Ridwan Kamil. Kalau kamu menemukan komentar lain yang berhubungan dan intinya mirip dengan 2 komentar tersebut, maka labelnya sama yakni Banjir Bogor juga. Hal tersebut juga berlaku bagi komentar lainnya (intinya saat kamu melakukan pelabelan harus konsisten!). Berarti setelah kamu melabeli, tolong simpan dan ingat label yang sudah dibuat, karena bisa jadi kamu menemukan komentar lain yang berkaitan atau mirip atau beririsan, nah saat kamu menemukan komentar yang berkaitan atau mirip atau beririsan, kamu bisa menggunakan label yang pernah dipake sebelumnya. Tapi kalau kamu menemukan komentar yang baru temanya dan tidak berkaitan dengan komentar sebelumnya, dan karenanya label yang lama tidak cocok untuk melabeli komentar baru yang ini, maka kamu buat label baru. Cara kerja yang kamu lakukan adalah membaca komentar, lalu setelah itu memberikan label. Kamu cukup memberikan label, tanpa sentimen analisis, dan tanpa penjelasan lainnya. saya akan selalu memberikan 5 pernyataan yang harus di labeling dan kamu harus memberikan 5 jawaban masing-masing hasil dari analisis pernyataan tersebut yang format nya setiap jawaban harus baris baru
-
-Ini contohnya:
-
-Komentar 1: Untung ga jd gubernur DKI Jakarta.. parah pemimpin kl cm pencitraan 😮😮😮
-Label: Gubernur Pencitraan
-
-Komentar 2: Sy warga bandung dari dulu tdk senang dgn RK,..bnyk merubah lingkungan yg sdh menjadi Ikon Jabar....mungkin pelampiasan sebagai arsitek.
-Label: Tidak Senang RK
-
-Komentar 3: Laahh, itu utang ada bunganya donk, ?! riba donk.. Bangun masjid pakai riba...😮
-Label: Bangun Masjid Riba
-
-Komentar 4: Smoga pak deddy mulyadi amanah
-Label: Mendoakan Dedi Mulyadi
+Kamu adalah seorang yang ahli dalam melakukan coding thematic terhadap komentar dari sosial media. Label hasil tematik codingnya itu dilakukan berdasarkan pemahaman dan pembacaan kamu atas komentarnya, dan berikan label minimal 2 kata dan maksimal 4 kata. Jadi kamu wajib mengetahui konteks konten yang dikomentari dengan cara mengecek kolom kategori, karena di kolom tersebut ada konteks konten yang dikomentari. Lalu kamu wajib melakukan pembacaan atas seluruh komentarnya dulu, agar kamu semakin mengerti konteksnya. Meskipun berdasarkan pemahaman, tapi saat kamu melakukan pemberian label, gunakan keyword yang ada di dalam komentarnya juga. Contoh, di kolom kategori konteksnya adalah Reaktivasi Jalur KA. Lalu ada komentar begini: "Dari dulu cuma wacana, realisasinya nol, apa berani membebaskan lahan  PT. KAI yg tlah terpakai  warga masyarakat....." Maka labelnya adalah Cuma Wacana. 
+Jika ada 2 atau lebih komentar yang menggunakan keyword yang sama pake juga keyword yang sama. Jika ada 2 atau lebih komentar yang bermakna sama pake juga keyword yang sama. Lalu Ingat, jika ada 2 atau lebih komentar yang mirip, pelabelannya harus konsisten, misalnya ada 2 berita pembangunan rel kereta Cuma Wacana, nah labelnya harus sama-sama Cuma Wacana. Kalau kamu menemukan komentar lain yang berhubungan dan intinya mirip dengan 2 komentar tersebut, maka labelnya sama yakni Cuma Wacana juga. Hal tersebut juga berlaku bagi komentar-komentar lainnya (intinya saat kamu melakukan pelabelan harus konsisten!). Berarti setelah kamu melabeli, tolong simpan dan ingat label yang sudah dibuat, karena bisa jadi kamu menemukan komentar lain yang berkaitan atau mirip atau beririsan, nah saat kamu menemukan komentar yang berkaitan atau mirip atau beririsan, kamu bisa menggunakan label yang pernah dipake sebelumnya. Tapi kalau kamu menemukan komentar yang baru temanya dan tidak berkaitan dengan komentar sebelumnya, dan karenanya label yang lama tidak cocok untuk melabeli komentar baru yang ini, maka kamu buat label baru. Cara kerja yang kamu lakukan adalah membaca comment_text, lalu setelah itu memberikan label. Kamu cukup memberikan label, tanpa sentimen analisis, dan tanpa penjelasan lainnya.
           ` },
         { role: 'user', content: prompt }
       ],
@@ -170,31 +203,8 @@ const getSentiment = async (prompt) => {
       max_tokens: 100,
       messages: [
         { role: 'developer', content: `
-Kamu adalah seorang researcher yang ahli dalam melakukan analisis sentimen. Kamu bisa memberikan label sentimen atau koding tematik pada komentar netizen di sosial media. Di sini kamu sedang melakukan penelitian mengenai Issue yang berkaitan dengan Gubernur Jawa Barat yang baru yakni Dedi Mulyadi, mengenai Banjir, Kebijakan Pendidikan, Dana PEN untuk Al-Jabbar, Menegur Kades Wiwin, Kelangkaan Gas 3kg. Kamu di sini bertugas untuk menganalisis sentimen dalam bentuk komentar apa saja atas apa saja yang dilakukan oleh Dedi Mulyadi yang berkaitan dengan Banjir, Kebijakan Pendidikan, Dana PEN untuk Al-Jabbar, Menegur Kades Wiwin, Kelangkaan Gas 3kg. Label sentimen analisisnya itu terdiri dari: 0 = Netral, 1 = Positif, 2 = Negatif, 3 = Tidak Relevan. Label sentimen Positif adalah komentar yang mendukung, memuji, mensupport atas kinerja, perilaku, program, pemikiran, kerja dari Dedi Mulyadi. Label sentimen Negatif adalah komentar yang nyinyir, menghina, mengkritik atas kinerja, perilaku, program, pemikiran, kerja dari Dedi Mulyadi. Sedangkan Netral itu adalah komentar yang tidak termasuk ke dalam pengertian Positif atau Negatif.
-Sentimen analisis dilakukan berdasarkan pemahaman dan pembacaan kamu atas komentarnya. Cara kerja yang kamu lakukan adalah membaca komentar, lalu setelah itu memberikan laben sentimen. Cukup berikan labelnya dengan angka saja (0, 1, 2) jangan ada keterangan. saya akan selalu memberikan 5 pernyataan yang harus di labeling dan kamu harus memberikan 5 jawaban masing-masing hasil dari analisis pernyataan tersebut yang format nya setiap jawaban harus baris baru
-
-Ini contohnya:
-
-Komentar 1: yang setuju Kang dedi 2029 jadi presiden..#ngacung
-Label Sentimen: 1
-
-Komentar 2: Like yg setuju pak Dedi Layak sbgai presiden RI mendatang.. mksh.
-Label Sentimen: 1
-
-Komentar 3: ininimah fakta bukan pencitraan. yang cinta KDM mana like nya
-Label Sentimen: 1
-
-Komentar 4: Saya tetap bangga sama pak Rano Karno😇
-Label Sentimen: 0
-
-Komentar 5: KDM NEXT PRESIDEN 🔥🔥🔥
-Label Sentimen: 1
-
-Komentar 6: Pencitraan doang parah
-Label Sentimen: 2
-
-Komentar 6: Numpang promosi donk kak, aku jual madu herbal murah nih
-Label Sentimen: 3
+Kamu adalah seorang yang ahli dalam melakukan coding thematic terhadap komentar dari sosial media. Label hasil tematik codingnya itu dilakukan berdasarkan pemahaman dan pembacaan kamu atas komentarnya, dan berikan label minimal 2 kata dan maksimal 4 kata. Jadi kamu wajib mengetahui konteks konten yang dikomentari dengan cara mengecek kolom kategori, karena di kolom tersebut ada konteks konten yang dikomentari. Lalu kamu wajib melakukan pembacaan atas seluruh komentarnya dulu, agar kamu semakin mengerti konteksnya. Meskipun berdasarkan pemahaman, tapi saat kamu melakukan pemberian label, gunakan keyword yang ada di dalam komentarnya juga. Contoh, di kolom kategori konteksnya adalah Reaktivasi Jalur KA. Lalu ada komentar begini: "Dari dulu cuma wacana, realisasinya nol, apa berani membebaskan lahan  PT. KAI yg tlah terpakai  warga masyarakat....." Maka labelnya adalah Cuma Wacana. 
+Jika ada 2 atau lebih komentar yang menggunakan keyword yang sama pake juga keyword yang sama. Jika ada 2 atau lebih komentar yang bermakna sama pake juga keyword yang sama. Lalu Ingat, jika ada 2 atau lebih komentar yang mirip, pelabelannya harus konsisten, misalnya ada 2 berita pembangunan rel kereta Cuma Wacana, nah labelnya harus sama-sama Cuma Wacana. Kalau kamu menemukan komentar lain yang berhubungan dan intinya mirip dengan 2 komentar tersebut, maka labelnya sama yakni Cuma Wacana juga. Hal tersebut juga berlaku bagi komentar-komentar lainnya (intinya saat kamu melakukan pelabelan harus konsisten!). Berarti setelah kamu melabeli, tolong simpan dan ingat label yang sudah dibuat, karena bisa jadi kamu menemukan komentar lain yang berkaitan atau mirip atau beririsan, nah saat kamu menemukan komentar yang berkaitan atau mirip atau beririsan, kamu bisa menggunakan label yang pernah dipake sebelumnya. Tapi kalau kamu menemukan komentar yang baru temanya dan tidak berkaitan dengan komentar sebelumnya, dan karenanya label yang lama tidak cocok untuk melabeli komentar baru yang ini, maka kamu buat label baru. Cara kerja yang kamu lakukan adalah membaca comment_text, lalu setelah itu memberikan label. Kamu cukup memberikan label, tanpa sentimen analisis, dan tanpa penjelasan lainnya.
           ` },
         { role: 'user', content: prompt }
       ],

@@ -1,7 +1,8 @@
+require('dotenv').config();
+
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-require('dotenv').config();
 
 const connection = require('./models/db'); // Import koneksi database (Keep-alive tetap berjalan)
 
@@ -18,11 +19,12 @@ const facebook = require('./routes/facebook');
 const insights = require('./routes/insights');
 const file = require('./routes/file');
 const label = require('./routes/label');
+const labelv2 = require('./routes/labelv2');
 const wordCloud = require('./routes/wordCloud');
-
-
+const news = require('./routes/news');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
+app.use(cors());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -46,7 +48,9 @@ app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
 app.use('/api/file', logMiddleware, file);
 app.use('/label', logMiddleware, label);
+app.use('/labelv2', logMiddleware, labelv2);
 app.use('/wordcloud', logMiddleware, wordCloud);
+app.use('/news', logMiddleware, news);
 
 app.get('/proxy-image', async (req, res) => {
     try {
@@ -83,6 +87,9 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });
+
+
+
 
 
 

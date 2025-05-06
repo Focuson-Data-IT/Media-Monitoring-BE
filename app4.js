@@ -18,6 +18,8 @@ const facebook = require('./routes/facebook');
 const insights = require('./routes/insights');
 const file = require('./routes/file');
 const label = require('./routes/label');
+const wordCloud = require('./routes/wordCloud');
+const news = require('./routes/news');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(cors());
@@ -41,8 +43,10 @@ app.use('/tiktok', logMiddleware, tiktok);
 app.use('/youtube', logMiddleware, youtube);
 app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
-app.use('/file', logMiddleware, file);
+app.use('/api/file', logMiddleware, file);
 app.use('/label', logMiddleware, label);
+app.use('/wordcloud', logMiddleware, wordCloud);
+app.use('/news', logMiddleware, news);
 
 app.get('/proxy-image', async (req, res) => {
     try {
@@ -64,8 +68,18 @@ app.get('/proxy-image', async (req, res) => {
     }
 })();
 
+// const { connectDB, fetchData, closeDB } = require('./models/pg');
+
+// // Coba koneksi ke database
+// (async () => {
+//     await connectDB(); // Coba koneksi ke PostgreSQL
+//     await fetchData(); // Menjalankan query
+//     await closeDB();   // Menutup koneksi setelah selesai
+// })();
+
+
 // Jalankan server
-const port = 7791 || 3000;
+const port = 7773 || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });

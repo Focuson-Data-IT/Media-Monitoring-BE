@@ -4,6 +4,7 @@ const db = require('../models/db');
 const { getNewsLabeling, getCoding, getSentiment } = require('../services/openaiService');
 
 router.get('/v1/labeling', async(req, res) => {
+    const { kategori } = req.query;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const chunkArray = (arr, size) => {
@@ -24,7 +25,7 @@ router.get('/v1/labeling', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM news WHERE label IS NULL AND FIND_IN_SET("kdm", kategori)`;
+        const query = `SELECT * FROM news WHERE label IS NULL AND FIND_IN_SET("${kategori}", kategori)`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -58,6 +59,7 @@ router.get('/v1/labeling', async(req, res) => {
 })
 
 router.get('/v1/post-labeling', async(req, res) => {
+    const { kategori } = req.query;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const chunkArray = (arr, size) => {
@@ -78,7 +80,7 @@ router.get('/v1/post-labeling', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM posts WHERE label IS NULL AND FIND_IN_SET("kdm", kategori) ORDER BY post_id DESC`;
+        const query = `SELECT * FROM posts WHERE label IS NULL AND FIND_IN_SET("${kategori}", kategori) ORDER BY post_id DESC`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -137,7 +139,24 @@ router.get('/v1/comments-coding', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM mainComments WHERE label IS NULL AND FIND_IN_SET("custom_request", kategori) ORDER BY main_comment_id ASC`;
+        const query = `
+        SELECT * FROM mainComments 
+        WHERE label IS NULL 
+        AND kategori IN 
+        (
+        'Hapus Hibah Pesantren',
+        'Satgas Anti Premanisme',
+        'Reaktivasi Rel KA',
+        'Wamil anak',
+        'Kinerja Pemprov',
+        'Kemacetan',
+        'Lakalantas Purbaleunyi',
+        'Reaktivasi jalur KA',
+        'Pesawat gagal mesin',
+        'Hercules',
+        'Satgas Premanisme'
+        )
+        `;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -197,7 +216,7 @@ router.get('/v1/reply-coding', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM childComments WHERE label IS NULL AND FIND_IN_SET("kdm", kategori)`;
+        const query = `SELECT * FROM childComments WHERE label IS NULL AND FIND_IN_SET("diskom_medmon", kategori)`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -352,5 +371,88 @@ router.get('/v1/reply-sentiment', async(req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 })
+
+// Memory untuk menyimpan label yang sudah pernah muncul
+let labelMemory = {};
+
+router.get('/v2/comments-coding', async (req, res) => {
+    try {
+        const query = `
+        SELECT main_comment_id, comment_text, kategori
+        FROM mainComments 
+        WHERE label IS NULL 
+        AND kategori IN (
+            'Hapus Hibah Pesantren',
+            'Satgas Anti Premanisme',
+            'Reaktivasi Rel KA',
+            'Wamil anak',
+            'Kinerja Pemprov',
+            'Kemacetan',
+            'Lakalantas Purbaleunyi',
+            'Reaktivasi jalur KA',
+            'Pesawat gagal mesin',
+            'Hercules',
+            'Satgas Premanisme'
+        )`;
+
+        const [result] = await db.query(query);
+
+        if (result.length === 0) {
+            return res.status(200).json({ message: "No news to process" });
+        }
+
+        // Bagi jadi batch 5
+        const chunkArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+            arr.slice(i * size, i * size + size)
+        );
+        const newsChunks = chunkArray(result, 5);
+
+        for (const chunk of newsChunks) {
+            // Buat prompt dari batch 5 komentar
+            const prompts = chunk.map((v, i) => `Komentar ${i+1}:\n"${v.comment_text}"`).join("\n\n");
+
+            const labels = await getNewsLabelingBatch(prompts);
+
+            console.info('Label hasil:', labels);
+
+            // Update label satu per satu
+            await Promise.all(chunk.map(async (v, idx) => {
+                let label = labels[idx] || "No Label";
+
+                // Cek dulu di memory, apakah komentar mirip sudah ada
+                if (labelMemory[label]) {
+                    label = labelMemory[label]; // pakai label konsisten
+                } else {
+                    labelMemory[label] = label; // Simpan baru ke memory
+                }
+
+                const updateQuery = `UPDATE mainComments SET label = ? WHERE main_comment_id = ?`;
+                await db.query(updateQuery, [label, v.main_comment_id]);
+            }));
+
+            await delay(500); // Delay dikit buat safety
+        }
+
+        res.status(200).json({ message: "Labeling completed" });
+    } catch (error) {
+        console.error("Batch processing error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+// getNewsLabelingBatch untuk batch 5 komentar
+async function getNewsLabelingBatch(prompt) {
+    try {
+        const response = await getCoding(prompt);
+
+        return String(response)
+            .split("\n")
+            .map(line => line.replace(/^-\s*/, '').trim())
+            .filter(line => line !== "");
+    } catch (error) {
+        console.error("OpenAI API Error:", error);
+        return [];
+    }
+}
 
 module.exports = router;
