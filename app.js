@@ -18,6 +18,9 @@ const facebook = require('./routes/facebook');
 const insights = require('./routes/insights');
 const file = require('./routes/file');
 const label = require('./routes/label');
+const wordCloud = require('./routes/wordCloud');
+
+
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(cors());
@@ -43,6 +46,7 @@ app.use('/facebook', logMiddleware, facebook);
 app.use('/insights', logMiddleware, insights);
 app.use('/api/file', logMiddleware, file);
 app.use('/label', logMiddleware, label);
+app.use('/wordcloud', logMiddleware, wordCloud);
 
 app.get('/proxy-image', async (req, res) => {
     try {

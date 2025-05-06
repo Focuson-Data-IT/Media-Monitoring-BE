@@ -15,7 +15,7 @@ router.post('/addDataUser', async (req, res) => {
     try {
         console.info('Starting to add user data to dailyFairScores...');
         await saveData.saveDataUser(kategori, platform);
-        res.json({ success: true, message: 'Data user berhasil disimpan ke dailyFairScores.' });
+        res.json({ success: true, message: `Data user berdasarkan kategori ${kategori} dan platform ${platform} berhasil disimpan ke dailyFairScores.` });
     } catch (error) {
         console.error("Error saving user data to dailyFairScores:", error.message);
         res.status(500).json({ success: false, message: 'Gagal menyimpan data user ke dailyFairScores.', error: error.message });
@@ -96,28 +96,48 @@ router.post('/processData', async (req, res) => {
         console.info(`Processing data from ${start_date} to ${end_date}...`);
 
         // Jika kategori tidak diberikan, ambil dari listAkun
-        let categories = kategori ? [kategori] : await getCategoriesFromListAkun();
+        const categories = kategori ? [kategori] : await getCategoriesFromListAkun();
         console.info(`Processing categories: ${categories.join(', ')}`);
 
         // Jika platform tidak diberikan, gunakan default ['Instagram', 'TikTok']
-        let platforms = platform ? [platform] : PLATFORMS;
+        const platforms = platform ? [platform] : PLATFORMS;
         console.info(`Processing platforms: ${platforms.join(', ')}`);
 
-        // Jalankan semua kombinasi kategori & platform secara paralel
-        const tasks = [];
+        // 1️⃣ Proses Monthly Data dulu
+        const monthlyTasks = [];
         for (const cat of categories) {
             for (const plat of platforms) {
-                tasks.push(fairScoreDaily.processData(start_date, end_date, cat, plat));
-                tasks.push(fairScoreMonthly.processData(start_date, end_date, cat, plat));
+                monthlyTasks.push(fairScoreMonthly.processData(start_date, end_date, cat, plat));
             }
         }
 
-        await Promise.all(tasks);
+        console.info(`[INFO] Starting Monthly FAIR Score for ${kategori} on ${platform}...`);
+        await Promise.all(monthlyTasks);
+        console.info(`[SUCCESS] Monthly FAIR Score for ${kategori} on ${platform} completed.`);
 
-        res.json({ success: true, message: `Data berhasil diproses untuk kategori: ${categories.join(', ')}, platform: ${platforms.join(', ')}.` });
+        // 2️⃣ Setelah Monthly selesai, lanjut ke Daily Data
+        const dailyTasks = [];
+        for (const cat of categories) {
+            for (const plat of platforms) {
+                dailyTasks.push(fairScoreDaily.processData(start_date, end_date, cat, plat));
+            }
+        }
+
+        console.info(`[INFO] Starting Daily FAIR Score for ${kategori} on ${platform}...`);
+        await Promise.all(dailyTasks);
+        console.info(`[SUCCESS] Daily FAIR Score for ${kategori} on ${platform} completed.`);
+
+        res.json({
+            success: true,
+            message: `Data berhasil diproses untuk kategori: ${categories.join(', ')}, platform: ${platforms.join(', ')}.`
+        });
     } catch (error) {
         console.error('Error processing data:', error.message);
-        res.status(500).json({ success: false, message: 'Gagal menyimpan data user ke dailyFairScores.', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: 'Gagal menyimpan data user ke dailyFairScores.',
+            error: error.message
+        });
     }
 });
 
