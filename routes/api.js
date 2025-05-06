@@ -171,6 +171,7 @@ router.get('/getFollowers', async (req, res) => {
                 client_account,
                 followers AS value,
                 platform,
+                platform,
             MAX(followers) OVER () AS max_value
             FROM (
                 SELECT
@@ -178,10 +179,14 @@ router.get('/getFollowers', async (req, res) => {
                 client_account,
                 followers,
                 platform,
+                platform,
                 ROW_NUMBER() OVER (PARTITION BY username, client_account ORDER BY DATE(date) DESC) AS row_num
                 FROM
                 fairScoresDaily
+                fairScoresDaily
                 WHERE
+                kategori = ?
+                AND platform = ?
                 kategori = ?
                 AND platform = ?
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
@@ -189,9 +194,12 @@ router.get('/getFollowers', async (req, res) => {
             WHERE
                 row_num = 1
             ORDER BY value DESC;
+            ORDER BY value DESC;
         `;
 
         const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
@@ -213,7 +221,9 @@ router.get('/getFollowers', async (req, res) => {
 });
 
 router.get('/getDailyActivities', async (req, res) => {
+router.get('/getDailyActivities', async (req, res) => {
     try {
+        console.info(req.query);
         console.info(req.query);
         const query = `
             SELECT
@@ -314,9 +324,12 @@ router.get('/getDailyInteractions', async (req, res) => {
                 AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY
                 date ASC
+                date ASC
         `;
 
         const queryParams = [
+            req.query['kategori'],
+            req.query['platform'],
             req.query['kategori'],
             req.query['platform'],
             req.query['start_date'],
@@ -332,6 +345,8 @@ router.get('/getDailyInteractions', async (req, res) => {
             errors: null
         });
     } catch (error) {
+        console.error('Error fetching daily followers:', error);
+        res.status(500).send('Failed to fetch daily followers');
         console.error('Error fetching daily followers:', error);
         res.status(500).send('Failed to fetch daily followers');
     }
@@ -495,6 +510,8 @@ router.get('/getFairScores', async (req, res) => {
         const queryParams = [
             req.query['kategori'],
             req.query['platform'],
+            req.query['kategori'],
+            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -513,6 +530,7 @@ router.get('/getFairScores', async (req, res) => {
     }
 });
 
+router.get('/getFairRanking', async (req, res) => {
 router.get('/getFairRanking', async (req, res) => {
     try {
         const { kategori, platform, start_date, end_date } = req.query;
@@ -961,6 +979,7 @@ router.get('/getAllData', async (req, res) => {
         `;
 
         const queryParams = [
+            req.query['kategori'],
             req.query['kategori'],
             req.query['start_date'],
             req.query['end_date']

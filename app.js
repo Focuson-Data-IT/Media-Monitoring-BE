@@ -25,6 +25,7 @@ const news = require('./routes/news');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(cors());
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -86,6 +87,9 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });
+
+
+
 
 
 

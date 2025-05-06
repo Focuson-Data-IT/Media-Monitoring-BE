@@ -15,9 +15,36 @@ router.get('/update-followers', async (req, res) => {
         res.status(500).send(`Error executing update: ${error.message}`);
     }
 });
+const platform = "Instagram";
+
+router.get('/update-followers', async (req, res) => {
+    const { kategori, platform } = req.query;
+
+    try {
+        const result = await getDataIg.getDataFollowers(kategori, platform);
+        res.send(result); // ✅ Response hanya dikirim dari sini
+    } catch (error) {
+        console.error('Error executing update:', error.message);
+        res.status(500).send(`Error executing update: ${error.message}`);
+    }
+});
 
 // Eksekusi getData berdasarkan kategori dari query parameter
+// Eksekusi getData berdasarkan kategori dari query parameter
 router.get('/getData', async (req, res) => {
+    const { kategori } = req.query;
+
+    if (!kategori) {
+        return res.status(400).send('❌ Error: kategori parameter is required.');
+    }
+
+    try {
+        console.info(`🔍 Starting data fetching for category: ${kategori}`);
+
+        // Langsung panggil getDataUser tanpa looping tambahan
+        await getDataIg.getDataUser(kategori, "Instagram");
+
+        res.send(`✅ Data ${platform} for category "${kategori}" has been fetched and saved.`);
     const { kategori } = req.query;
 
     if (!kategori) {
@@ -34,9 +61,13 @@ router.get('/getData', async (req, res) => {
     } catch (error) {
         console.error('❌ Error executing getData:', error.message);
         res.status(500).send(`❌ Error executing getData: ${error.message}`);
+        console.error('❌ Error executing getData:', error.message);
+        res.status(500).send(`❌ Error executing getData: ${error.message}`);
     }
 });
 
+
+// API untuk mengambil data post berdasarkan kategori
 
 // API untuk mengambil data post berdasarkan kategori
 router.get('/getPost', async (req, res) => {
@@ -51,14 +82,45 @@ router.get('/getPost', async (req, res) => {
 
         // Langsung panggil getDataPost tanpa looping tambahan
         await getDataIg.getDataPost(kategori, "Instagram");
+    const { kategori } = req.query;
+
+    if (!kategori) {
+        return res.status(400).send('❌ Error: kategori parameter is required.');
+    }
+
+    try {
+        console.info(`🔍 Starting post fetching for category: ${kategori}`);
+
+        // Langsung panggil getDataPost tanpa looping tambahan
+        await getDataIg.getDataPost(kategori, "Instagram");
 
         res.send(`✅ Data ${platform} posts for category "${kategori}" have been fetched and saved.`);
+        res.send(`✅ Data ${platform} posts for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
+        console.error('❌ Error executing getPost:', error.message);
+        res.status(500).send(`❌ Error executing getPost: ${error.message}`);
         console.error('❌ Error executing getPost:', error.message);
         res.status(500).send(`❌ Error executing getPost: ${error.message}`);
     }
 });
 
+// Fungsi untuk mengambil startDate dan endDate dari tabel `settings`
+const getDateRange = async () => {
+    try {
+        const [rows] = await db.query('SELECT startDate, endDate FROM settings WHERE id = 1');
+        if (rows.length === 0) throw new Error('❌ Data setting tidak ditemukan.');
+
+        return {
+            startDate: new Date(rows[0].startDate).toISOString().split('T')[0],
+            endDate: new Date(rows[0].endDate).toISOString().split('T')[0]
+        };
+    } catch (error) {
+        console.error('❌ Error fetching date range from database:', error.message);
+        return null;
+    }
+};
+
+// 🔹 Endpoint untuk eksekusi getComment & getChildComment sekaligus
 // Fungsi untuk mengambil startDate dan endDate dari tabel `settings`
 const getDateRange = async () => {
     try {
@@ -143,7 +205,13 @@ router.get('/getCommentByCode', async (req, res) => {
         console.log('✅ Child comments processing completed.');
 
         res.send(`✅ Comments and child comments ${platform} for category "${kategori}" have been fetched and saved.`);
+        res.send(`✅ Comments and child comments ${platform} for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
+        console.error('❌ Error executing getComment and getChildComment:', error.message);
+        res.status(500).json({
+            message: '❌ Error fetching comments.',
+            error: error.message,
+        });
         console.error('❌ Error executing getComment and getChildComment:', error.message);
         res.status(500).json({
             message: '❌ Error fetching comments.',
@@ -156,14 +224,17 @@ router.get('/getCommentByCode', async (req, res) => {
 router.get('/getLikes', async (req, res) => {
     try {
         let query = 'SELECT * FROM posts WHERE platform = "Instagram"';
+        let query = 'SELECT * FROM posts WHERE platform = "Instagram"';
 
         const [rows] = await db.query(query);
 
+        (rows, async (row) => {
         (rows, async (row) => {
             const post_code = row.post_code;
             const userQuery = `
                 SELECT created_at
                 FROM posts
+                WHERE post_code = ? AND platform = "Instagram"
                 WHERE post_code = ? AND platform = "Instagram"
             `;
             const [userRows] = await db.query(userQuery, [post_code]);
@@ -177,6 +248,7 @@ router.get('/getLikes', async (req, res) => {
             }
         });
 
+        res.send(`Data getLikes ${platform} for all users have been fetched and saved.`);
         res.send(`Data getLikes ${platform} for all users have been fetched and saved.`);
     } catch (error) {
         console.error('Error executing getLikes:', error.message);
