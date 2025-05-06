@@ -221,7 +221,6 @@ router.get('/getFollowers', async (req, res) => {
 });
 
 router.get('/getDailyActivities', async (req, res) => {
-router.get('/getDailyActivities', async (req, res) => {
     try {
         console.info(req.query);
         console.info(req.query);
@@ -510,8 +509,6 @@ router.get('/getFairScores', async (req, res) => {
         const queryParams = [
             req.query['kategori'],
             req.query['platform'],
-            req.query['kategori'],
-            req.query['platform'],
             req.query['start_date'],
             req.query['end_date']
         ];
@@ -530,7 +527,6 @@ router.get('/getFairScores', async (req, res) => {
     }
 });
 
-router.get('/getFairRanking', async (req, res) => {
 router.get('/getFairRanking', async (req, res) => {
     try {
         const { kategori, platform, start_date, end_date } = req.query;

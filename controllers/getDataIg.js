@@ -3,6 +3,7 @@ const axios = require('axios');
 const save = require('./saveDataIg');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
 
+// Utility untuk membagi array ke dalam batch
 const chunkArray = (array, size) => {
     const chunkedArr = [];
     for (let i = 0; i < array.length; i += size) {
@@ -11,65 +12,16 @@ const chunkArray = (array, size) => {
     return chunkedArr;
 };
 
-// Cache untuk menyimpan data user sementara
-// let userCache = {};
-
-// Fungsi untuk mendapatkan data User dari API dan menyimpannya ke database
+// Fungsi utama untuk mengambil data user Instagram via API
 const getDataUser = async (kategori = null, platform = null) => {
     try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = ? AND FIND_IN_SET(?, kategori)', [platform, kategori]);
+        const [rows] = await db.query(
+            'SELECT * FROM listAkun WHERE platform = ? AND FIND_IN_SET(?, kategori)',
+            [platform, kategori]
+        );
 
         if (!rows.length) {
-            return console.log('No users found in the database.');
-        }
-
-        const batchSize = 10;
-        const rowBatches = chunkArray(rows, batchSize);
-
-        for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} users...`);
-
-            await Promise.all(batch.map(async (row) => {
-                let retryCount = 0;
-                const maxRetries = 3;
-
-                while (retryCount < maxRetries) {
-                    try {
-                        console.info(`🔍 Fetching data for user: ${row.username}`);
-
-                        const getUser = {
-                            method: 'GET',
-                            url: 'https://social-api4.p.rapidapi.com/v1/info',
-                            params: {
-                                username_or_id_or_url: row.username,
-                                include_about: 'true',
-                                url_embed_safe: 'true'
-                            },
-                            headers: {
-                                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
-                                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
-                            }
-                        };
-const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
-
-const chunkArray = (array, size) => {
-    const chunkedArr = [];
-    for (let i = 0; i < array.length; i += size) {
-        chunkedArr.push(array.slice(i, i + size));
-    }
-    return chunkedArr;
-};
-
-// Cache untuk menyimpan data user sementara
-// let userCache = {};
-
-// Fungsi untuk mendapatkan data User dari API dan menyimpannya ke database
-const getDataUser = async (kategori = null, platform = null) => {
-    try {
-        const [rows] = await db.query('SELECT * FROM listAkun WHERE platform = ? AND FIND_IN_SET(?, kategori)', [platform, kategori]);
-
-        if (!rows.length) {
-            return console.log('No users found in the database.');
+            return console.log('📭 No users found in the database.');
         }
 
         const batchSize = 10;
@@ -101,52 +53,26 @@ const getDataUser = async (kategori = null, platform = null) => {
                         };
 
                         const response = await axios.request(getUser);
-                        const response = await axios.request(getUser);
+                        const userData = response.data?.data;
 
-                        if (!response.data?.data) {
+                        if (!userData) {
                             console.warn(`🚫 No data found for user: ${row.username}`);
                             return;
                         }
-                        if (!response.data?.data) {
-                            console.warn(`🚫 No data found for user: ${row.username}`);
-                            return;
-                        }
-
-                        const userData = response.data.data;
-                        const userData = response.data.data;
 
                         const user = {
                             client_account: row.client_account,
-                            kategori: kategori,
-                            platform: platform,
+                            kategori,
+                            platform,
                             username: row.username,
                             user_id: userData.id,
                             followers: userData.follower_count || 0,
                             following: userData.following_count || 0,
                             mediaCount: userData.media_count || 0,
-                            profile_pic_url: userData.profile_pic_url,
-                        };
-                        const user = {
-                            client_account: row.client_account,
-                            kategori: kategori,
-                            platform: platform,
-                            username: row.username,
-                            user_id: userData.id,
-                            followers: userData.follower_count || 0,
-                            following: userData.following_count || 0,
-                            mediaCount: userData.media_count || 0,
-                            profile_pic_url: userData.profile_pic_url,
+                            profile_pic_url: userData.profile_pic_url || ''
                         };
 
-                        // Simpan ke database
                         await save.saveUser(user);
-
-                        // Simpan ke cache
-                        // userCache[row.username] = {
-                        //     followers: userData.follower_count || 0,
-                        //     following: userData.following_count || 0
-                        // };
-
                         console.info(`✅ Successfully saved data for user: ${row.username}`);
                         break;
 
@@ -157,18 +83,19 @@ const getDataUser = async (kategori = null, platform = null) => {
                             console.error(`❌ API Error for ${row.username}:`, error.response.status, error.response.data);
                         } else {
                             console.error(`❌ Request failed for ${row.username}:`, error.message);
-                            await new Promise(resolve => setTimeout(resolve, 1000));
                         }
+
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Delay sebelum retry
                     }
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay antar batch
         }
 
         console.log('✅ All Instagram users have been successfully updated.');
     } catch (error) {
-        console.error('❌ Error executing function:', error.message);
+        console.error('❌ Error executing getDataUser:', error.message);
     }
 };
 
@@ -184,15 +111,9 @@ const getDataPost = async (kategori = null, platform = null) => {
             return;
         }
 
-        // const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-        // const data = await response.json();
-        // const endDate = new Date(data.startDate).toISOString().split('T')[0];
-        // const endDateObj = new Date(endDate).getTime();
-
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 100); // Kurangi 1 hari dari hari ini
-        const endDates = endDate.toISOString().split('T')[0];
-        const endDateObj = new Date(endDates).getTime();
+        endDate.setDate(endDate.getDate() - 100);
+        const endDateObj = endDate.getTime();
 
         const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
@@ -213,7 +134,6 @@ const getDataPost = async (kategori = null, platform = null) => {
                             url: 'https://social-api4.p.rapidapi.com/v1/info',
                             params: {
                                 username_or_id_or_url: row.username,
-                                // include_about: 'true',
                                 url_embed_safe: 'true'
                             },
                             headers: {
@@ -228,11 +148,10 @@ const getDataPost = async (kategori = null, platform = null) => {
                             break;
                         }
 
-                        // Simpan ke DB (opsional)
                         await save.saveUser({
                             client_account: row.client_account,
-                            kategori: kategori,
-                            platform: platform,
+                            kategori,
+                            platform,
                             username: row.username,
                             user_id: userData.id,
                             followers: userData.follower_count || 0,
@@ -246,7 +165,7 @@ const getDataPost = async (kategori = null, platform = null) => {
                         let pageCount = 0;
 
                         while (morePosts) {
-                            const getPost = {
+                            const response = await axios.request({
                                 method: 'GET',
                                 url: 'https://social-api4.p.rapidapi.com/v1/posts',
                                 params: {
@@ -258,103 +177,20 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
                                     'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
                                 }
-                            };
+                            });
 
-                            const response = await axios.request(getPost);
-
-                            if (!response.data?.data?.items) {
+                            const items = response.data?.data?.items;
+                            if (!items || !items.length) {
                                 console.warn(`No Posts found for user: ${row.username}`);
                                 break;
                             }
-                            if (!response.data?.data?.items) {
-                                console.warn(`No Posts found for user: ${row.username}`);
-                                break;
-                            }
-
-                            const items = response.data?.data?.items;
-                            const items = response.data?.data?.items;
 
                             for (const item of items) {
                                 const isPinned = item.is_pinned ? 1 : 0;
                                 const postDate = new Date(item.taken_at * 1000).getTime();
                                 const captionText = item.caption || "No Caption";
-                            for (const item of items) {
-                                const isPinned = item.is_pinned ? 1 : 0;
-                                const postDate = new Date(item.taken_at * 1000).getTime();
-                                const captionText = item.caption || "No Caption";
 
-                                if (isPinned) {
-                                    const post = {
-                                        client_account: row.client_account,
-                                        kategori: row.kategori,
-                                        platform: row.platform,
-                                        user_id: row.user_id,
-                                        unique_id_post: item.id,
-                                        username: row.username,
-                                        created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                        thumbnail_url: item.thumbnail_url,
-                                        caption: captionText.text || "No Caption",
-                                        post_code: item.code,
-                                        comments: item.comment_count,
-                                        likes: item.like_count,
-                                        media_name: item.media_name,
-                                        product_type: item.product_type,
-                                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                                        is_pinned: isPinned,
-                                        followers: userData.follower_count || 0,
-                                        following: userData.following_count || 0,
-                                        playCount: item.play_count || 0,
-                                        shareCount: item.share_count || 0,
-                                        collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-                                        collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-                                            ? item.coauthor_producers
-                                                .map(user => user.username === row.username ? item.user.username : user.username)
-                                                .join(",")
-                                            : ""
-                                    };
-                                if (isPinned) {
-                                    const post = {
-                                        client_account: row.client_account,
-                                        kategori: row.kategori,
-                                        platform: row.platform,
-                                        user_id: row.user_id,
-                                        unique_id_post: item.id,
-                                        username: row.username,
-                                        created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                        thumbnail_url: item.thumbnail_url,
-                                        caption: captionText.text || "No Caption",
-                                        post_code: item.code,
-                                        comments: item.comment_count,
-                                        likes: item.like_count,
-                                        media_name: item.media_name,
-                                        product_type: item.product_type,
-                                        tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                                        is_pinned: isPinned,
-                                        followers: userData.follower_count || 0,
-                                        following: userData.following_count || 0,
-                                        playCount: item.play_count || 0,
-                                        shareCount: item.share_count || 0,
-                                        collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-                                        collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-                                            ? item.coauthor_producers
-                                                .map(user => user.username === row.username ? item.user.username : user.username)
-                                                .join(",")
-                                            : ""
-                                    };
-
-                                    await save.savePost(post);
-                                    continue;
-                                }
-                                    await save.savePost(post);
-                                    continue;
-                                }
-
-                                if (postDate < endDateObj) {
-                                    return;
-                                }
-                                if (postDate < endDateObj) {
-                                    return;
-                                }
+                                if (postDate < endDateObj) return;
 
                                 const post = {
                                     client_account: row.client_account,
@@ -365,7 +201,7 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     username: row.username,
                                     created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
                                     thumbnail_url: item.thumbnail_url,
-                                    caption: captionText.text || "No Caption",
+                                    caption: captionText.text || captionText,
                                     post_code: item.code,
                                     comments: item.comment_count,
                                     likes: item.like_count,
@@ -377,36 +213,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     following: userData.following_count || 0,
                                     playCount: item.play_count || 0,
                                     shareCount: item.share_count || 0,
-                                    collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-                                    collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-                                        ? item.coauthor_producers
-                                            .map(user => user.username === row.username ? item.user.username : user.username)
-                                            .join(",")
-                                        : ""
-                                };
-                                const post = {
-                                    client_account: row.client_account,
-                                    kategori: row.kategori,
-                                    platform: row.platform,
-                                    user_id: row.user_id,
-                                    unique_id_post: item.id,
-                                    username: row.username,
-                                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-                                    thumbnail_url: item.thumbnail_url,
-                                    caption: captionText.text || "No Caption",
-                                    post_code: item.code,
-                                    comments: item.comment_count,
-                                    likes: item.like_count,
-                                    media_name: item.media_name,
-                                    product_type: item.product_type,
-                                    tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-                                    is_pinned: isPinned,
-                                    followers: userData.follower_count || 0,
-                                    following: userData.following_count || 0,
-                                    playCount: item.play_count || 0,
-                                    shareCount: item.share_count || 0,
-                                    collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-                                    collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
+                                    collabs: (item.coauthor_producers?.length > 0) ? 1 : 0,
+                                    collabs_with: (item.coauthor_producers?.length > 0)
                                         ? item.coauthor_producers
                                             .map(user => user.username === row.username ? item.user.username : user.username)
                                             .join(",")
@@ -415,13 +223,15 @@ const getDataPost = async (kategori = null, platform = null) => {
 
                                 await save.savePost(post);
                             }
+
                             paginationToken = response.data?.pagination_token;
                             morePosts = !!paginationToken;
                             pageCount++;
                             console.log(`Page count: ${pageCount}`);
                         }
+
                         console.info(`✅ Finished processing posts for user: ${row.username}`);
-                        break; // Jika berhasil, keluar dari loop retry
+                        break;
                     } catch (error) {
                         retryCount++;
                         console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
@@ -429,8 +239,8 @@ const getDataPost = async (kategori = null, platform = null) => {
                         if (retryCount >= maxRetries) {
                             console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
                         } else {
-                            console.warn(`⚠️ Retrying for ${row.username} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 2000)); // Delay 5 detik sebelum retry
+                            console.warn(`⚠️ Retrying for ${row.username} in 2 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 2000));
                         }
                     }
                 }
@@ -439,9 +249,9 @@ const getDataPost = async (kategori = null, platform = null) => {
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        console.log('Data posts berhasil diperbarui untuk semua pengguna.');
+        console.log('✅ Data posts berhasil diperbarui untuk semua pengguna.');
     } catch (error) {
-        console.error('Error executing function:', error.message);
+        console.error('❌ Error executing function:', error.message);
     }
 };
 
@@ -648,11 +458,11 @@ const getDataComment = async (kategori = null, platform = null) => {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
-                    const limitPage = 20;
-                    let moreComments = true;
+                    const maxPageLimit = 20;
+                    let hasMore = true;
 
-                    while (moreComments && pageCount < limitPage) {
-                        const getComment = {
+                    while (hasMore && pageCount < maxPageLimit) {
+                        const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments',
                             params: {
@@ -664,14 +474,12 @@ const getDataComment = async (kategori = null, platform = null) => {
                                 'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
                                 'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
                             }
-                        };
+                        });
 
-                        const response = await axios.request(getComment);
-                        const userComments = response.data?.data?.items || [];
+                        const comments = response.data?.data?.items || [];
+                        if (!comments.length) break;
 
-                        if (!userComments.length) break;
-
-                        for (const item of userComments) {
+                        for (const item of comments) {
                             await save.saveComment({
                                 client_account: row.client_account,
                                 kategori,
@@ -690,8 +498,8 @@ const getDataComment = async (kategori = null, platform = null) => {
                         }
 
                         paginationToken = response.data.pagination_token;
+                        hasMore = !!paginationToken;
                         pageCount++;
-                        moreComments = !!paginationToken;
                     }
 
                     await db.query(`
@@ -701,15 +509,17 @@ const getDataComment = async (kategori = null, platform = null) => {
                     `, [row.unique_id_post]);
 
                     console.info(`✅ Done (${i + 1}/${rows.length}) Post ID: ${row.unique_id_post}`);
-                    break;
+                    break; // keluar dari retry loop
 
                 } catch (err) {
                     retryCount++;
                     console.error(`❌ Error (${retryCount}/${maxRetries}) - Post: ${row.unique_id_post} ->`, err.message);
+
                     if (retryCount >= maxRetries) {
-                        console.warn(`❌ Failed after ${maxRetries} retries`);
+                        console.warn(`⚠️ Failed after ${maxRetries} retries. Marking as unprocessed.`);
                         await db.query(`UPDATE posts SET comments_processed = 0 WHERE unique_id_post = ?`, [row.unique_id_post]);
                     } else {
+                        // Delay sebelum retry
                         await new Promise(resolve => setTimeout(resolve, 5000));
                     }
                 }
@@ -718,7 +528,6 @@ const getDataComment = async (kategori = null, platform = null) => {
 
         console.log('✅ All comments processed.');
     } catch (error) {
-        console.error('❌ Fatal error:', error.message);
         console.error('❌ Fatal error:', error.message);
     }
 };
@@ -756,7 +565,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                     let moreComments = true;
 
                     while (moreComments && pageCount < 10) {
-                        const getChildComment = {
+                        const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments_thread',
                             params: {
@@ -768,11 +577,9 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                                 'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
                                 'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
                             }
-                        };
+                        });
 
-                        const response = await axios.request(getChildComment);
                         const childComments = response.data?.data?.items || [];
-
                         if (!childComments.length) break;
 
                         for (const child of childComments) {
@@ -789,15 +596,16 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                                 child_commenter_username: child.user.username,
                                 child_commenter_userid: child.user.id,
                                 child_comment_text: child.text,
-                                child_comment_like_count: child.comment_like_count
+                                child_comment_like_count: child.like_count || 0
                             });
                         }
 
                         paginationToken = response.data.pagination_token;
-                        pageCount++;
                         moreComments = !!paginationToken;
+                        pageCount++;
                     }
 
+                    // Tandai sebagai sudah diproses jika sukses
                     await db.query(`
                         UPDATE mainComments 
                         SET child_comments_processed = 1 
@@ -812,9 +620,9 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                     console.error(`❌ Error (${retryCount}/${maxRetries}) on parent comment ${row.comment_unique_id}:`, error.message);
 
                     if (retryCount >= maxRetries) {
-                        await db.query(`UPDATE mainComments SET child_comments_processed = 0 WHERE comment_unique_id = ?`, [row.comment_unique_id]);
+                        console.warn(`⚠️ Max retries reached. Skipping comment: ${row.comment_unique_id}`);
                     } else {
-                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        await new Promise(resolve => setTimeout(resolve, 5000)); // wait before retry
                     }
                 }
             }
@@ -828,22 +636,19 @@ const getDataChildComment = async (kategori = null, platform = null) => {
 
 const getDataCommentByCode = async (kategori = null, platform = null) => {
     try {
-        // Ambil daftar postingan dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
-            SELECT *
-            FROM listCustomRequest 
+            SELECT * FROM listCustomRequest 
             WHERE platform = ?
-            AND comments_processed = 0
-            AND FIND_IN_SET(?, kategori)
-            
+              AND comments_processed = 0
+              AND FIND_IN_SET(?, kategori)
         `, [platform, kategori]);
 
         if (!rows.length) {
-            console.log('No posts found in the database.');
+            console.log('[INFO] No posts found in the database.');
             return;
         }
 
-        const batchSize = 5; // Jumlah postingan yang diproses per batch
+        const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -851,7 +656,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 2; // Maksimal retry per post
+                const maxRetries = 2;
 
                 while (retryCount < maxRetries) {
                     try {
@@ -860,7 +665,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
                         let paginationToken = null;
                         let moreComments = true;
                         let pageCount = 0;
-                        const limitPage = 50; // Batas maksimal halaman
+                        const limitPage = 50;
 
                         while (moreComments && pageCount < limitPage) {
                             const getComment = {
@@ -878,54 +683,27 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
                             };
 
                             const response = await axios.request(getComment);
-                            const response = await axios.request(getComment);
+                            const items = response.data?.data?.items || [];
+                            const dataUser = response.data?.data?.additional_data?.caption || {};
 
-                            if (!response.data?.data?.items) {
-                                console.warn(`🚫 No more comments for post ${row.post_code}`);
-                                moreComments = false;
-                                break;
-                            }
-                            if (!response.data?.data?.items) {
-                                console.warn(`🚫 No more comments for post ${row.post_code}`);
-                                moreComments = false;
+                            if (!items.length) {
+                                console.warn(`🚫 No comments for post ${row.post_code}`);
                                 break;
                             }
 
-                            const userComments = response.data.data.items;
-                            const dataUser = response.data.data.additional_data?.caption || {};
-                            const commentBatches = chunkArray(userComments, batchSize);
-                            const userComments = response.data.data.items;
-                            const dataUser = response.data.data.additional_data?.caption || {};
-                            const commentBatches = chunkArray(userComments, batchSize);
+                            const commentBatches = chunkArray(items, batchSize);
 
                             for (const commentBatch of commentBatches) {
                                 console.info(`💬 Processing batch of ${commentBatch.length} comments...`);
+
                                 await Promise.all(commentBatch.map(async (item) => {
                                     const comment = {
                                         client_account: row.client_account || "",
-                                        kategori: kategori,
-                                        platform: platform,
+                                        kategori,
+                                        platform,
                                         user_id: dataUser?.user?.id || "",
                                         username: dataUser?.user?.username || "",
-                                        unique_id_post: dataUser?.id || "",
-                                        comment_unique_id: item.id,
-                                        created_at: new Date(item.created_at * 1000).toISOString().slice(0, 19).replace('T', ' '),
-                                        commenter_username: item.user.username,
-                                        commenter_userid: item.user.id,
-                                        comment_text: item.text,
-                                        comment_like_count: item.like_count,
-                                        child_comment_count: item.child_comment_count
-                                    };
-                            for (const commentBatch of commentBatches) {
-                                console.info(`💬 Processing batch of ${commentBatch.length} comments...`);
-                                await Promise.all(commentBatch.map(async (item) => {
-                                    const comment = {
-                                        client_account: row.client_account || "",
-                                        kategori: kategori,
-                                        platform: platform,
-                                        user_id: dataUser?.user?.id || "",
-                                        username: dataUser?.user?.username || "",
-                                        unique_id_post: dataUser?.id || "",
+                                        unique_id_post: dataUser?.id || row.unique_id_post || "",
                                         comment_unique_id: item.id,
                                         created_at: new Date(item.created_at * 1000).toISOString().slice(0, 19).replace('T', ' '),
                                         commenter_username: item.user.username,
@@ -936,65 +714,59 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
                                     };
 
                                     await save.saveComment(comment);
-                                    await save.saveComment(comment);
 
-                                    const uniqueIdPost = dataUser?.id || row.unique_id_post || ""; // Gunakan fallback jika tidak ada
-                                    if (uniqueIdPost) { // Pastikan tidak null sebelum update
+                                    // Update unique_id_post jika belum ada
+                                    if (!row.unique_id_post && dataUser?.id) {
                                         await db.query(`
                                             UPDATE listCustomRequest
                                             SET unique_id_post = ?
                                             WHERE post_code = ?
-                                        `, [uniqueIdPost, row.post_code]);
+                                        `, [dataUser.id, row.post_code]);
 
-                                        console.info(`✅ Updated listCustomRequest for post_code: ${row.post_code}`);
-                                    } else {
-                                        console.warn(`⚠️ Skipping update for post_code: ${row.post_code}, unique_id_post not found.`);
+                                        console.info(`🔄 Updated unique_id_post for post_code: ${row.post_code}`);
                                     }
                                 }));
                             }
 
                             paginationToken = response.data.pagination_token;
+                            moreComments = !!paginationToken;
                             pageCount++;
-
-                            if (!paginationToken) moreComments = false;
-                            console.log(`✅ Processed page: ${pageCount} for post ${row.post_code}`);
+                            console.log(`✅ Processed page ${pageCount} for post ${row.post_code}`);
                         }
 
-                        console.info(`✅ Finished processing comments for post: ${row.post_code}`);
-                        // **Update comments_processed = 1 jika berhasil**
                         await db.query(`
                             UPDATE listCustomRequest
                             SET comments_processed = 1
                             WHERE post_code = ?
                         `, [row.post_code]);
 
-                        success = true;
-                        break; // Jika berhasil, keluar dari retry loop
+                        console.info(`✅ Finished processing comments for post: ${row.post_code}`);
+                        break; // keluar dari retry loop jika berhasil
+
                     } catch (error) {
                         retryCount++;
-                        console.error(`❌ Error fetching comments for ${row.post_code} (Attempt ${retryCount}):`, error.message);
+                        console.error(`❌ Error (${retryCount}/${maxRetries}) on post ${row.post_code}:`, error.message);
 
                         if (retryCount >= maxRetries) {
-                            console.error(`❌ Failed to fetch comments for ${row.post_code} after ${maxRetries} attempts.`);
-                            // **Pastikan comment_processed tetap 0 jika gagal**
+                            console.warn(`⚠️ Max retries reached. Skipping post: ${row.post_code}`);
                             await db.query(`
-                                UPDATE listCustomRequest 
-                                SET comments_processed = 0 
+                                UPDATE listCustomRequest
+                                SET comments_processed = 0
                                 WHERE post_code = ?
                             `, [row.post_code]);
                         } else {
-                            console.warn(`⚠️ Retrying for post ${row.post_code} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
+                            await new Promise(res => setTimeout(res, 5000));
                         }
                     }
                 }
             }));
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch postingan
+
+            await new Promise(res => setTimeout(res, 1000)); // Delay antar batch
         }
 
         console.log('✅ All Instagram comments have been successfully updated.');
     } catch (error) {
-        console.error('❌ Error executing function:', error.message);
+        console.error('❌ Fatal error:', error.message);
     }
 };
 
@@ -1079,22 +851,22 @@ const getDataCommentByUrl = async (url, kategori = "", platform = "Instagram") =
 
 const getDataChildCommentByCode = async (kategori = null, platform = null) => {
     try {
-        // Ambil daftar komentar induk dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
             SELECT mc.comment_unique_id, mc.unique_id_post, mc.user_id, mc.username, mc.child_comment_count, mc.client_account, mc.kategori, mc.platform
             FROM mainComments mc
             JOIN listCustomRequest p ON mc.unique_id_post = p.unique_id_post
             WHERE mc.platform = ?
-            AND child_comments_processed = 0
-            AND FIND_IN_SET(?, mc.kategori)
+              AND FIND_IN_SET(?, mc.kategori)
+              AND mc.child_comments_processed = 0
+              AND mc.child_comment_count > 0
         `, [platform, kategori]);
 
         if (!rows.length) {
-            console.log('No parent comments found in the database.');
+            console.log('[INFO] No parent comments found in the database.');
             return;
         }
 
-        const batchSize = 5; // Jumlah komentar yang diproses per batch
+        const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -1102,16 +874,16 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 50; // Maksimum retry per parent comment
+                const maxRetries = 3;
 
                 while (retryCount < maxRetries) {
                     try {
-                        console.info(`🔍 Fetching child comments for parent comment: ${row.comment_unique_id} on post: ${row.unique_id_post} (Attempt ${retryCount + 1})`);
+                        console.info(`🔍 Fetching child comments for parent: ${row.comment_unique_id} (post: ${row.unique_id_post})`);
 
                         let paginationToken = null;
                         let moreComments = true;
                         let pageCount = 0;
-                        const limitPage = 0; // Batas maksimal pagination
+                        const limitPage = 10;
 
                         while (moreComments && pageCount < limitPage) {
                             const getChildComment = {
@@ -1129,28 +901,25 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
                             };
 
                             const response = await axios.request(getChildComment);
+                            const childComments = response.data?.data?.items || [];
 
-                            if (!response.data?.data?.items) {
-                                console.warn(`🚫 No more child comments for post ${row.unique_id_post}`);
-                                moreComments = false;
-                                break;
-                            }
+                            if (!childComments.length) break;
 
-                            const userComments = response.data.data.items;
-                            const commentBatches = chunkArray(userComments, batchSize);
+                            const commentBatches = chunkArray(childComments, batchSize);
 
                             for (const commentBatch of commentBatches) {
-                                console.info(`💬 Processing batch of ${commentBatch.length} child comments...`);
+                                console.info(`💬 Processing ${commentBatch.length} child comments...`);
+
                                 await Promise.all(commentBatch.map(async (child) => {
                                     const childComment = {
-                                        client_account: row.client_account || "",
-                                        kategori: kategori || "",
-                                        platform: platform || "",
-                                        user_id: row.user_id || "",
-                                        username: row.username || "",
-                                        unique_id_post: row.unique_id_post || "",
-                                        comment_unique_id: row.comment_unique_id || "",
-                                        child_comment_unique_id: child.id || "",
+                                        client_account: row.client_account,
+                                        kategori,
+                                        platform,
+                                        user_id: row.user_id,
+                                        username: row.username,
+                                        unique_id_post: row.unique_id_post,
+                                        comment_unique_id: row.comment_unique_id,
+                                        child_comment_unique_id: child.id,
                                         created_at: new Date(child.created_at * 1000).toISOString().slice(0, 19).replace('T', ' '),
                                         child_commenter_username: child.user.username,
                                         child_commenter_userid: child.user.id,
@@ -1161,52 +930,47 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
                                     await save.saveChildComment(childComment);
                                 }));
                             }
-                                    await save.saveChildComment(childComment);
-                                }));
-                            }
 
                             paginationToken = response.data.pagination_token;
+                            moreComments = !!paginationToken;
                             pageCount++;
 
-                            if (!paginationToken) moreComments = false;
-                            console.log(`✅ Processed page: ${pageCount} for parent comment ${row.comment_unique_id} on post ${row.unique_id_post}`);
+                            console.log(`✅ Page ${pageCount} done for parent comment ${row.comment_unique_id}`);
                         }
 
-                        console.info(`✅ Finished processing child comments for parent comment: ${row.comment_unique_id}`);
                         await db.query(`
                             UPDATE mainComments 
                             SET child_comments_processed = 1 
-                            WHERE unique_id_post = ?
-                        `, [row.unique_id_post]);
+                            WHERE comment_unique_id = ?
+                        `, [row.comment_unique_id]);
 
-                        success = true;
-                        break; // Jika berhasil, keluar dari retry loop
+                        console.info(`✅ Finished all child comments for parent: ${row.comment_unique_id}`);
+                        break;
+
                     } catch (error) {
                         retryCount++;
-                        console.error(`❌ Error fetching child comments for ${row.comment_unique_id} on post ${row.unique_id_post} (Attempt ${retryCount}):`, error.message);
+                        console.error(`❌ Error (${retryCount}/${maxRetries}) on ${row.comment_unique_id}:`, error.message);
 
                         if (retryCount >= maxRetries) {
-                            console.error(`❌ Failed to fetch child comments for ${row.comment_unique_id} after ${maxRetries} attempts.`);
-
                             await db.query(`
                                 UPDATE mainComments 
                                 SET child_comments_processed = 0 
-                                WHERE unique_id_post = ?
-                            `, [row.unique_id_post]);
+                                WHERE comment_unique_id = ?
+                            `, [row.comment_unique_id]);
                         } else {
-                            console.warn(`⚠️ Retrying for comment ${row.comment_unique_id} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
+                            console.warn(`⚠️ Retrying in 5s...`);
+                            await new Promise(res => setTimeout(res, 5000));
                         }
                     }
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch komentar induk
+            await new Promise(res => setTimeout(res, 1000));
         }
 
-        console.log('✅ All Instagram child comments have been successfully updated.');
+        console.log('✅ All child comments processed successfully.');
     } catch (error) {
-        console.error('❌ Error executing function:', error.message);
+        console.error('❌ Fatal error:', error.message);
     }
 };
 
@@ -1307,18 +1071,18 @@ function extractInstagramPostCode(url) {
 // Fungsi untuk mendapatkan data Post dari API
 const getDataLikes = async (kategori = null, platform = null, client_account = null) => {
     try {
-        // Ambil daftar postingan dari database berdasarkan kategori dan platform
         const [rows] = await db.query(`
             SELECT post_code, created_at 
             FROM listPost 
             WHERE platform = "Instagram" 
-            AND FIND_IN_SET(?, kategori)`, [kategori]);
+              AND FIND_IN_SET(?, kategori)
+        `, [kategori]);
 
         if (!rows.length) {
             return console.log('No posts found in the database.');
         }
 
-        const batchSize = 5; // Jumlah postingan yang diproses per batch
+        const batchSize = 5;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -1326,7 +1090,7 @@ const getDataLikes = async (kategori = null, platform = null, client_account = n
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3; // Maksimum retry per post
+                const maxRetries = 3;
 
                 while (retryCount < maxRetries) {
                     try {
@@ -1335,52 +1099,7 @@ const getDataLikes = async (kategori = null, platform = null, client_account = n
                         let paginationToken = null;
                         let moreLikes = true;
                         let pageCount = 0;
-                        const limitPage = 10; // Batas maksimal halaman
-
-                        while (moreLikes && pageCount < limitPage) {
-                            const getLikes = {
-                                method: 'GET',
-                                url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/likes',
-                                params: {
-                                    code_or_id_or_url: row.post_code,
-                                    ...(paginationToken && { pagination_token: paginationToken })
-                                },
-                                headers: {
-                                    'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-                                    'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
-                                }
-                            };
-const getDataLikes = async (kategori = null, platform = null, client_account = null) => {
-    try {
-        // Ambil daftar postingan dari database berdasarkan kategori dan platform
-        const [rows] = await db.query(`
-            SELECT post_code, created_at 
-            FROM listPost 
-            WHERE platform = "Instagram" 
-            AND FIND_IN_SET(?, kategori)`, [kategori]);
-
-        if (!rows.length) {
-            return console.log('No posts found in the database.');
-        }
-
-        const batchSize = 5; // Jumlah postingan yang diproses per batch
-        const rowBatches = chunkArray(rows, batchSize);
-
-        for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} posts...`);
-
-            await Promise.all(batch.map(async (row) => {
-                let retryCount = 0;
-                const maxRetries = 3; // Maksimum retry per post
-
-                while (retryCount < maxRetries) {
-                    try {
-                        console.info(`🔍 Fetching likes for post: ${row.post_code} (Attempt ${retryCount + 1})`);
-
-                        let paginationToken = null;
-                        let moreLikes = true;
-                        let pageCount = 0;
-                        const limitPage = 10; // Batas maksimal halaman
+                        const limitPage = 10;
 
                         while (moreLikes && pageCount < limitPage) {
                             const getLikes = {
@@ -1398,49 +1117,26 @@ const getDataLikes = async (kategori = null, platform = null, client_account = n
 
                             const response = await axios.request(getLikes);
 
-                            if (!response.data?.data?.items) {
+                            if (!response.data?.data?.items || response.data.data.items.length === 0) {
                                 console.warn(`🚫 No more likes for post: ${row.post_code}`);
-                                moreLikes = false;
-                                break;
-                            }
-                            const response = await axios.request(getLikes);
-
-                            if (!response.data?.data?.items) {
-                                console.warn(`🚫 No more likes for post: ${row.post_code}`);
-                                moreLikes = false;
                                 break;
                             }
 
                             const userLikes = response.data.data.items;
                             const likeBatches = chunkArray(userLikes, batchSize);
-                            const userLikes = response.data.data.items;
-                            const likeBatches = chunkArray(userLikes, batchSize);
 
                             for (const likeBatch of likeBatches) {
-                                console.info(`💖 Processing batch of ${likeBatch.length} likes...`);
+                                console.info(`💖 Processing ${likeBatch.length} likes...`);
                                 await Promise.all(likeBatch.map(async (item) => {
                                     const likes = {
-                                        client_account: client_account,
-                                        kategori: kategori,
-                                        platform: platform,
+                                        client_account,
+                                        kategori,
+                                        platform,
                                         post_code: row.post_code,
                                         user_id: item.id,
                                         username: item.username,
                                         fullname: item.full_name,
-                                        created_at: new Date(row.created_at).toISOString().slice(0, 19).replace('T', ' '),
-                                    };
-                            for (const likeBatch of likeBatches) {
-                                console.info(`💖 Processing batch of ${likeBatch.length} likes...`);
-                                await Promise.all(likeBatch.map(async (item) => {
-                                    const likes = {
-                                        client_account: client_account,
-                                        kategori: kategori,
-                                        platform: platform,
-                                        post_code: row.post_code,
-                                        user_id: item.id,
-                                        username: item.username,
-                                        fullname: item.full_name,
-                                        created_at: new Date(row.created_at).toISOString().slice(0, 19).replace('T', ' '),
+                                        created_at: new Date(row.created_at).toISOString().slice(0, 19).replace('T', ' ')
                                     };
 
                                     await save.saveLikes(likes);
@@ -1448,14 +1144,15 @@ const getDataLikes = async (kategori = null, platform = null, client_account = n
                             }
 
                             paginationToken = response.data.pagination_token;
+                            moreLikes = !!paginationToken;
                             pageCount++;
 
-                            if (!paginationToken) moreLikes = false;
-                            console.log(`✅ Processed page: ${pageCount} for post: ${row.post_code}`);
+                            console.log(`✅ Page ${pageCount} processed for post: ${row.post_code}`);
                         }
 
-                        console.info(`✅ Successfully processed likes for post: ${row.post_code}`);
-                        break; // Jika berhasil, keluar dari retry loop
+                        console.info(`✅ Finished processing likes for post: ${row.post_code}`);
+                        break;
+
                     } catch (error) {
                         retryCount++;
                         console.error(`❌ Error fetching likes for post ${row.post_code} (Attempt ${retryCount}):`, error.message);
@@ -1463,14 +1160,14 @@ const getDataLikes = async (kategori = null, platform = null, client_account = n
                         if (retryCount >= maxRetries) {
                             console.error(`❌ Failed to fetch likes for post ${row.post_code} after ${maxRetries} attempts.`);
                         } else {
-                            console.warn(`⚠️ Retrying for post ${row.post_code} in 5 seconds...`);
-                            await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
+                            console.warn(`⚠️ Retrying in 5 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 5000));
                         }
                     }
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch postingan
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         console.log('✅ All Instagram likes have been successfully updated.');
@@ -1787,12 +1484,12 @@ module.exports = {
     getDataPost,
     getDataComment,
     getDataChildComment,
+    getDataCommentByCode,
+    getDataCommentByUrl,
+    getDataChildCommentByCode,
+    getChildCommentByUrl,
     getDataLikes,
     getDataPostByKeyword,
     getDataPostByCode,
-    getDataFollowers,
-    getDataCommentByCode,
-    getDataChildCommentByCode,
-    getDataCommentByUrl,
-    getChildCommentByUrl
+    getDataFollowers
 };
