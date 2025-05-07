@@ -62,24 +62,16 @@ app.get('/proxy-image', async (req, res) => {
     }
 });
 
+const server = process.env.DB_HOST || 'localhost';
+
 (async () => {
     try {
         await connection.query('SELECT 1');
-        console.log('Database connected successfully');
+        console.log(`Database connected successfully at ${server}`);
     } catch (error) {
-        console.error('Database connection failed:', error);
+        console.error(`Database connection to ${server} failed:`, error);
     }
 })();
-
-// const { connectDB, fetchData, closeDB } = require('./models/pg');
-
-// // Coba koneksi ke database
-// (async () => {
-//     await connectDB(); // Coba koneksi ke PostgreSQL
-//     await fetchData(); // Menjalankan query
-//     await closeDB();   // Menutup koneksi setelah selesai
-// })();
-
 
 // Jalankan server
 const port = process.env.PORT || 3000;

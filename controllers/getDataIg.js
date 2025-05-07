@@ -13,7 +13,7 @@ const chunkArray = (array, size) => {
 };
 
 // Fungsi utama untuk mengambil data user Instagram via API
-const getDataUser = async (kategori = null, platform = null) => {
+const getDataUser = async (kategori = null, platform = null, logBuffer = [], errorUsers = []) => {
     try {
         const [rows] = await db.query(
             'SELECT * FROM listAkun WHERE platform = ? AND FIND_IN_SET(?, kategori)',
@@ -21,22 +21,29 @@ const getDataUser = async (kategori = null, platform = null) => {
         );
 
         if (!rows.length) {
-            return console.log('📭 No users found in the database.');
+            const msg = '📭 No users found in the database.';
+            console.log(msg);
+            logBuffer.push(msg);
+            return;
         }
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} users...`);
+            const batchMsg = `🚀 Processing batch of ${batch.length} users...`;
+            console.info(batchMsg);
+            logBuffer.push(batchMsg);
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3;
+                const maxRetries = 1;
 
                 while (retryCount < maxRetries) {
                     try {
-                        console.info(`🔍 Fetching data for user: ${row.username}`);
+                        const fetchMsg = `🔍 Fetching data for user: ${row.username}`;
+                        console.info(fetchMsg);
+                        logBuffer.push(fetchMsg);
 
                         const getUser = {
                             method: 'GET',
@@ -56,7 +63,10 @@ const getDataUser = async (kategori = null, platform = null) => {
                         const userData = response.data?.data;
 
                         if (!userData) {
-                            console.warn(`🚫 No data found for user: ${row.username}`);
+                            const warnMsg = `🚫 No data found for user: ${row.username}`;
+                            console.warn(warnMsg);
+                            logBuffer.push(warnMsg);
+                            errorUsers.push(row.username);
                             return;
                         }
 
@@ -73,29 +83,35 @@ const getDataUser = async (kategori = null, platform = null) => {
                         };
 
                         await save.saveUser(user);
-                        console.info(`✅ Successfully saved data for user: ${row.username}`);
+                        const successMsg = `✅ Successfully saved data for user: ${row.username}`;
+                        console.info(successMsg);
+                        logBuffer.push(successMsg);
                         break;
 
                     } catch (error) {
                         retryCount++;
-
-                        if (error.response) {
-                            console.error(`❌ API Error for ${row.username}:`, error.response.status, error.response.data);
-                        } else {
-                            console.error(`❌ Request failed for ${row.username}:`, error.message);
-                        }
-
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Delay sebelum retry
+                        const errMsg = error.response
+                            ? `❌ API Error for ${row.username}: ${error.response.status}`
+                            : `❌ Request failed for ${row.username}: ${error.message}`;
+                        console.error(errMsg);
+                        logBuffer.push(errMsg);
+                        errorUsers.push(row.username);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 }
             }));
 
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay antar batch
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ All Instagram users have been successfully updated.');
+        const finishMsg = '✅ All Instagram users have been processed.';
+        console.log(finishMsg);
+        logBuffer.push(finishMsg);
+
     } catch (error) {
-        console.error('❌ Error executing getDataUser:', error.message);
+        const fatalMsg = `❌ Error executing getDataUser: ${error.message}`;
+        console.error(fatalMsg);
+        logBuffer.push(fatalMsg);
     }
 };
 
@@ -112,10 +128,10 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 100);
+        endDate.setDate(endDate.getDate() - 10);
         const endDateObj = endDate.getTime();
 
-        const batchSize = 5;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -123,7 +139,7 @@ const getDataPost = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 10;
+                const maxRetries = 1;
 
                 while (retryCount < maxRetries) {
                     try {
@@ -452,7 +468,7 @@ const getDataComment = async (kategori = null, platform = null) => {
             console.info(`🔄 Processing post ${i + 1}/${rows.length} | ID: ${row.unique_id_post}`);
 
             let retryCount = 0;
-            const maxRetries = 3;
+            const maxRetries = 1;
 
             while (retryCount < maxRetries) {
                 try {
@@ -556,7 +572,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
             console.info(`🔄 (${i + 1}/${rows.length}) Processing parent comment: ${row.comment_unique_id}`);
 
             let retryCount = 0;
-            const maxRetries = 3;
+            const maxRetries = 1;
 
             while (retryCount < maxRetries) {
                 try {
@@ -648,7 +664,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
             return;
         }
 
-        const batchSize = 5;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -656,7 +672,7 @@ const getDataCommentByCode = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 2;
+                const maxRetries = 1;
 
                 while (retryCount < maxRetries) {
                     try {
@@ -776,7 +792,7 @@ const getDataCommentByUrl = async (url, kategori = "", platform = "Instagram") =
         if (!post_code) throw new Error("Invalid Instagram URL");
 
         let retryCount = 0;
-        const maxRetries = 2;
+        const maxRetries = 1;
         let success = false;
 
         while (retryCount < maxRetries && !success) {
@@ -866,7 +882,7 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
             return;
         }
 
-        const batchSize = 5;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -874,7 +890,7 @@ const getDataChildCommentByCode = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3;
+                const maxRetries = 1;
 
                 while (retryCount < maxRetries) {
                     try {
@@ -989,7 +1005,7 @@ const getChildCommentByUrl = async (url, kategori = "", platform = "Instagram") 
 
         for (const row of parentRows) {
             let retryCount = 0;
-            const maxRetries = 3;
+            const maxRetries = 1;
             let success = false;
 
             while (retryCount < maxRetries && !success) {
@@ -1082,7 +1098,7 @@ const getDataLikes = async (kategori = null, platform = null, client_account = n
             return console.log('No posts found in the database.');
         }
 
-        const batchSize = 5;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -1185,8 +1201,8 @@ const getDataPostByKeyword = async (kategori = null, platform = null, client_acc
         let pageCount = 0;
         let totalFetched = 0;
         const maxTotalResults = 500;
-        const maxRetries = 3;
-        const batchSize = 5;
+        const maxRetries = 1;
+        const batchSize = 10;
         const maxPages = 10;
 
         while (hasMore) {
@@ -1313,9 +1329,9 @@ const getDataPostByCode = async (kategori = null, platform = null, client_accoun
             return console.log('No posts found in the database.');
         }
 
-        const batchSize = 5; // Jumlah postingan yang diproses per batch
+        const batchSize = 10; // Jumlah postingan yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
-        const maxRetries = 3; // Maksimum jumlah retry jika API gagal
+        const maxRetries = 1; // Maksimum jumlah retry jika API gagal
         const maxPages = 10; // Batas maksimal pagination
 
         for (const batch of rowBatches) {
@@ -1423,7 +1439,7 @@ const getDataFollowers = async (kategori = null, platform = null) => {
             return 'No users found in the database.'; // Return ke router
         }
 
-        const batchSize = 5;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {

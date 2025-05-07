@@ -25,7 +25,6 @@ const news = require('./routes/news');
 
 // Middleware untuk parsing JSON dan URL-encoded form data
 app.use(cors());
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -63,27 +62,19 @@ app.get('/proxy-image', async (req, res) => {
     }
 });
 
+const server = process.env.DB_HOST || 'localhost';
+
 (async () => {
     try {
         await connection.query('SELECT 1');
-        console.log('Database connected successfully');
+        console.log(`Database connected successfully at ${server}`);
     } catch (error) {
-        console.error('Database connection failed:', error);
+        console.error(`Database connection to ${server} failed:`, error);
     }
 })();
 
-// const { connectDB, fetchData, closeDB } = require('./models/pg');
-
-// // Coba koneksi ke database
-// (async () => {
-//     await connectDB(); // Coba koneksi ke PostgreSQL
-//     await fetchData(); // Menjalankan query
-//     await closeDB();   // Menutup koneksi setelah selesai
-// })();
-
-
 // Jalankan server
-const port = process.env.PORT || 7771;
+const port = 7771 || 3000;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });

@@ -13,31 +13,38 @@ const chunkArray = (array, size) => {
 
 let userCache = {};
 
-const getDataUser = async (kategori = null, platform = null) => {
+const getDataUser = async (kategori = null, platform = null, logBuffer = [], errorUsers = []) => {
     try {
         const [rows] = await db.query(`
             SELECT * FROM listAkun 
             WHERE platform = ? 
-              AND FIND_IN_SET(?, kategori)
+            AND FIND_IN_SET(?, kategori)
         `, [platform, kategori]);
 
         if (!rows.length) {
-            return console.log('No users found in the database.');
+            const msg = '📭 No users found in the database.';
+            console.log(msg);
+            logBuffer.push(msg);
+            return;
         }
 
-        const batchSize = 50;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
-            console.info(`🚀 Processing batch of ${batch.length} users...`);
+            const batchMsg = `🚀 Processing batch of ${batch.length} users...`;
+            console.info(batchMsg);
+            logBuffer.push(batchMsg);
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3;
+                const maxRetries = 1;
 
                 while (retryCount < maxRetries) {
                     try {
-                        console.info(`🔍 Fetching data for user: ${row.username}`);
+                        const fetchMsg = `🔍 Fetching data for user: ${row.username}`;
+                        console.info(fetchMsg);
+                        logBuffer.push(fetchMsg);
 
                         const getUser = {
                             method: 'GET',
@@ -54,7 +61,10 @@ const getDataUser = async (kategori = null, platform = null) => {
                         const response = await axios.request(getUser);
 
                         if (!response.data?.data) {
-                            console.warn(`🚫 No data found for user: ${row.username}`);
+                            const warnMsg = `🚫 No data found for user: ${row.username}`;
+                            console.warn(warnMsg);
+                            logBuffer.push(warnMsg);
+                            errorUsers.push(row.username);
                             break;
                         }
 
@@ -79,20 +89,26 @@ const getDataUser = async (kategori = null, platform = null) => {
                             following: user.following
                         };
 
-                        console.info(`✅ Successfully saved data for user: ${row.username}`);
+                        const successMsg = `✅ Successfully saved data for user: ${row.username}`;
+                        console.info(successMsg);
+                        logBuffer.push(successMsg);
                         break;
 
                     } catch (error) {
                         retryCount++;
 
-                        if (error.response) {
-                            console.error(`❌ API Error for ${row.username}:`, error.response.status, error.response.data);
-                        } else {
-                            console.error(`❌ Request failed for ${row.username}:`, error.message);
-                        }
+                        const errMsg = error.response
+                            ? `❌ API Error for ${row.username}: ${error.response.status}`
+                            : `❌ Request failed for ${row.username}: ${error.message}`;
+                        
+                        console.error(errMsg);
+                        logBuffer.push(errMsg);
+                        errorUsers.push(row.username);
 
                         if (retryCount < maxRetries) {
-                            console.warn(`⏳ Retrying ${row.username} in 5 seconds...`);
+                            const retryMsg = `⏳ Retrying ${row.username} in 5 seconds...`;
+                            console.warn(retryMsg);
+                            logBuffer.push(retryMsg);
                             await new Promise(resolve => setTimeout(resolve, 5000));
                         }
                     }
@@ -102,9 +118,13 @@ const getDataUser = async (kategori = null, platform = null) => {
             await new Promise(resolve => setTimeout(resolve, 1000)); // Delay antar batch
         }
 
-        console.log('✅ Data user TikTok berhasil diperbarui.');
+        const doneMsg = '✅ Data user TikTok berhasil diperbarui.';
+        console.log(doneMsg);
+        logBuffer.push(doneMsg);
     } catch (error) {
-        console.error('❌ Fatal error executing function:', error.message);
+        const fatalMsg = `❌ Fatal error executing function: ${error.message}`;
+        console.error(fatalMsg);
+        logBuffer.push(fatalMsg);
     }
 };
 
@@ -121,10 +141,10 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 100);
+        endDate.setDate(endDate.getDate() - 10);
         const endDateObj = endDate.getTime();
 
-        const batchSize = 5;
+        const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -132,7 +152,7 @@ const getDataPost = async (kategori = null, platform = null) => {
 
             await Promise.all(batch.map(async (row) => {
                 let retryCount = 0;
-                const maxRetries = 3;
+                const maxRetries = 1;
 
                 while (retryCount < maxRetries) {
                     try {
@@ -271,7 +291,7 @@ const getDataComment = async (kategori = null, platform = null) => {
             let retry = 0;
             let success = false;
 
-            while (retry < 3 && !success) {
+            while (retry < 1 && !success) {
                 try {
                     let cursor = 0;
                     let hasMore = true;
@@ -362,7 +382,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
             let retry = 0;
             let success = false;
 
-            while (retry < 3 && !success) {
+            while (retry < 1 && !success) {
                 try {
                     let cursor = 0;
                     let hasMore = true;
@@ -524,7 +544,7 @@ const getDataFollowers = async (kategori = null, platform = null) => {
             return res.send('No users found in the database.');
         }
 
-        const batchSize = 5; // Jumlah row yang diproses per batch
+        const batchSize = 10; // Jumlah row yang diproses per batch
         const rowBatches = chunkArray(rows, batchSize);
 
         for (const batch of rowBatches) {
@@ -582,7 +602,7 @@ const getDataCommentByCode = async (kategori = null, platform = null, url = null
         }
 
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 1;
         const batchSize = 50;
 
         while (retryCount < maxRetries) {
@@ -695,7 +715,7 @@ const getChildCommentsFromComment = async ({
 }) => {
     try {
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 1;
         const batchSize = 50;
 
         while (retryCount < maxRetries) {

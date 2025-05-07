@@ -7,11 +7,6 @@ const openai = new OpenAI({
   project: process.env.PROJECT_ID
 });
 
-// const { GoogleGenAI } = require("@google/genai");
-// const genAI = new GoogleGenAI({
-//     apiKey: process.env.GEMINI_API_KEY,
-// });
-
 /**
  * Fungsi untuk mengirim prompt ke OpenAI dan mendapatkan responsenya.
  * @param {string} prompt - Prompt yang dikirim ke OpenAI.
@@ -134,46 +129,6 @@ Label: Larangan Study Tour
     throw new Error('Gagal mendapatkan ringkasan dari OpenAI.');
   }
 }
-
-// const getNewsLabeling = async (prompt) => {
-//   try {
-//     const response = await genAI.models.generateContent({
-//       model: "gemini-1.5-flash",
-//       contents: [
-//         {
-//           role: "user",
-//           parts: [
-//             { text: `
-// Kamu adalah peneliti yang ahli dalam melakukan thematic coding. Tugas kamu adalah membaca judul atau caption dari berita online atau konten media sosial, lalu memberikan **label tematik** untuk masing-masing konten tersebut.
-
-// Berikut aturan utama yang harus kamu ikuti saat memberikan label:
-
-// 1. Label berisi **minimal 2 kata dan maksimal 3 kata**.
-// 2. Label harus mencerminkan **isu utama** atau inti dari konten yang dibaca.
-// 3. Gunakan **kata atau frasa** yang muncul secara eksplisit atau tersirat dalam konten.
-// 4. Jika ada **dua atau lebih konten yang membahas isu serupa**, gunakan **label yang sama persis** untuk menjaga konsistensi.
-//    - Contoh: Jika ada beberapa konten soal "banjir di Bogor", maka semua dilabeli dengan **Banjir Bogor**.
-// 5. Jika menemukan **isu baru yang tidak berkaitan dengan label sebelumnya**, buat label baru yang relevan.
-// 6. Hindari membuat label yang terlalu umum, terlalu spesifik, atau hanya muncul sekali tanpa relevansi.
-// 7. Ingat dan gunakan kembali label yang sudah pernah kamu buat untuk konten serupa di kemudian hari.
-
-// Tugas kamu adalah **hanya memberikan label**, tanpa penjelasan tambahan, analisis, atau opini.
-
-// Berikut kontennya:
-//           ` },
-//             { text: prompt }
-//           ]
-//         }
-//       ]
-//     });
-
-//     return response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No Label";
-
-//   } catch (error) {
-//     console.error('Error from Gemini:', error.response?.data || error.message);
-//     throw new Error('Gagal mendapatkan label dari Gemini.');
-//   }
-// };
 
 const getCoding = async (prompt) => {
   try {
