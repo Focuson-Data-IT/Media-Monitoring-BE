@@ -24,12 +24,25 @@ router.get('/getData', async (req, res) => {
     const { kategori } = req.query;
     if (!kategori) return res.status(400).send('❌ kategori parameter is required.');
 
+    const logBuffer = [];
+    const errorUsers = [];
+
     try {
-        await getDataIg.getDataUser(kategori, PLATFORM);
-        res.send(`✅ Data ${PLATFORM} for category "${kategori}" has been fetched and saved.`);
+        await getDataIg.getDataUser(kategori, PLATFORM, logBuffer, errorUsers);
+        
+        const responseMessage = {
+            message: `✅ Data ${PLATFORM} for category "${kategori}" has been fetched.`,
+            // logs: logBuffer,
+            failed_users: errorUsers
+        };
+
+        res.status(200).json(responseMessage);
     } catch (error) {
-        console.error('❌ Error executing getData:', error.message);
-        res.status(500).send(`❌ Error executing getData: ${error.message}`);
+        res.status(500).json({
+            message: `❌ Error executing getData: ${error.message}`,
+            logs: logBuffer,
+            failed_users: errorUsers
+        });
     }
 });
 
@@ -40,7 +53,7 @@ router.get('/getPost', async (req, res) => {
 
     try {
         await getDataIg.getDataPost(kategori, PLATFORM);
-        res.send(`✅ Posts ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
+        res.status(200).send(`✅ Posts ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getPost:', error.message);
         res.status(500).send(`❌ Error executing getPost: ${error.message}`);
@@ -55,7 +68,7 @@ router.get('/getComment', async (req, res) => {
     try {
         await getDataIg.getDataComment(kategori, PLATFORM);
         await getDataIg.getDataChildComment(kategori, PLATFORM);
-        res.send(`✅ Comments and child comments ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
+        res.status(200).send(`✅ Comments and child comments ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getComment:', error.message);
         res.status(500).json({ message: '❌ Error fetching comments.', error: error.message });
@@ -70,7 +83,7 @@ router.get('/getCommentByCode', async (req, res) => {
     try {
         await getDataIg.getDataCommentByUrl(url, kategori, PLATFORM);
         await getDataIg.getChildCommentByUrl(url, kategori, PLATFORM);
-        res.send(`✅ Comments and child comments ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
+        res.status(200).send(`✅ Comments and child comments ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getCommentByCode:', error.message);
         res.status(500).json({ message: '❌ Error fetching comments by code.', error: error.message });
@@ -92,7 +105,7 @@ router.get('/getLikes', async (req, res) => {
             }
         }
 
-        res.send(`✅ Likes ${PLATFORM} fetched and saved.`);
+        res.status(200).send(`✅ Likes ${PLATFORM} fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getLikes:', error.message);
         res.status(500).send(`❌ Error executing getLikes: ${error.message}`);
@@ -114,7 +127,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             getDataIg.getDataPostByKeyword(row.kategori, PLATFORM, row.client_account, row.keyword)
         ));
 
-        res.send(`✅ Data post ${PLATFORM} by keywords fetched for category ${kategori}.`);
+        res.status(200).send(`✅ Data post ${PLATFORM} by keywords fetched for category ${kategori}.`);
     } catch (error) {
         console.error('❌ Error executing getDataPostByKeywords:', error.message);
         res.status(500).send(`❌ Error executing getDataPostByKeywords: ${error.message}`);
@@ -140,7 +153,7 @@ router.post('/getPostDataByCode', async (req, res) => {
             await processCode(post_code);
         }
 
-        res.send(`✅ Posts by code fetched and saved for platform ${platform}.`);
+        res.status(200).send(`✅ Posts by code fetched and saved for platform ${platform}.`);
     } catch (error) {
         console.error('❌ Error in /getPostDataByCode:', error.message);
         res.status(500).json({ error: '❌ Internal Server Error' });

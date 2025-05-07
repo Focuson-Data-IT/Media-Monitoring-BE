@@ -14,7 +14,7 @@ router.get('/update-followers', async (req, res) => {
             platform
         )
 
-        res.send('Data followers & following berhasil diperbarui untuk semua pengguna.');
+        res.status(200).send('Data followers & following berhasil diperbarui untuk semua pengguna.');
     } catch (error) {
         console.error('Error executing update:', error.message);
         res.status(500).send(`Error executing update: ${error.message}`);
@@ -29,16 +29,30 @@ router.get('/getData', async (req, res) => {
         return res.status(400).send('❌ Error: kategori parameter is required.');
     }
 
+    const logBuffer = [];
+    const errorUsers = [];
+
     try {
         console.info(`🔍 Starting data fetching for category: ${kategori}`);
+        logBuffer.push(`🔍 Starting data fetching for category: ${kategori}`);
 
-        // Langsung panggil getDataUser tanpa looping tambahan
-        await getDataTiktok.getDataUser(kategori, "TikTok");
+        await getDataTiktok.getDataUser(kategori, "TikTok", logBuffer, errorUsers);
 
-        res.send(`✅ Data ${platform} for category "${kategori}" has been fetched and saved.`);
+        res.status(200).json({
+            message: `✅ Data TikTok for category "${kategori}" has been fetched and saved.`,
+            // logs: logBuffer,
+            failed_users: errorUsers
+        });
     } catch (error) {
-        console.error('❌ Error executing getData:', error.message);
-        res.status(500).send(`❌ Error executing getData: ${error.message}`);
+        const errMsg = `❌ Error executing getData: ${error.message}`;
+        console.error(errMsg);
+        logBuffer.push(errMsg);
+
+        res.status(500).json({
+            message: errMsg,
+            logs: logBuffer,
+            failed_users: errorUsers
+        });
     }
 });
 
@@ -56,7 +70,7 @@ router.get('/getPost', async (req, res) => {
         // Langsung panggil getDataPost tanpa looping tambahan
         await getDataTiktok.getDataPost(kategori, "TikTok");
 
-        res.send(`✅ Data ${platform} posts for category "${kategori}" have been fetched and saved.`);
+        res.status(200).send(`✅ Data ${platform} posts for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getPost:', error.message);
         res.status(500).send(`❌ Error executing getPost: ${error.message}`);
@@ -108,7 +122,7 @@ router.get('/getComment', async (req, res) => {
         await getDataTiktok.getDataChildComment(kategori, "TikTok", startDate, endDate);
         console.log('✅ Child comments processing completed.');
 
-        res.send(`✅ Comments and child ${platform} comments for category "${kategori}" have been fetched and saved.`);
+        res.status(200).send(`✅ Comments and child ${platform} comments for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getComment and getChildComment:', error.message);
         res.status(500).json({
@@ -133,7 +147,7 @@ router.get('/getCommentByCode', async (req, res) => {
         await getDataTiktok.getDataCommentByCode(kategori, "TikTok", url);
         console.log('✅ Main comments processing completed.');
 
-        res.send(`✅ Comments and child ${platform} comments for category "${kategori}" have been fetched and saved.`);
+        res.status(200).send(`✅ Comments and child ${platform} comments for category "${kategori}" have been fetched and saved.`);
     } catch (error) {
         console.error('❌ Error executing getComment and getChildComment:', error.message);
         res.status(500).json({
@@ -164,7 +178,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
             console.info(`Posts for keyword ${row.keyword} have been fetched and saved.`);
         }));        
 
-        res.send(`Data TikTok getDataPostByKeywords for all users have been fetched and saved.`);
+        res.status(200).send(`Data TikTok getDataPostByKeywords for all users have been fetched and saved.`);
     } catch (error) {
         console.error('Error executing getDataPostByKeywords:', error.message);
         res.status(500).send(`Error executing getDataPostByKeywords: ${error.message}`);
