@@ -57,7 +57,8 @@ const addDataUser = async (kategori, platform) =>
 const processData = async (kategori, platform) =>
     runWithPort(async (port) => {
         const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        // const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const startDate = "2025-03-01";
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().slice(0, 10);
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
