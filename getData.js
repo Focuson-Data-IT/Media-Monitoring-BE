@@ -13,7 +13,7 @@ const kategoriMap = {
 };
 
 // Global port pool (tidak dibagi per platform)
-const portPool = [7770, 7771, 7772, 7773, 7774];
+const portPool = [7771, 7772, 7773, 7774];
 const portStatus = Array(portPool.length).fill(false);
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
