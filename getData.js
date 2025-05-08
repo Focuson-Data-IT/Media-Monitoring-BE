@@ -95,4 +95,5 @@ const runAll = async () => {
     console.log("\n🎉 Semua kategori selesai (get data)!");
 };
 
+
 runAll();
