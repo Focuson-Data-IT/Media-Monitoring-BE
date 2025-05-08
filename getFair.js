@@ -12,7 +12,7 @@ const kategoriMap = {
     "parfum": ["tiktok"]
 };
 
-const portPool = [7771, 7772, 7773, 7774];
+const portPool = [7771, 7772, 7773, 7774, 7775];
 const portStatus = portPool.map(() => false);
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -58,7 +58,7 @@ const processData = async (kategori, platform) =>
     runWithPort(async (port) => {
         const now = new Date();
         // const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-        const startDate = "2025-03-01";
+        const startDate = "2025-04-01";
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().slice(0, 10);
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
