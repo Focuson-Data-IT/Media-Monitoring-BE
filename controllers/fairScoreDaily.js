@@ -12,7 +12,7 @@ const getDatesInRange = (startDate, endDate) => {
 
 const processData = async (startDate, endDate, kategori, platform) => {
     const dates = getDatesInRange(startDate, endDate);
-    const chunkSize = 15;
+    const chunkSize = 31;
 
     console.info(`[INFO] Starting Daily processing for ${dates.length} dates with chunk size ${chunkSize}`);
 
@@ -20,7 +20,6 @@ const processData = async (startDate, endDate, kategori, platform) => {
         const chunk = dates.slice(i, i + chunkSize);
         console.info(`[INFO] Processing date chunk: ${chunk.join(', ')}`);
 
-        // Jalankan 5 tanggal paralel sekaligus
         await Promise.all(
             chunk.map(date => processSingleDate(date, kategori, platform))
         );
