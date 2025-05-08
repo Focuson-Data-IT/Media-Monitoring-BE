@@ -1,18 +1,18 @@
 const axios = require("axios");
 
 const kategoriMap = {
-    "opdbekasikab": ["instagram"],
-    "prokopim_bekasikab": ["instagram"],
-    "disparbud": ["instagram", "tiktok"],
-    "disparbud_competitor": ["instagram", "tiktok"],
-    "disparbud_ambassador": ["instagram", "tiktok"],
+    // "opdbekasikab": ["instagram"],
+    // "prokopim_bekasikab": ["instagram"],
+    // "disparbud": ["instagram", "tiktok"],
+    // "disparbud_competitor": ["instagram", "tiktok"],
+    // "disparbud_ambassador": ["instagram", "tiktok"],
     "opdjabar": ["instagram", "tiktok"],
     "gubernur_jabar": ["instagram", "tiktok"],
     "opdbandung": ["instagram"],
-    "parfum": ["tiktok"]
+    // "parfum": ["tiktok"]
 };
 
-const portPool = [7771, 7772, 7773, 7774, 7775];
+const portPool = [7771];
 const portStatus = portPool.map(() => false);
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -59,7 +59,8 @@ const processData = async (kategori, platform) =>
         const now = new Date();
         // const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
         const startDate = "2025-04-01";
-        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().slice(0, 10);
+        // const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().slice(0, 10);
+        const endDate = "2025-04-30";
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
             kategori,
