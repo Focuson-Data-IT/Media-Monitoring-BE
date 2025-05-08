@@ -75,7 +75,7 @@ const runKategori = async (kategori, platforms) => {
     await Promise.all(
         platforms.map(async (platform) => {
             await getPost(kategori, platform);
-            // await getComment(kategori, platform);
+            await getComment(kategori, platform);
         })
     );
 

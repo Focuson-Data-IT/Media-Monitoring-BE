@@ -23,8 +23,12 @@ const labelv2 = require('./routes/labelv2');
 const wordCloud = require('./routes/wordCloud');
 const news = require('./routes/news');
 
+const allowedOrigin = process.env.ALLOWED_ORIGIN; // Ganti dengan domain yang diizinkan
 // Middleware untuk parsing JSON dan URL-encoded form data
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigin,
+    credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -74,7 +78,7 @@ const server = process.env.DB_HOST || 'localhost';
 })();
 
 // Jalankan server
-const port = 7776 || 3000;
+const port = 7776;
 app.listen(port, () => {
     console.log(`Server berjalan di http://localhost:${port}`);
 });
