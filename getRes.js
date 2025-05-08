@@ -13,7 +13,7 @@ const kategoriList = [
 ];
 
 // Gabungan semua port, tanpa peduli platform
-const portPool = [7770, 7771, 7772, 7773, 7774];
+const portPool = [7771, 7772, 7773, 7774];
 const portStatus = portPool.map(() => false);
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));

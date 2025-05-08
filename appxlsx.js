@@ -11,15 +11,15 @@ const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
 const PLATFORM_CONFIG = {
-    instagram: { port: 7770, checker: (url) => url.includes("instagram.com") },
-    tiktok: { port: 7771, checker: (url) => url.includes("tiktok.com") },
-    youtube: { port: 7772, checker: (url) => url.includes("youtube.com") },
+    instagram: { port: 7771, checker: (url) => url.includes("instagram.com") },
+    tiktok: { port: 7772, checker: (url) => url.includes("tiktok.com") },
+    youtube: { port: 7773, checker: (url) => url.includes("youtube.com") },
     facebook1: {
-        port: 7773,
+        port: 7774,
         checker: (url, i) => url.includes("facebook.com") && i % 2 === 1
     },
     facebook2: {
-        port: 7774,
+        port: 7775,
         checker: (url, i) => url.includes("facebook.com") && i % 2 === 0
     }
 };
