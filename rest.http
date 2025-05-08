@@ -226,12 +226,12 @@ Content-Type: application/json
 }
 
 ### Proses Performa Konten
-POST http://localhost:7770/api/prosesPerformaKonten
+POST http://localhost:7776/api/prosesPerformaKonten
 Content-Type: application/json
 
 {
   "startDate": "2025-01-01",
-  "endDate": "2025-4-30"
+  "endDate": "2025-5-30"
 }
 
 ### Get Instagram User Data
