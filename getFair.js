@@ -12,62 +12,62 @@ const kategoriMap = {
     "parfum": ["tiktok"]
 };
 
-const portPool = {
-    instagram: [7770, 7771, 7772],
-    tiktok: [7773, 7774, 7775]
-};
-
-const portStatus = {
-    instagram: [false, false, false],
-    tiktok: [false, false, false]
-};
+const portPool = [7770, 7771, 7772, 7773, 7774];
+const portStatus = portPool.map(() => false);
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-const waitForPort = async (platform) => {
+const waitForPort = async () => {
     while (true) {
-        const index = portStatus[platform].findIndex(status => !status);
+        const index = portStatus.findIndex(status => !status);
         if (index !== -1) {
-            portStatus[platform][index] = true;
-            return portPool[platform][index];
+            portStatus[index] = true;
+            return portPool[index];
         } else {
-            process.stdout.write(`⏳ Menunggu port kosong untuk ${platform}...\r`);
+            process.stdout.write(`⏳ Menunggu port kosong...\r`);
         }
         await delay(200);
     }
 };
 
-const releasePort = (platform, port) => {
-    const index = portPool[platform].indexOf(port);
-    if (index !== -1) portStatus[platform][index] = false;
+const releasePort = (port) => {
+    const index = portPool.indexOf(port);
+    if (index !== -1) portStatus[index] = false;
 };
 
-const runWithPort = async (platform, fn) => {
-    const port = await waitForPort(platform);
+const runWithPort = async (fn) => {
+    const port = await waitForPort();
     try {
         return await fn(port);
+    } catch (err) {
+        console.error(`❌ Error @${port}:`, err.message || err);
     } finally {
-        releasePort(platform, port);
+        releasePort(port);
     }
 };
 
 const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
 const addDataUser = async (kategori, platform) =>
-    runWithPort(platform, async (port) => {
+    runWithPort(async (port) => {
         await axios.post(`http://localhost:${port}/fair/addDataUser`, { kategori, platform });
         log(`${kategori} ${platform} - addDataUser`, port);
     });
 
 const processData = async (kategori, platform) =>
-    runWithPort(platform, async (port) => {
+    runWithPort(async (port) => {
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().slice(0, 10);
+
         await axios.post(`http://localhost:${port}/fair/processData`, {
             kategori,
             platform,
-            start_date: "2025-04-01",
-            end_date: "2025-04-30"
+            start_date: startDate,
+            end_date: endDate
         });
-        log(`${kategori} ${platform} - processData`, port);
+
+        log(`${kategori} ${platform} - processData (${startDate} to ${endDate})`, port);
     });
 
 const runKategori = async (kategori, platforms) => {
