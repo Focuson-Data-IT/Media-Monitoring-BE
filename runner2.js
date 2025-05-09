@@ -1,21 +1,16 @@
 const axios = require('axios');
 
-// Fungsi untuk format tanggal ke YYYY-MM-DD
+// Format date ke YYYY-MM-DD
 function formatDate(date) {
     return date.toISOString().slice(0, 10);
 }
 
-// Hitung start dan end date
+// Hitung range tanggal
 const today = new Date();
-const startDate = new Date(today);
-startDate.setDate(today.getDate() - 1);
+const startStr = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
+const endStr = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
 
-const endDate = new Date(today);
-endDate.setDate(today.getDate() + 1);
-
-const startStr = formatDate(startDate);
-const endStr = formatDate(endDate);
-
+// URL yang akan di-fetch
 const urls = [
     `http://localhost:7771/instagram/getDataPostByKeywords?kategori=diskom_medmon`,
     `http://localhost:7772/tiktok/getDataPostByKeywords?kategori=diskom_medmon`,
@@ -23,18 +18,33 @@ const urls = [
     `http://localhost:7774/facebook/getDataPostByKeywords?start_date=${startStr}&end_date=${endStr}&kategori=diskom_medmon`,
 ];
 
-(async () => {
-    console.log(`=== [${new Date().toLocaleString()}] Starting fetch... ===`);
-
-    for (const url of urls) {
+// Fungsi untuk fetch dengan retry
+async function fetchWithRetry(url, retries = 2) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const res = await axios.get(url);
-            console.log(`✅ Success: ${url} (${res.status})`);
+            console.log(`✅ Success [${attempt + 1}x]: ${url} (${res.status})`);
+            return;
         } catch (err) {
-            console.error(`❌ Error on ${url}:`, err.message);
+            console.error(`❌ Attempt ${attempt + 1} failed for ${url}: ${err.message}`);
+            if (attempt < retries) {
+                console.log('🔁 Retrying in 3s...');
+                await new Promise((r) => setTimeout(r, 3000)); // delay 3 detik sebelum retry
+            } else {
+                console.error(`🚨 Failed after ${retries + 1} attempts: ${url}`);
+            }
         }
-        await new Promise((r) => setTimeout(r, 2000)); // 2 detik jeda antar request
+    }
+}
+
+(async () => {
+    console.log(`=== [${new Date().toLocaleString()}] Starting fetchAll ===`);
+
+    for (const url of urls) {
+        await fetchWithRetry(url, 2); // Retry maksimal 2x
+        await new Promise((r) => setTimeout(r, 2000)); // Delay antar URL
     }
 
     console.log(`=== Done at ${new Date().toLocaleString()} ===`);
+    process.exit(0); // Biar PM2 tahu script sudah selesai
 })();
