@@ -286,7 +286,7 @@ const getDataComment = async (kategori = null, platform = null) => {
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            console.info(`\n🔍 [${i + 1}/${rows.length}] Processing post: ${row.unique_id_post}`);
+            console.info(`Processing post ${i + 1}/${rows.length} | Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
 
             let retry = 0;
             const maxRetries = 1;
@@ -335,11 +335,16 @@ const getDataComment = async (kategori = null, platform = null) => {
                         cursor = response.data.data.cursor;
                         hasMore = response.data.data.hasMore;
                         pageCount++;
-                        console.log(`✅ Page ${pageCount} processed`);
+                        console.info(`${pageCount} page, processed`);
                     }
 
-                    await db.query(`UPDATE posts SET comments_processed = 1 WHERE unique_id_post = ?`, [row.unique_id_post]);
-                    console.log(`🎉 Done: ${row.unique_id_post}`);
+                    await db.query(`
+                        UPDATE posts 
+                        SET comments_processed = 1 
+                        WHERE unique_id_post = ?
+                    `, [row.unique_id_post]);
+
+                    console.info(`Done (${i + 1}/${rows.length}) | Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
                     success = true;
 
                 } catch (err) {
@@ -358,7 +363,7 @@ const getDataComment = async (kategori = null, platform = null) => {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ Semua komentar berhasil diproses!');
+        console.log(`All TikTok comments processed.`);
     } catch (error) {
         console.error('❌ Fatal error:', error.message);
     }
@@ -379,7 +384,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            console.info(`\n🔍 [${i + 1}/${rows.length}] Parent comment: ${row.comment_unique_id}`);
+            console.info(`Processing parent comment (${i + 1}/${rows.length}) | Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
 
             let retry = 0;
             const maxRetries = 1;
@@ -429,7 +434,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                         cursor = response.data.data.cursor;
                         hasMore = response.data.data.hasMore;
                         pageCount++;
-                        console.log(`✅ Page ${pageCount} processed`);
+                        console.info(`${pageCount} page, processed`);
                     }
 
                     await db.query(`
@@ -438,7 +443,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                         WHERE comment_unique_id = ?
                     `, [row.comment_unique_id]);
 
-                    console.log(`🎉 Done: ${row.comment_unique_id}`);
+                    console.info(`Done (${i + 1}/${rows.length}) parent comment for: Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
                     success = true;
 
                 } catch (err) {
@@ -457,7 +462,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ Semua child comments berhasil diproses!');
+        console.log('All TikTok child comments processed.');
     } catch (error) {
         console.error('❌ Fatal error:', error.message);
     }
