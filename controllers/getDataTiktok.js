@@ -289,9 +289,10 @@ const getDataComment = async (kategori = null, platform = null) => {
             console.info(`\n🔍 [${i + 1}/${rows.length}] Processing post: ${row.unique_id_post}`);
 
             let retry = 0;
+            const maxRetries = 1;
             let success = false;
 
-            while (retry < 1 && !success) {
+            while (retry < maxRetries && !success) {
                 try {
                     let cursor = 0;
                     let hasMore = true;
@@ -344,7 +345,8 @@ const getDataComment = async (kategori = null, platform = null) => {
                 } catch (err) {
                     retry++;
                     console.error(`❌ Error post ${row.unique_id_post} (try ${retry}):`, err.message);
-                    if (retry >= 3) {
+                    if (retry >= maxRetries) {
+                        console.warn(`⚠️ Failed after ${maxRetries} retries. Marking as unprocessed.`);
                         await db.query(`UPDATE posts SET comments_processed = 0 WHERE unique_id_post = ?`, [row.unique_id_post]);
                     } else {
                         console.warn('⏳ Retrying in 5s...');
@@ -380,9 +382,10 @@ const getDataChildComment = async (kategori = null, platform = null) => {
             console.info(`\n🔍 [${i + 1}/${rows.length}] Parent comment: ${row.comment_unique_id}`);
 
             let retry = 0;
+            const maxRetries = 1;
             let success = false;
 
-            while (retry < 1 && !success) {
+            while (retry < maxRetries && !success) {
                 try {
                     let cursor = 0;
                     let hasMore = true;
@@ -441,7 +444,8 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                 } catch (err) {
                     retry++;
                     console.error(`❌ Error for ${row.comment_unique_id} (try ${retry}):`, err.message);
-                    if (retry >= 3) {
+                    if (retry >= maxRetries) {
+                        console.warn(`⚠️ Failed after ${maxRetries} retries. Marking as unprocessed.`);
                         await db.query(`UPDATE mainComments SET child_comments_processed = 0 WHERE comment_unique_id = ?`, [row.comment_unique_id]);
                     } else {
                         console.warn('⏳ Retrying in 5s...');
