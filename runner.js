@@ -1,12 +1,45 @@
 const { exec } = require('child_process');
 
-exec('node getData.js', (err) => {
-    if (err) return console.error('getData.js error:', err); // STOP di sini kalau error
-    exec('node getRes.js', (err2) => {
-        if (err2) return console.error('getRes.js error:', err2); // STOP di sini
-        exec('node getFair.js', (err3) => {
-            if (err3) return console.error('getFair.js error:', err3); // STOP di sini
-            console.log('All done!');
+function runCommand(command, retries = 0) {
+    return new Promise((resolve, reject) => {
+        console.log(`▶️ Running: ${command} (retry ${retries})`);
+        exec(command, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ Error in ${command}:`, error.message);
+                return reject(error);
+            }
+            if (stderr) console.warn(`⚠️ ${command} stderr:\n`, stderr);
+            console.log(`✅ Success: ${command}`);
+            resolve(stdout);
         });
     });
-});
+}
+
+async function tryWithRetry(command, maxRetry = 2) {
+    for (let i = 0; i <= maxRetry; i++) {
+        try {
+            return await runCommand(command, i);
+        } catch (e) {
+            if (i < maxRetry) {
+                console.log(`🔁 Retry ${command}... (${i + 1})`);
+            } else {
+                throw new Error(`❌ ${command} failed after ${maxRetry + 1} attempts`);
+            }
+        }
+    }
+}
+
+(async () => {
+    console.log(`=== [${new Date().toLocaleString()}] Starting runner ===`);
+
+    try {
+        await tryWithRetry('node getData.js');
+        await tryWithRetry('node getRes.js');
+        await tryWithRetry('node getFair.js');
+        console.log('✅ All scripts completed successfully.');
+        process.exit(0);
+    } catch (err) {
+        console.error('🚨 Final failure:', err.message);
+        process.exit(1);
+    }
+})();
