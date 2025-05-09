@@ -636,7 +636,8 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                     console.error(`❌ Error (${retryCount}/${maxRetries}) on parent comment ${row.comment_unique_id}:`, error.message);
 
                     if (retryCount >= maxRetries) {
-                        console.warn(`⚠️ Max retries reached. Skipping comment: ${row.comment_unique_id}`);
+                        console.warn(`⚠️ Failed after ${maxRetries} retries. Marking as unprocessed.`);
+                        await db.query(`UPDATE posts SET child_comments_processed = 0 WHERE comment_unique_id = ?`, [row.comment_unique_id]);
                     } else {
                         await new Promise(resolve => setTimeout(resolve, 5000)); // wait before retry
                     }
