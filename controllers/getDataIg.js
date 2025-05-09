@@ -465,19 +465,19 @@ const getDataComment = async (kategori = null, platform = null) => {
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            console.info(`🔄 Processing post ${i + 1}/${rows.length} | ID: ${row.unique_id_post}`);
+            console.info(`Processing post ${i + 1}/${rows.length} | Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
 
             let retryCount = 0;
             const maxRetries = 1;
+            let success = false;
 
-            while (retryCount < maxRetries) {
+            while (retryCount < maxRetries && !success) {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
-                    const maxPageLimit = 20;
                     let hasMore = true;
 
-                    while (hasMore && pageCount < maxPageLimit) {
+                    while (hasMore) {
                         const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments',
@@ -516,6 +516,7 @@ const getDataComment = async (kategori = null, platform = null) => {
                         paginationToken = response.data.pagination_token;
                         hasMore = !!paginationToken;
                         pageCount++;
+                        console.info(`${pageCount} page, processed`);
                     }
 
                     await db.query(`
@@ -524,8 +525,8 @@ const getDataComment = async (kategori = null, platform = null) => {
                         WHERE unique_id_post = ?
                     `, [row.unique_id_post]);
 
-                    console.info(`✅ Done (${i + 1}/${rows.length}) Post ID: ${row.unique_id_post}`);
-                    break; // keluar dari retry loop
+                    console.info(`Done (${i + 1}/${rows.length}) | Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
+                    success = true;
 
                 } catch (err) {
                     retryCount++;
@@ -542,7 +543,7 @@ const getDataComment = async (kategori = null, platform = null) => {
             }
         }
 
-        console.log('✅ All comments processed.');
+        console.log(`All Instagram comments processed.`);
     } catch (error) {
         console.error('❌ Fatal error:', error.message);
     }
@@ -569,18 +570,19 @@ const getDataChildComment = async (kategori = null, platform = null) => {
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            console.info(`🔄 (${i + 1}/${rows.length}) Processing parent comment: ${row.comment_unique_id}`);
+            console.info(`Processing parent comment (${i + 1}/${rows.length}) | Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
 
             let retryCount = 0;
             const maxRetries = 1;
+            let success = false;
 
-            while (retryCount < maxRetries) {
+            while (retryCount < maxRetries && !success) {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
                     let moreComments = true;
 
-                    while (moreComments && pageCount < 10) {
+                    while (moreComments) {
                         const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments_thread',
@@ -619,6 +621,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                         paginationToken = response.data.pagination_token;
                         moreComments = !!paginationToken;
                         pageCount++;
+                        console.info(`${pageCount} page, processed`);
                     }
 
                     // Tandai sebagai sudah diproses jika sukses
@@ -628,8 +631,8 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                         WHERE comment_unique_id = ?
                     `, [row.comment_unique_id]);
 
-                    console.info(`✅ Done (${i + 1}/${rows.length}) Parent comment: ${row.comment_unique_id}`);
-                    break;
+                    console.info(`Done (${i + 1}/${rows.length}) parent comment for: Kategori: ${row.kategori} | Platform: ${row.platform} | Username: ${row.username}`);
+                    success = true;
 
                 } catch (error) {
                     retryCount++;
@@ -645,7 +648,7 @@ const getDataChildComment = async (kategori = null, platform = null) => {
             }
         }
 
-        console.log('✅ All child comments processed.');
+        console.log('All Instagram child comments processed.');
     } catch (error) {
         console.error('❌ Fatal error:', error.message);
     }
