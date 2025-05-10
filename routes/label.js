@@ -28,7 +28,8 @@ router.get('/v1/labeling', async(req, res) => {
         const query = `
         SELECT * FROM news 
         WHERE label IS NULL 
-        AND FIND_IN_SET(${kategori}, kategori)`;
+        AND kategori = ${kategori}
+        `;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -86,8 +87,9 @@ router.get('/v1/post-labeling', async(req, res) => {
         const query = `
         SELECT * FROM posts 
         WHERE label IS NULL 
-        AND FIND_IN_SET(${kategori}, kategori) 
-        ORDER BY post_id DESC`;
+        AND kategori = ${kategori}
+        ORDER BY post_id DESC
+        `;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -215,7 +217,7 @@ router.get('/v1/reply-coding', async(req, res) => {
         const query = `
         SELECT * FROM childComments 
         WHERE label IS NULL 
-        AND FIND_IN_SET(${kategori}, kategori)
+        AND kategori = ${kategori}
         `;
         const [result] = await db.query(query);
 

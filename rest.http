@@ -7,6 +7,9 @@ GET http://localhost:7770/label/v1/labeling?kategori=dishub_medmon
 Content-Type: application/json
 
 ###
+curl "http://localhost:7775/label/v1/post-labeling?kategori=parfum"
+
+###
 GET http://localhost:7770/label/v1/post-labeling?kategori=dishub_medmon
 Content-Type: application/json
 
