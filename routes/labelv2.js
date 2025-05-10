@@ -13,24 +13,23 @@ const openai = new OpenAI({
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 let labelMemory = {};
 
-// Shorten text if too long
+// Shorten overly long text for safety
 const shortenComment = (text, maxLength = 500) => {
     if (!text) return '[Kosong]';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 };
 
 // Split array into chunks
-const chunkArray = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-    arr.slice(i * size, i * size + size)
-);
+const chunkArray = (arr, size) =>
+    Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+        arr.slice(i * size, i * size + size)
+    );
 
-// Prompt generator (support caption or comment)
+// Generate labeling prompt
 const generatePrompt = (items, kategori = "", isPost = false) => {
-    const jenis = isPost ? "caption pada postingan" : "komentar";
-    const promptHeader = `Berikut ini adalah ${jenis} di media sosial yang berhubungan dengan kategori: ${kategori}.\n` +
-        `Lakukan *thematic coding* dengan memberikan label 2–4 kata yang mewakili isi ${jenis}.\n` +
-        `Gunakan label yang konsisten jika temanya sama. Contoh label: "aroma segar", "testimoni positif", "kritik layanan", dll.\n\n` +
-        `${jenis.charAt(0).toUpperCase() + jenis.slice(1)}:\n`;
+    const jenis = isPost ? "caption" : "komentar";
+    const promptHeader = `Beri label 2–4 kata untuk setiap ${jenis} berikut yang berhubungan dengan kategori: ${kategori}.\n` +
+        `Label harus singkat, konsisten, tanpa tanda baca, dan tidak mengulang.\n\n`;
 
     const itemList = items
         .map((v, i) => `${i + 1}. "${shortenComment(v.comment_text)}"`)
@@ -39,7 +38,7 @@ const generatePrompt = (items, kategori = "", isPost = false) => {
     return `${promptHeader}${itemList}`;
 };
 
-// Kirim prompt ke OpenAI
+// Send prompt to OpenAI and get raw response
 const getCoding = async (prompt, maxTokens = 300) => {
     try {
         const response = await openai.chat.completions.create({
@@ -61,18 +60,34 @@ const getCoding = async (prompt, maxTokens = 300) => {
     }
 };
 
-// Proses hasil dari OpenAI
-const getNewsLabelingBatch = async (prompt) => {
+// Clean and normalize labels from OpenAI response
+const getNewsLabelingBatch = async (prompt, expectedCount = 5) => {
     try {
         const response = await getCoding(prompt);
-        return response
+        let lines = response
             .split("\n")
-            .map(line => line
-                .replace(/^[-–]\s*/, '')
-                .replace(/^\d+\.\s*/, '')
-                .trim()
-            )
-            .filter(line => line !== "");
+            .map(line => line.trim())
+            .filter(line =>
+                line !== "" &&
+                !/^hasil thematic coding/i.test(line) &&
+                !/^berikut ini/i.test(line) &&
+                !/^caption:/i.test(line) &&
+                !/^komentar:/i.test(line)
+            );
+
+        lines = lines.map(line => {
+            line = line.replace(/^[-–•\d.]+/, ''); // remove bullet or numbering
+            line = line.replace(/["'“”‘’,.:;!?]/g, ''); // remove punctuation
+            line = line.toLowerCase().trim(); // lowercase & clean
+            return line;
+        });
+
+        // Limit to expected count if extra lines exist
+        if (lines.length > expectedCount) {
+            lines = lines.slice(-expectedCount);
+        }
+
+        return lines;
     } catch (error) {
         console.error("⚠️ OpenAI API Error:", error);
         return [];
@@ -105,9 +120,8 @@ router.get('/v2/comments-coding', async (req, res) => {
             const chunk = chunks[i];
             console.log(`🔄 Processing comment chunk ${i + 1} of ${chunks.length}`);
             const prompt = generatePrompt(chunk, kategori, false);
-            const labels = await getNewsLabelingBatch(prompt);
+            const labels = await getNewsLabelingBatch(prompt, chunk.length);
 
-            console.info('🧾 Prompt:\n' + prompt);
             console.info('🏷️ Labels:', labels);
 
             if (labels.length !== chunk.length) {
@@ -117,9 +131,8 @@ router.get('/v2/comments-coding', async (req, res) => {
             }
 
             await Promise.all(chunk.map(async (v, idx) => {
-                let label = labels[idx]?.trim() || "No Label";
+                let label = labels[idx]?.trim() || "no label";
                 if (label.length > 50) label = label.slice(0, 50).trim();
-
                 label = labelMemory[label] || (labelMemory[label] = label);
 
                 const updateQuery = `UPDATE mainComments SET label = ? WHERE main_comment_id = ?`;
@@ -130,13 +143,13 @@ router.get('/v2/comments-coding', async (req, res) => {
         }
 
         res.status(200).json({
-            message: "✅ Labeling completed",
+            message: "✅ Labeling comments completed",
             total_processed: total,
             failed_chunks: failedChunks.length
         });
 
     } catch (error) {
-        console.error("❌ Batch processing error:", error);
+        console.error("❌ Comments labeling error:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
@@ -168,9 +181,8 @@ router.get('/v2/post-labeling', async (req, res) => {
             const chunk = chunks[i];
             console.log(`🔄 Processing post chunk ${i + 1} of ${chunks.length}`);
             const prompt = generatePrompt(chunk, kategori, true);
-            const labels = await getNewsLabelingBatch(prompt);
+            const labels = await getNewsLabelingBatch(prompt, chunk.length);
 
-            console.info('🧾 Prompt:\n' + prompt);
             console.info('🏷️ Labels:', labels);
 
             if (labels.length !== chunk.length) {
@@ -180,9 +192,8 @@ router.get('/v2/post-labeling', async (req, res) => {
             }
 
             await Promise.all(chunk.map(async (v, idx) => {
-                let label = labels[idx]?.trim() || "No Label";
+                let label = labels[idx]?.trim() || "no label";
                 if (label.length > 50) label = label.slice(0, 50).trim();
-
                 label = labelMemory[label] || (labelMemory[label] = label);
 
                 const updateQuery = `UPDATE posts SET label = ? WHERE post_id = ?`;
