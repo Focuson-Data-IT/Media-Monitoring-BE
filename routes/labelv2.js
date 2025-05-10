@@ -29,8 +29,8 @@ const chunkArray = (arr, size) =>
 const generatePrompt = (items, kategori = "", isPost = false) => {
     const jenis = isPost ? "caption" : "komentar";
     const promptHeader = `Beri label 2–4 kata untuk setiap ${jenis} berikut yang berhubungan dengan kategori: ${kategori}.\n` +
-        `Label harus singkat, konsisten, tanpa tanda baca, dan tidak mengulang.\n\n`;
-
+        `Label harus singkat, konsisten, tanpa tanda baca, boleh diulang jika berhubungan dengan komentar lain.\n\n` +
+        `Setiap caption wajib diberi 1 label. Tidak perlu ada penjelasan, langsung tampilkan label satu per baris.`;
     const itemList = items
         .map((v, i) => `${i + 1}. "${shortenComment(v.comment_text)}"`)
         .join('\n');
