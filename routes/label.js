@@ -28,7 +28,7 @@ router.get('/v1/labeling', async(req, res) => {
         const query = `
         SELECT * FROM news 
         WHERE label IS NULL 
-        AND kategori = ${kategori}
+        AND kategori = '${kategori}'
         `;
         const [result] = await db.query(query);
 
@@ -87,7 +87,7 @@ router.get('/v1/post-labeling', async(req, res) => {
         const query = `
         SELECT * FROM posts 
         WHERE label IS NULL 
-        AND kategori = ${kategori}
+        AND kategori = '${kategori}'
         ORDER BY post_id DESC
         `;
         const [result] = await db.query(query);
@@ -152,7 +152,7 @@ router.get('/v1/comments-coding', async(req, res) => {
         const query = `
         SELECT * FROM mainComments 
         WHERE label IS NULL 
-        AND kategori = ${kategori}
+        AND kategori = '${kategori}'
         `;
         const [result] = await db.query(query);
 
@@ -217,7 +217,7 @@ router.get('/v1/reply-coding', async(req, res) => {
         const query = `
         SELECT * FROM childComments 
         WHERE label IS NULL 
-        AND kategori = ${kategori}
+        AND kategori = '${kategori}'
         `;
         const [result] = await db.query(query);
 
@@ -384,7 +384,7 @@ router.get('/v2/comments-coding', async (req, res) => {
         SELECT main_comment_id, comment_text, kategori
         FROM mainComments 
         WHERE label IS NULL 
-        AND FIND_IN_SET(${kategori}, kategori)
+        AND FIND_IN_SET('${kategori}, kategori)'
         `;
         const [result] = await db.query(query);
 
