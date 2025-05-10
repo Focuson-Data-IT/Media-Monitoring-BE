@@ -141,7 +141,7 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 10);
+        endDate.setDate(endDate.getDate() - 15);
         const endDateObj = endDate.getTime();
 
         const batchSize = 10;
@@ -450,8 +450,8 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                     retry++;
                     console.error(`❌ Error for ${row.comment_unique_id} (try ${retry}):`, err.message);
                     if (retry >= maxRetries) {
-                        console.warn(`⚠️ Failed after ${maxRetries} retries. Marking as unprocessed.`);
-                        await db.query(`UPDATE mainComments SET child_comments_processed = 0 WHERE comment_unique_id = ?`, [row.comment_unique_id]);
+                        console.warn(`⚠️ Failed after ${maxRetries} retries.`);
+                        // await db.query(`UPDATE mainComments SET child_comments_processed = 0 WHERE comment_unique_id = ?`, [row.comment_unique_id]);
                     } else {
                         console.warn('⏳ Retrying in 5s...');
                         await new Promise(resolve => setTimeout(resolve, 5000));

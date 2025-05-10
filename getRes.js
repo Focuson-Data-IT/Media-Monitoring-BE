@@ -4,7 +4,7 @@ const kategoriList = [
     "opdbekasikab",
     "prokopim_bekasikab",
     "disparbud",
-    "disparbud_competitor",
+    "disparbud_competitor2",
     "disparbud_ambassador",
     "opdjabar",
     "gubernur_jabar",
