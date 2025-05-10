@@ -13,41 +13,30 @@ const openai = new OpenAI({
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 let labelMemory = {};
 
-// Shorten overly long text for safety
+// Pendekkan jika komentar terlalu panjang
 const shortenComment = (text, maxLength = 500) => {
     if (!text) return '[Kosong]';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 };
 
-// Split array into chunks
-const chunkArray = (arr, size) =>
-    Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-        arr.slice(i * size, i * size + size)
-    );
-
-// Generate labeling prompt
-const generatePrompt = (items, kategori = "", isPost = false) => {
+// Buat prompt untuk 1 komentar atau caption
+const generatePrompt = (item, kategori = "", isPost = false) => {
     const jenis = isPost ? "caption" : "komentar";
-    const promptHeader = `Beri label 2–4 kata untuk setiap ${jenis} berikut yang berhubungan dengan kategori: ${kategori}.\n` +
-        `Label harus singkat, konsisten, tanpa tanda baca, boleh diulang jika berhubungan dengan komentar lain.\n\n` +
-        `Setiap caption wajib diberi 1 label. Tidak perlu ada penjelasan, langsung tampilkan label satu per baris.`;
-    const itemList = items
-        .map((v, i) => `${i + 1}. "${shortenComment(v.comment_text)}"`)
-        .join('\n');
-
-    return `${promptHeader}${itemList}`;
+    return `Beri 1 label (2–4 kata) untuk ${jenis} berikut yang berhubungan dengan kategori: ${kategori}.\n` +
+        `Label harus singkat, konsisten, tanpa tanda baca, dan tanpa penjelasan apapun. Cukup 1 baris saja.\n\n` +
+        `"${shortenComment(item.comment_text)}"`;
 };
 
-// Send prompt to OpenAI and get raw response
-const getCoding = async (prompt, maxTokens = 300) => {
+// Kirim prompt ke OpenAI
+const getCoding = async (prompt) => {
     try {
         const response = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
-            max_tokens: maxTokens,
+            max_tokens: 50,
             messages: [
                 {
                     role: 'system',
-                    content: `Kamu adalah asisten peneliti yang ahli dalam melakukan thematic coding di media sosial.`
+                    content: `Kamu adalah asisten peneliti ahli dalam labeling komentar media sosial.`
                 },
                 { role: 'user', content: prompt }
             ]
@@ -60,38 +49,13 @@ const getCoding = async (prompt, maxTokens = 300) => {
     }
 };
 
-// Clean and normalize labels from OpenAI response
-const getNewsLabelingBatch = async (prompt, expectedCount = 5) => {
-    try {
-        const response = await getCoding(prompt);
-        let lines = response
-            .split("\n")
-            .map(line => line.trim())
-            .filter(line =>
-                line !== "" &&
-                !/^hasil thematic coding/i.test(line) &&
-                !/^berikut ini/i.test(line) &&
-                !/^caption:/i.test(line) &&
-                !/^komentar:/i.test(line)
-            );
-
-        lines = lines.map(line => {
-            line = line.replace(/^[-–•\d.]+/, ''); // remove bullet or numbering
-            line = line.replace(/["'“”‘’,.:;!?]/g, ''); // remove punctuation
-            line = line.toLowerCase().trim(); // lowercase & clean
-            return line;
-        });
-
-        // Limit to expected count if extra lines exist
-        if (lines.length > expectedCount) {
-            lines = lines.slice(-expectedCount);
-        }
-
-        return lines;
-    } catch (error) {
-        console.error("⚠️ OpenAI API Error:", error);
-        return [];
-    }
+// Bersihkan label dari noise, simbol, tanda baca
+const normalizeLabel = (text) => {
+    return text
+        .replace(/^[-–•\d.]+/, '') // hapus nomor di depan
+        .replace(/["'“”‘’,.:;!?]/g, '') // hapus tanda baca
+        .toLowerCase()
+        .trim();
 };
 
 // ROUTE: Label Komentar
@@ -112,40 +76,35 @@ router.get('/v2/comments-coding', async (req, res) => {
             return res.status(200).json({ message: "✅ No unlabeled comments found" });
         }
 
-        const chunks = chunkArray(result, 5);
-        const total = result.length;
-        const failedChunks = [];
+        let processed = 0;
+        const failed = [];
 
-        for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            console.log(`🔄 Processing comment chunk ${i + 1} of ${chunks.length}`);
-            const prompt = generatePrompt(chunk, kategori, false);
-            const labels = await getNewsLabelingBatch(prompt, chunk.length);
+        for (const item of result) {
+            const prompt = generatePrompt(item, kategori, false);
+            const rawLabel = await getCoding(prompt);
+            let label = normalizeLabel(rawLabel);
 
-            console.info('🏷️ Labels:', labels);
-
-            if (labels.length !== chunk.length) {
-                console.warn(`⚠️ Mismatch: ${labels.length} labels untuk ${chunk.length} komentar. Skip.`);
-                failedChunks.push(chunk);
+            if (!label) {
+                console.warn(`⚠️ Empty label for comment ID ${item.main_comment_id}`);
+                failed.push(item.main_comment_id);
                 continue;
             }
 
-            await Promise.all(chunk.map(async (v, idx) => {
-                let label = labels[idx]?.trim() || "no label";
-                if (label.length > 50) label = label.slice(0, 50).trim();
-                label = labelMemory[label] || (labelMemory[label] = label);
+            if (label.length > 50) label = label.slice(0, 50).trim();
+            label = labelMemory[label] || (labelMemory[label] = label);
 
-                const updateQuery = `UPDATE mainComments SET label = ? WHERE main_comment_id = ?`;
-                await db.query(updateQuery, [label, v.main_comment_id]);
-            }));
+            const updateQuery = `UPDATE mainComments SET label = ? WHERE main_comment_id = ?`;
+            await db.query(updateQuery, [label, item.main_comment_id]);
+            processed++;
 
+            console.info(`✅ ID ${item.main_comment_id} → ${label}`);
             await delay(500);
         }
 
         res.status(200).json({
             message: "✅ Labeling comments completed",
-            total_processed: total,
-            failed_chunks: failedChunks.length
+            total_processed: processed,
+            failed: failed.length
         });
 
     } catch (error) {
@@ -173,40 +132,35 @@ router.get('/v2/post-labeling', async (req, res) => {
             return res.status(200).json({ message: "✅ No unlabeled posts found" });
         }
 
-        const chunks = chunkArray(result, 5);
-        const total = result.length;
-        const failedChunks = [];
+        let processed = 0;
+        const failed = [];
 
-        for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            console.log(`🔄 Processing post chunk ${i + 1} of ${chunks.length}`);
-            const prompt = generatePrompt(chunk, kategori, true);
-            const labels = await getNewsLabelingBatch(prompt, chunk.length);
+        for (const item of result) {
+            const prompt = generatePrompt(item, kategori, true);
+            const rawLabel = await getCoding(prompt);
+            let label = normalizeLabel(rawLabel);
 
-            console.info('🏷️ Labels:', labels);
-
-            if (labels.length !== chunk.length) {
-                console.warn(`⚠️ Mismatch: ${labels.length} labels untuk ${chunk.length} caption. Skip.`);
-                failedChunks.push(chunk);
+            if (!label) {
+                console.warn(`⚠️ Empty label for post ID ${item.post_id}`);
+                failed.push(item.post_id);
                 continue;
             }
 
-            await Promise.all(chunk.map(async (v, idx) => {
-                let label = labels[idx]?.trim() || "no label";
-                if (label.length > 50) label = label.slice(0, 50).trim();
-                label = labelMemory[label] || (labelMemory[label] = label);
+            if (label.length > 50) label = label.slice(0, 50).trim();
+            label = labelMemory[label] || (labelMemory[label] = label);
 
-                const updateQuery = `UPDATE posts SET label = ? WHERE post_id = ?`;
-                await db.query(updateQuery, [label, v.post_id]);
-            }));
+            const updateQuery = `UPDATE posts SET label = ? WHERE post_id = ?`;
+            await db.query(updateQuery, [label, item.post_id]);
+            processed++;
 
+            console.info(`✅ ID ${item.post_id} → ${label}`);
             await delay(500);
         }
 
         res.status(200).json({
             message: "✅ Post labeling completed",
-            total_processed: total,
-            failed_chunks: failedChunks.length
+            total_processed: processed,
+            failed: failed.length
         });
 
     } catch (error) {
