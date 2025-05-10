@@ -25,7 +25,10 @@ router.get('/v1/labeling', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM news WHERE label IS NULL AND FIND_IN_SET("${kategori}", kategori)`;
+        const query = `
+        SELECT * FROM news 
+        WHERE label IS NULL 
+        AND FIND_IN_SET(${kategori}, kategori)`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -80,7 +83,11 @@ router.get('/v1/post-labeling', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM posts WHERE label IS NULL AND FIND_IN_SET("${kategori}", kategori) ORDER BY post_id DESC`;
+        const query = `
+        SELECT * FROM posts 
+        WHERE label IS NULL 
+        AND FIND_IN_SET(${kategori}, kategori) 
+        ORDER BY post_id DESC`;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -116,6 +123,7 @@ router.get('/v1/post-labeling', async(req, res) => {
 })
 
 router.get('/v1/comments-coding', async(req, res) => {
+    const { kategori } = req.query;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const chunkArray = (arr, size) => {
@@ -142,20 +150,7 @@ router.get('/v1/comments-coding', async(req, res) => {
         const query = `
         SELECT * FROM mainComments 
         WHERE label IS NULL 
-        AND kategori IN 
-        (
-        'Hapus Hibah Pesantren',
-        'Satgas Anti Premanisme',
-        'Reaktivasi Rel KA',
-        'Wamil anak',
-        'Kinerja Pemprov',
-        'Kemacetan',
-        'Lakalantas Purbaleunyi',
-        'Reaktivasi jalur KA',
-        'Pesawat gagal mesin',
-        'Hercules',
-        'Satgas Premanisme'
-        )
+        AND kategori = ${kategori}
         `;
         const [result] = await db.query(query);
 
@@ -193,6 +188,7 @@ router.get('/v1/comments-coding', async(req, res) => {
 })
 
 router.get('/v1/reply-coding', async(req, res) => {
+    const { kategori } = req.query;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const chunkArray = (arr, size) => {
@@ -216,7 +212,11 @@ router.get('/v1/reply-coding', async(req, res) => {
     };
 
     try {
-        const query = `SELECT * FROM childComments WHERE label IS NULL AND FIND_IN_SET("diskom_medmon", kategori)`;
+        const query = `
+        SELECT * FROM childComments 
+        WHERE label IS NULL 
+        AND FIND_IN_SET(${kategori}, kategori)
+        `;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
@@ -376,25 +376,14 @@ router.get('/v1/reply-sentiment', async(req, res) => {
 let labelMemory = {};
 
 router.get('/v2/comments-coding', async (req, res) => {
+    const { kategori } = req.query;
     try {
         const query = `
         SELECT main_comment_id, comment_text, kategori
         FROM mainComments 
         WHERE label IS NULL 
-        AND kategori IN (
-            'Hapus Hibah Pesantren',
-            'Satgas Anti Premanisme',
-            'Reaktivasi Rel KA',
-            'Wamil anak',
-            'Kinerja Pemprov',
-            'Kemacetan',
-            'Lakalantas Purbaleunyi',
-            'Reaktivasi jalur KA',
-            'Pesawat gagal mesin',
-            'Hercules',
-            'Satgas Premanisme'
-        )`;
-
+        AND FIND_IN_SET(${kategori}, kategori)
+        `;
         const [result] = await db.query(query);
 
         if (result.length === 0) {
