@@ -499,9 +499,10 @@ const getDataComment = async (kategori = null, platform = null) => {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
+                    let limitPage = 5;
                     let hasMore = true;
 
-                    while (hasMore) {
+                    while (hasMore && pageCount < limitPage) {
                         const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments',
@@ -604,9 +605,10 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
+                    let limitPage = 5;
                     let moreComments = true;
 
-                    while (moreComments) {
+                    while (moreComments && pageCount < limitPage) {
                         const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments_thread',
