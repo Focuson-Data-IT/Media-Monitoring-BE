@@ -77,6 +77,26 @@ router.get('/getPost', async (req, res) => {
     }
 });
 
+router.get('/getPost/v2', async (req, res) => {
+    const { kategori, start_date } = req.query;
+
+    if (!kategori) {
+        return res.status(400).send('❌ Error: kategori parameter is required.');
+    }
+
+    try {
+        console.info(`🔍 Starting post fetching for category: ${kategori}`);
+
+        // Langsung panggil getDataPost tanpa looping tambahan
+        await getDataTiktok.getDataPostv2(kategori, "TikTok", start_date);
+
+        res.status(200).send(`✅ Data ${platform} posts for category "${kategori}" have been fetched and saved.`);
+    } catch (error) {
+        console.error('❌ Error executing getPost:', error.message);
+        res.status(500).send(`❌ Error executing getPost: ${error.message}`);
+    }
+});
+
 // 🔹 Fungsi untuk mengambil startDate dan endDate dari tabel `setting`
 const getDateRange = async () => {
     try {

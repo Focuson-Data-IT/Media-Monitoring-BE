@@ -60,6 +60,19 @@ router.get('/getPost', async (req, res) => {
     }
 });
 
+router.get('/getPost/v2', async (req, res) => {
+    const { kategori, start_date} = req.query;
+    if (!kategori) return res.status(400).send('❌ kategori parameter is required.');
+
+    try {
+        await getDataIg.getDataPostv2(kategori, PLATFORM, start_date);
+        res.status(200).send(`✅ Posts ${PLATFORM} for category "${kategori}" have been fetched and saved.`);
+    } catch (error) {
+        console.error('❌ Error executing getPost:', error.message);
+        res.status(500).send(`❌ Error executing getPost: ${error.message}`);
+    }
+});
+
 // ✅ Ambil komentar + child comments berdasarkan kategori
 router.get('/getComment', async (req, res) => {
     const { kategori } = req.query;

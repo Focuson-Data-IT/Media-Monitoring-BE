@@ -6,8 +6,6 @@ const kategoriList = [
     "disparbud",
     "disparbud_competitor2",
     "disparbud_ambassador",
-    "opdjabar",
-    "gubernur_jabar",
     "opdbandung",
     "parfum"
 ];
