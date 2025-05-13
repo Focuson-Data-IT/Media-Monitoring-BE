@@ -6,8 +6,6 @@ const kategoriMap = {
     "disparbud": ["instagram", "tiktok"],
     "disparbud_competitor2": ["instagram", "tiktok"],
     "disparbud_ambassador": ["instagram", "tiktok"],
-    "opdjabar": ["instagram", "tiktok"],
-    "gubernur_jabar": ["instagram", "tiktok"],
     "opdbandung": ["instagram"],
     "parfum": ["tiktok"]
 };

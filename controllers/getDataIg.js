@@ -128,8 +128,162 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1);
+        endDate.setDate(endDate.getDate() - 20);
         const endDateObj = endDate.getTime();
+
+        const batchSize = 10;
+        const rowBatches = chunkArray(rows, batchSize);
+
+        for (const batch of rowBatches) {
+            console.info(`🚀 Processing batch of ${batch.length} users...`);
+
+            await Promise.all(batch.map(async (row) => {
+                let retryCount = 0;
+                const maxRetries = 1;
+
+                while (retryCount < maxRetries) {
+                    try {
+                        console.info(`Fetching data for user: ${row.username}`);
+
+                        const userInfoRes = await axios.request({
+                            method: 'GET',
+                            url: 'https://social-api4.p.rapidapi.com/v1/info',
+                            params: {
+                                username_or_id_or_url: row.username,
+                                url_embed_safe: 'true'
+                            },
+                            headers: {
+                                'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                                'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                            }
+                        });
+
+                        const userData = userInfoRes.data?.data;
+                        if (!userData) {
+                            console.warn(`🚫 No user data for ${row.username}`);
+                            break;
+                        }
+
+                        await save.saveUser({
+                            client_account: row.client_account,
+                            kategori,
+                            platform,
+                            username: row.username,
+                            user_id: userData.id,
+                            followers: userData.follower_count || 0,
+                            following: userData.following_count || 0,
+                            mediaCount: userData.media_count || 0,
+                            profile_pic_url: userData.profile_pic_url,
+                        });
+
+                        let paginationToken = null;
+                        let morePosts = true;
+                        let pageCount = 0;
+
+                        while (morePosts) {
+                            const response = await axios.request({
+                                method: 'GET',
+                                url: 'https://social-api4.p.rapidapi.com/v1/posts',
+                                params: {
+                                    username_or_id_or_url: row.username,
+                                    url_embed_safe: 'true',
+                                    ...(paginationToken && { pagination_token: paginationToken })
+                                },
+                                headers: {
+                                    'x-rapidapi-key': process.env.RAPIDAPI_IG_KEY,
+                                    'x-rapidapi-host': process.env.RAPIDAPI_IG_HOST
+                                }
+                            });
+
+                            const items = response.data?.data?.items;
+                            if (!items || !items.length) {
+                                console.warn(`No Posts found for user: ${row.username}`);
+                                break;
+                            }
+
+                            for (const item of items) {
+                                const isPinned = item.is_pinned ? 1 : 0;
+                                const postDate = new Date(item.taken_at * 1000).getTime();
+                                const captionText = item.caption || "No Caption";
+
+                                if (postDate < endDateObj) return;
+
+                                const post = {
+                                    client_account: row.client_account,
+                                    kategori: row.kategori,
+                                    platform: row.platform,
+                                    user_id: row.user_id,
+                                    unique_id_post: item.id,
+                                    username: row.username,
+                                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                                    thumbnail_url: item.thumbnail_url,
+                                    caption: captionText.text || captionText,
+                                    post_code: item.code,
+                                    comments: item.comment_count,
+                                    likes: item.like_count,
+                                    media_name: item.media_name,
+                                    product_type: item.product_type,
+                                    tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
+                                    is_pinned: isPinned,
+                                    followers: userData.follower_count || 0,
+                                    following: userData.following_count || 0,
+                                    playCount: item.play_count || 0,
+                                    shareCount: item.share_count || 0,
+                                    collabs: (item.coauthor_producers?.length > 0) ? 1 : 0,
+                                    collabs_with: (item.coauthor_producers?.length > 0)
+                                        ? item.coauthor_producers
+                                            .map(user => user.username === row.username ? item.user.username : user.username)
+                                            .join(",")
+                                        : ""
+                                };
+
+                                await save.savePost(post);
+                            }
+
+                            paginationToken = response.data?.pagination_token;
+                            morePosts = !!paginationToken;
+                            pageCount++;
+                            console.log(`Page count: ${pageCount}`);
+                        }
+
+                        console.info(`✅ Finished processing posts for user: ${row.username}`);
+                        break;
+                    } catch (error) {
+                        retryCount++;
+                        console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
+
+                        if (retryCount >= maxRetries) {
+                            console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
+                        } else {
+                            console.warn(`⚠️ Retrying for ${row.username} in 2 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                    }
+                }
+            }));
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        console.log('✅ Data posts berhasil diperbarui untuk semua pengguna.');
+    } catch (error) {
+        console.error('❌ Error executing function:', error.message);
+    }
+};
+
+const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT * FROM listAkun
+            WHERE platform = ? AND FIND_IN_SET(?, kategori)
+        `, [platform, kategori]);
+
+        if (!rows.length) {
+            console.log('No users found.');
+            return;
+        }
+
+        const endDateObj = start_date;
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
@@ -1502,6 +1656,7 @@ const getDataFollowers = async (kategori = null, platform = null) => {
 module.exports = {
     getDataUser,
     getDataPost,
+    getDataPostv2,
     getDataComment,
     getDataChildComment,
     getDataCommentByCode,

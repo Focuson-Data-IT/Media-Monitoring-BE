@@ -141,8 +141,150 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1);
+        endDate.setDate(endDate.getDate() - 20);
         const endDateObj = endDate.getTime();
+
+        const batchSize = 10;
+        const rowBatches = chunkArray(rows, batchSize);
+
+        for (const batch of rowBatches) {
+            console.info(`🚀 Processing batch of ${batch.length} users...`);
+
+            await Promise.all(batch.map(async (row) => {
+                let retryCount = 0;
+                const maxRetries = 1;
+
+                while (retryCount < maxRetries) {
+                    try {
+                        console.info(`🔍 Fetching profile for: ${row.username}`);
+
+                        const userInfoRes = await axios.request({
+                            method: 'GET',
+                            url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserInfo',
+                            params: { unique_id: `@${row.username}` },
+                            headers: {
+                                'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                                'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
+                            }
+                        });
+
+                        const userData = userInfoRes.data?.data;
+                        if (!userData) {
+                            console.warn(`🚫 No data found for ${row.username}`);
+                            break;
+                        }
+
+                        await save.saveUser({
+                            client_account: row.client_account,
+                            kategori,
+                            platform,
+                            username: row.username,
+                            user_id: userData.user.id,
+                            followers: userData.stats.followerCount || 0,
+                            following: userData.stats.followingCount || 0,
+                            mediaCount: userData.stats.videoCount || 0,
+                            profile_pic_url: userData.user.avatarThumb || '',
+                        });
+
+                        let cursor = null;
+                        let hasMore = true;
+                        let pageCount = 0;
+
+                        while (hasMore) {
+                            const getPost = {
+                                method: 'GET',
+                                url: 'https://tiktok-api15.p.rapidapi.com/index/Tiktok/getUserVideos',
+                                params: {
+                                    unique_id: `@${row.username}`,
+                                    count: 35,
+                                    ...(cursor && { cursor })
+                                },
+                                headers: {
+                                    'X-RapidAPI-Key': process.env.RAPIDAPI_TIKTOK_KEY,
+                                    'X-RapidAPI-Host': process.env.RAPIDAPI_TIKTOK_HOST
+                                }
+                            };
+
+                            const res = await axios.request(getPost);
+                            const userPosts = res.data?.data?.videos || [];
+
+                            if (!userPosts.length) break;
+
+                            for (const item of userPosts) {
+                                const postDate = new Date(item.create_time * 1000).getTime();
+                                if (postDate < endDateObj) return;
+
+                                const isPinned = item.is_top ? 1 : 0;
+
+                                const post = {
+                                    client_account: row.client_account,
+                                    kategori,
+                                    platform,
+                                    user_id: item.author.id,
+                                    unique_id_post: item.video_id,
+                                    username: row.username,
+                                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }),
+                                    thumbnail_url: item.cover,
+                                    caption: item.title || '',
+                                    post_code: item.code || '',
+                                    comments: item.comment_count,
+                                    likes: item.digg_count,
+                                    media_name: item.media_name || '',
+                                    product_type: item.media_type || '',
+                                    tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
+                                    is_pinned: isPinned,
+                                    followers: userData.stats.followerCount || 0,
+                                    following: userData.stats.followingCount || 0,
+                                    playCount: item.play_count || 0,
+                                    collectCount: item.collect_count || 0,
+                                    shareCount: item.share_count || 0,
+                                    downloadCount: item.download_count || 0,
+                                };
+
+                                await save.savePost(post);
+                            }
+
+                            cursor = res.data?.data?.cursor;
+                            hasMore = res.data?.data?.hasMore;
+                            pageCount++;
+                            console.log(`📄 Processed page ${pageCount} for ${row.username}`);
+                        }
+
+                        console.info(`✅ Finished posts for: ${row.username}`);
+                        break;
+
+                    } catch (error) {
+                        retryCount++;
+                        console.error(`❌ Error (${retryCount}) for ${row.username}:`, error.message);
+                        if (retryCount < maxRetries) {
+                            console.warn(`⏳ Retrying in 2 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                    }
+                }
+            }));
+
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay antar batch
+        }
+
+        console.log('✅ Semua postingan TikTok berhasil diperbarui.');
+    } catch (error) {
+        console.error('❌ Fatal error:', error.message);
+    }
+};
+
+const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT * FROM listAkun
+            WHERE platform = ? AND FIND_IN_SET(?, kategori)
+        `, [platform, kategori]);
+
+        if (!rows.length) {
+            return console.log('No users found.');
+        }
+
+        const endDateObj = start_date;
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
@@ -813,6 +955,7 @@ const getChildCommentsFromComment = async ({
 module.exports = {
     getDataUser,
     getDataPost,
+    getDataPostv2,
     getDataComment,
     getDataChildComment,
     getDataPostByKeyword,
