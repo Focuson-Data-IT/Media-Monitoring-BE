@@ -201,12 +201,27 @@ const getDataPost = async (kategori = null, platform = null) => {
                                 break;
                             }
 
+                            let pinnedCount = 0;
+                            let stopLoop = false;
+
                             for (const item of items) {
                                 const isPinned = item.is_pinned ? 1 : 0;
                                 const postDate = new Date(item.taken_at * 1000).getTime();
                                 const captionText = item.caption || "No Caption";
 
-                                if (postDate < endDateObj) return;
+                                // Skip non-pinned post yang lebih lama dari endDateObj, dan stop paginasi
+                                if (!isPinned && postDate < endDateObj) {
+                                    stopLoop = true;
+                                    continue;
+                                }
+
+                                // Skip pinned post jika sudah melebihi 3
+                                if (isPinned && pinnedCount >= 3) {
+                                    console.log(`📌 Skip pinned post (limit 3 reached) for ${row.username}`);
+                                    continue;
+                                }
+
+                                if (isPinned) pinnedCount++;
 
                                 const post = {
                                     client_account: row.client_account,
@@ -238,6 +253,11 @@ const getDataPost = async (kategori = null, platform = null) => {
                                 };
 
                                 await save.savePost(post);
+                            }
+
+                            if (stopLoop) {
+                                console.warn(`🛑 Stopped pagination early due to old post for ${row.username}`);
+                                break;
                             }
 
                             paginationToken = response.data?.pagination_token;
@@ -283,7 +303,10 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
             return;
         }
 
-        const endDateObj = start_date;
+        const endDateObj = new Date(start_date).getTime();
+        if (isNaN(endDateObj)) {
+            throw new Error("Invalid start_date format");
+        }
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
@@ -355,12 +378,27 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
                                 break;
                             }
 
+                            let pinnedCount = 0;
+                            let stopLoop = false;
+
                             for (const item of items) {
                                 const isPinned = item.is_pinned ? 1 : 0;
                                 const postDate = new Date(item.taken_at * 1000).getTime();
                                 const captionText = item.caption || "No Caption";
 
-                                if (postDate < endDateObj) return;
+                                // Skip non-pinned post yang lebih lama dari endDateObj, dan stop paginasi
+                                if (!isPinned && postDate < endDateObj) {
+                                    stopLoop = true;
+                                    continue;
+                                }
+
+                                // Skip pinned post jika sudah melebihi 3
+                                if (isPinned && pinnedCount >= 3) {
+                                    console.log(`📌 Skip pinned post (limit 3 reached) for ${row.username}`);
+                                    continue;
+                                }
+
+                                if (isPinned) pinnedCount++;
 
                                 const post = {
                                     client_account: row.client_account,
@@ -394,6 +432,11 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
                                 await save.savePost(post);
                             }
 
+                            if (stopLoop) {
+                                console.warn(`🛑 Stopped pagination early due to old post for ${row.username}`);
+                                break;
+                            }
+
                             paginationToken = response.data?.pagination_token;
                             morePosts = !!paginationToken;
                             pageCount++;
@@ -424,179 +467,6 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
         console.error('❌ Error executing function:', error.message);
     }
 };
-
-// Fungsi untuk mendapatkan data Post dari API
-// const getDataPost = async (kategori = null, platform = null) => {
-//     try {
-//         // Ambil daftar akun dari database berdasarkan kategori dan platform
-//         const [rows] = await db.query(`
-//             SELECT *
-//             FROM users
-//             WHERE platform = ? 
-//                 AND FIND_IN_SET(?, kategori)
-//         `, [platform, kategori]);
-
-//         if (!rows.length) {
-//             console.log('No users found in the database.');
-//             return;
-//         }
-
-//         // Ambil startDate dari server
-//         const response = await fetch(`http://localhost:${process.env.PORT}/data/getDates`);
-//         const data = await response.json();
-//         const endDate = new Date(data.startDate).toISOString().split('T')[0];
-//         const endDateObj = new Date(endDate).getTime();
-
-//         const batchSize = 5; // Jumlah akun yang diproses per batch
-//         const rowBatches = chunkArray(rows, batchSize);
-
-//         for (const batch of rowBatches) {
-//             console.info(`🚀 Processing batch of ${batch.length} users...`);
-
-//             await Promise.all(batch.map(async (row) => {
-//                 let retryCount = 0;
-//                 const maxRetries = 3; // Maksimal retry per user
-//                 while (retryCount < maxRetries) {
-//                     try {
-//                         console.info(`🔍 Fetching posts for user: ${row.username} (Attempt ${retryCount + 1})`);
-
-//                         let paginationToken = null;
-//                         let morePosts = true;
-//                         let pageCount = 0;
-//                         const maxPaginationPages = 10; // Maksimum pagination loop
-
-//                         let currentFollowers = row.min_followers;
-//                         const maxFollowers = row.max_followers;
-
-//                         while (morePosts && pageCount < maxPaginationPages) {
-//                             const getPost = {
-//                                 method: 'GET',
-//                                 url: 'https://instagram-scraper-api2.p.rapidapi.com/v1/posts',
-//                                 params: {
-//                                     username_or_id_or_url: row.username,
-//                                     url_embed_safe: 'true',
-//                                     ...(paginationToken && { pagination_token: paginationToken })
-//                                 },
-//                                 headers: {
-//                                     'X-RapidAPI-Key': process.env.RAPIDAPI_IG_KEY,
-//                                     'X-RapidAPI-Host': process.env.RAPIDAPI_IG_HOST
-//                                 }
-//                             };
-
-//                             const response = await axios.request(getPost);
-
-//                             if (!response.data?.data?.items) {
-//                                 console.warn(`🚫 No posts found for user: ${row.username}`);
-//                                 break;
-//                             }
-
-//                             const userPosts = response.data.data.items;
-
-//                             for (const item of userPosts) {
-//                                 const isPinned = item.is_pinned ? 1 : 0;
-//                                 const postDate = new Date(item.taken_at * 1000).getTime();
-//                                 const captionText = item.caption || "No Caption";
-
-//                                 if (isPinned) {
-//                                     const post = {
-//                                         client_account: row.client_account,
-//                                         kategori: row.kategori,
-//                                         platform: row.platform,
-//                                         user_id: row.user_id,
-//                                         unique_id_post: item.id,
-//                                         username: row.username,
-//                                         created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-//                                         thumbnail_url: item.thumbnail_url,
-//                                         caption: captionText.text || "No Caption",
-//                                         post_code: item.code,
-//                                         comments: item.comment_count,
-//                                         likes: item.like_count,
-//                                         media_name: item.media_name,
-//                                         product_type: item.product_type,
-//                                         tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-//                                         is_pinned: isPinned,
-//                                         followers: row.followers || 0,
-//                                         following: row.following || 0,
-//                                         playCount: item.play_count || 0,
-//                                         shareCount: item.share_count || 0,
-//                                         collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-//                                         collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-//                                             ? item.coauthor_producers
-//                                                 .map(user => user.username === row.username ? item.user.username : user.username)
-//                                                 .join(",")
-//                                             : ""
-
-//                                     };
-
-//                                     await save.savePost(post);
-//                                     continue;
-//                                 }
-
-//                                 if (postDate < endDateObj) {
-//                                     return;
-//                                 }
-
-//                                 const post = {
-//                                     client_account: row.client_account,
-//                                     kategori: row.kategori,
-//                                     platform: row.platform,
-//                                     user_id: row.user_id,
-//                                     unique_id_post: item.id,
-//                                     username: row.username,
-//                                     created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
-//                                     thumbnail_url: item.thumbnail_url,
-//                                     caption: captionText.text || "No Caption",
-//                                     post_code: item.code,
-//                                     comments: item.comment_count,
-//                                     likes: item.like_count,
-//                                     media_name: item.media_name,
-//                                     product_type: item.product_type,
-//                                     tagged_users: item.tagged_users?.in?.map(tag => tag.user.username).join(', ') || '',
-//                                     is_pinned: isPinned,
-//                                     followers: row.followers || 0,
-//                                     following: row.following || 0,
-//                                     playCount: item.play_count || 0,
-//                                     shareCount: item.share_count || 0,
-//                                     collabs: (item.coauthor_producers && item.coauthor_producers.length > 0) ? 1 : 0,
-//                                     collabs_with: (item.coauthor_producers && item.coauthor_producers.length > 0)
-//                                         ? item.coauthor_producers
-//                                             .map(user => user.username === row.username ? item.user.username : user.username)
-//                                             .join(",")
-//                                         : ""
-
-//                                 };
-
-//                                 await save.savePost(post);
-//                             }
-//                             paginationToken = response.data.pagination_token;
-//                             pageCount++;
-//                             if (!paginationToken) morePosts = false;
-//                             console.log(`Page count: ${pageCount}`);
-//                         }
-//                         console.info(`✅ Finished processing posts for user: ${row.username}`);
-//                         break; // Jika berhasil, keluar dari loop retry
-//                     } catch (error) {
-//                         retryCount++;
-//                         console.error(`❌ Error fetching posts for ${row.username} (Attempt ${retryCount})`, error.message);
-
-//                         if (retryCount >= maxRetries) {
-//                             console.error(`❌ Failed to fetch posts for ${row.username} after ${maxRetries} attempts.`);
-//                         } else {
-//                             console.warn(`⚠️ Retrying for ${row.username} in 5 seconds...`);
-//                             await new Promise(resolve => setTimeout(resolve, 5000)); // Delay 5 detik sebelum retry
-//                         }
-//                     }
-//                 }
-//             }));
-
-//             await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 detik antar batch akun
-//         }
-
-//         console.log('✅ All Instagram posts have been successfully updated.');
-//     } catch (error) {
-//         console.error('❌ Error executing function:', error.message);
-//     }
-// };
 
 const getDataComment = async (kategori = null, platform = null) => {
     try {
@@ -629,9 +499,10 @@ const getDataComment = async (kategori = null, platform = null) => {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
+                    let limitPage = 5;
                     let hasMore = true;
 
-                    while (hasMore) {
+                    while (hasMore && pageCount < limitPage) {
                         const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments',
@@ -734,9 +605,10 @@ const getDataChildComment = async (kategori = null, platform = null) => {
                 try {
                     let paginationToken = null;
                     let pageCount = 0;
+                    let limitPage = 5;
                     let moreComments = true;
 
-                    while (moreComments) {
+                    while (moreComments && pageCount < limitPage) {
                         const response = await axios.request({
                             method: 'GET',
                             url: 'https://social-api4.p.rapidapi.com/v1/comments_thread',

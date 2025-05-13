@@ -100,7 +100,7 @@ const getDataUser = async (kategori = null, platform = null, logBuffer = [], err
                         const errMsg = error.response
                             ? `❌ API Error for ${row.username}: ${error.response.status}`
                             : `❌ Request failed for ${row.username}: ${error.message}`;
-                        
+
                         console.error(errMsg);
                         logBuffer.push(errMsg);
                         errorUsers.push(row.username);
@@ -210,11 +210,27 @@ const getDataPost = async (kategori = null, platform = null) => {
 
                             if (!userPosts.length) break;
 
+                            let pinnedCount = 0;
+                            let stopLoop = false;
+
                             for (const item of userPosts) {
                                 const postDate = new Date(item.create_time * 1000).getTime();
-                                if (postDate < endDateObj) return;
-
                                 const isPinned = item.is_top ? 1 : 0;
+
+                                // Skip post jika sudah terlalu lama dan bukan pinned
+                                if (!isPinned && postDate < endDateObj) {
+                                    stopLoop = true;
+                                    console.log(`🛑 TikTok: Found old post for ${row.username}, stopping pagination`);
+                                    continue;
+                                }
+
+                                // Skip pinned post kalau sudah 3
+                                if (isPinned && pinnedCount >= 3) {
+                                    console.log(`📌 TikTok: Skip pinned post (limit 3 reached) for ${row.username}`);
+                                    continue;
+                                }
+
+                                if (isPinned) pinnedCount++;
 
                                 const post = {
                                     client_account: row.client_account,
@@ -243,6 +259,8 @@ const getDataPost = async (kategori = null, platform = null) => {
 
                                 await save.savePost(post);
                             }
+
+                            if (stopLoop) break;
 
                             cursor = res.data?.data?.cursor;
                             hasMore = res.data?.data?.hasMore;
@@ -284,7 +302,10 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
             return console.log('No users found.');
         }
 
-        const endDateObj = start_date;
+        const endDateObj = new Date(start_date).getTime();
+        if (isNaN(endDateObj)) {
+            throw new Error("Invalid start_date format");
+        }
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
@@ -352,11 +373,27 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
 
                             if (!userPosts.length) break;
 
+                            let pinnedCount = 0;
+                            let stopLoop = false;
+
                             for (const item of userPosts) {
                                 const postDate = new Date(item.create_time * 1000).getTime();
-                                if (postDate < endDateObj) return;
-
                                 const isPinned = item.is_top ? 1 : 0;
+
+                                // Skip post jika sudah terlalu lama dan bukan pinned
+                                if (!isPinned && postDate < endDateObj) {
+                                    stopLoop = true;
+                                    console.log(`🛑 TikTok: Found old post for ${row.username}, stopping pagination`);
+                                    continue;
+                                }
+
+                                // Skip pinned post kalau sudah 3
+                                if (isPinned && pinnedCount >= 3) {
+                                    console.log(`📌 TikTok: Skip pinned post (limit 3 reached) for ${row.username}`);
+                                    continue;
+                                }
+
+                                if (isPinned) pinnedCount++;
 
                                 const post = {
                                     client_account: row.client_account,
@@ -385,6 +422,8 @@ const getDataPostv2 = async (kategori = null, platform = null, start_date) => {
 
                                 await save.savePost(post);
                             }
+
+                            if (stopLoop) break;
 
                             cursor = res.data?.data?.cursor;
                             hasMore = res.data?.data?.hasMore;
