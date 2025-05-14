@@ -11,6 +11,8 @@ const openai = new OpenAI({
 });
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Simpan cache sementara untuk teks komentar/caption yang sudah dilabeli
 let labelMemory = {};
 
 // Pendekkan jika komentar terlalu panjang
@@ -116,6 +118,19 @@ const labelingHandler = (tableName, idField, textField, isPost = false) => {
                 const chunk = chunks[i];
                 console.log(`🔄 Processing chunk ${i + 1} of ${chunks.length}`);
 
+                // Cek apakah semua sudah ada di cache
+                const allCached = chunk.every(item => labelMemory[item.comment_text]);
+                if (allCached) {
+                    const labels = chunk.map(item => labelMemory[item.comment_text]);
+                    await Promise.all(chunk.map(async (item, idx) => {
+                        const updateQuery = `UPDATE ${tableName} SET label = ? WHERE ${idField} = ?`;
+                        await db.query(updateQuery, [labels[idx], item[idField]]);
+                        processed++;
+                        console.info(`✅ [CACHE] ID ${item[idField]} → ${labels[idx]}`);
+                    }));
+                    continue;
+                }
+
                 const prompt = generatePrompt(chunk, kategori, isPost);
                 const labels = await getValidLabels(prompt, chunk.length);
 
@@ -128,6 +143,9 @@ const labelingHandler = (tableName, idField, textField, isPost = false) => {
                 await Promise.all(chunk.map(async (item, idx) => {
                     let label = labels[idx] || "no label";
                     label = labelMemory[label] || (labelMemory[label] = label);
+
+                    // Cache label berdasarkan teks komentar/caption
+                    labelMemory[item.comment_text] = label;
 
                     const updateQuery = `UPDATE ${tableName} SET label = ? WHERE ${idField} = ?`;
                     await db.query(updateQuery, [label, item[idField]]);
