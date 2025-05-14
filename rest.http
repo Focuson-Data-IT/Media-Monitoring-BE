@@ -244,6 +244,14 @@ Content-Type: application/json
   "endDate": "2025-5-30"
 }
 
+###
+curl -X POST http://localhost:7773/api/prosesPerformaKonten \
+-H "Content-Type: application/json" \
+-d '{
+  "startDate": "2025-01-01",
+  "endDate": "2025-5-30"
+}'
+
 ### Get Instagram User Data
 GET http://localhost:7780/api/getAllUsers?kategori=disparbud&platform=Instagram&username=budpardepok
 
