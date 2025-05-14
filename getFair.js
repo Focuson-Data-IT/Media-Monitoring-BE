@@ -69,7 +69,7 @@ const processData = async (kategori, platform) =>
         const now = new Date();
         const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
         // const startDate = "2025-01-01";
-        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().slice(0, 10);
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
