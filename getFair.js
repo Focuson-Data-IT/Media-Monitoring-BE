@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { DateTime } = require("luxon");
 
 const kategoriMap = {
     "opdbekasikab": ["instagram"],
@@ -48,10 +49,10 @@ const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
 const addDataUser = async (kategori, platform) =>
     runWithPort(async (port) => {
-        const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2).toISOString().slice(0, 10);
+        const now = DateTime.now().setZone("Asia/Jakarta");
+        const startDate = now.minus({ days: 2 }).toISODate();
         // const startDate = "2025-01-01";
-        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
+        const endDate = now.minus({ days: 1 }).toISODate();
         // const endDate = "2025-04-30";
 
         console.info('startDate', startDate);
@@ -69,10 +70,10 @@ const addDataUser = async (kategori, platform) =>
 
 const processData = async (kategori, platform) =>
     runWithPort(async (port) => {
-        const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2).toISOString().slice(0, 10);
+        const now = DateTime.now().setZone("Asia/Jakarta");
+        const startDate = now.minus({ days: 2 }).toISODate();
         // const startDate = "2025-01-01";
-        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
+        const endDate = now.minus({ days: 1 }).toISODate();
         // const endDate = "2025-04-30";
 
         console.info('startDate', startDate);

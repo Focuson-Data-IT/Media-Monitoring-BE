@@ -2,6 +2,7 @@ require('dotenv').config(); // Load environment variables from .env file
 const axios = require('axios');
 const save = require('./saveDataIg');
 const db = require('../models/db'); // Pastikan ini diatur sesuai koneksi database Anda
+const { DateTime } = require('luxon');
 
 // Utility untuk membagi array ke dalam batch
 const chunkArray = (array, size) => {
@@ -127,9 +128,8 @@ const getDataPost = async (kategori = null, platform = null) => {
             return;
         }
 
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 2);
-        const endDateObj = endDate.getTime();
+        const endDate = DateTime.now().setZone("Asia/Jakarta").minus({ days: 2 });
+        const endDateObj = endDate.toMillis();
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
@@ -212,12 +212,13 @@ const getDataPost = async (kategori = null, platform = null) => {
                                 // Skip non-pinned post yang lebih lama dari endDateObj, dan stop paginasi
                                 if (!isPinned && postDate < endDateObj) {
                                     stopLoop = true;
+                                    console.log(`🛑 Instagram: Found old post for ${row.username}, stopping pagination`);
                                     continue;
                                 }
 
                                 // Skip pinned post jika sudah melebihi 3
                                 if (isPinned && pinnedCount >= 3) {
-                                    console.log(`📌 Skip pinned post (limit 3 reached) for ${row.username}`);
+                                    console.log(`📌 Instagram: Skip pinned post (limit 3 reached) for ${row.username}`);
                                     continue;
                                 }
 
@@ -230,7 +231,7 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     user_id: row.user_id,
                                     unique_id_post: item.id,
                                     username: row.username,
-                                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 19).replace('T', ' '),
+                                    created_at: DateTime.fromMillis(postDate, { zone: 'Asia/Jakarta' }).toFormat('yyyy-MM-dd HH:mm:ss'),
                                     thumbnail_url: item.thumbnail_url,
                                     caption: captionText.text || captionText,
                                     post_code: item.code,
@@ -263,7 +264,7 @@ const getDataPost = async (kategori = null, platform = null) => {
                             paginationToken = response.data?.pagination_token;
                             morePosts = !!paginationToken;
                             pageCount++;
-                            console.log(`Page count: ${pageCount}`);
+                            console.log(`📄 Processed page ${pageCount} for ${row.username}`);
                         }
 
                         console.info(`✅ Finished processing posts for user: ${row.username}`);

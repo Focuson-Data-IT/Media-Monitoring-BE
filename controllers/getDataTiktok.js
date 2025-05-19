@@ -140,9 +140,8 @@ const getDataPost = async (kategori = null, platform = null) => {
             return console.log('No users found.');
         }
 
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 2);
-        const endDateObj = endDate.getTime();
+        const endDate = DateTime.now().setZone("Asia/Jakarta").minus({ days: 2 });
+        const endDateObj = endDate.toMillis();
 
         const batchSize = 10;
         const rowBatches = chunkArray(rows, batchSize);
@@ -239,7 +238,7 @@ const getDataPost = async (kategori = null, platform = null) => {
                                     user_id: item.author.id,
                                     unique_id_post: item.video_id,
                                     username: row.username,
-                                    created_at: new Date(postDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }),
+                                    created_at: DateTime.fromMillis(postDate, { zone: 'Asia/Jakarta' }).toFormat('yyyy-MM-dd HH:mm:ss'),
                                     thumbnail_url: item.cover,
                                     caption: item.title || '',
                                     post_code: item.code || '',
@@ -260,7 +259,10 @@ const getDataPost = async (kategori = null, platform = null) => {
                                 await save.savePost(post);
                             }
 
-                            if (stopLoop) break;
+                            if (stopLoop) {
+                                console.warn(`🛑 Stopped pagination early due to old post for ${row.username}`);
+                                break;
+                            }
 
                             cursor = res.data?.data?.cursor;
                             hasMore = res.data?.data?.hasMore;

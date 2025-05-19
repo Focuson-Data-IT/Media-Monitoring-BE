@@ -1,14 +1,10 @@
 const axios = require('axios');
-
-// Format date ke YYYY-MM-DD
-function formatDate(date) {
-    return date.toISOString().slice(0, 10);
-}
+const { DateTime } = require('luxon');
 
 // Hitung range tanggal
-const today = new Date();
-const startStr = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
-const endStr = formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+const now = DateTime.now().setZone("Asia/Jakarta");
+const startStr = now.minus({ days: 1 }).toISODate();
+const endStr = now.plus({ days: 1 }).toISODate();
 
 // URL yang akan di-fetch
 const urls = [
