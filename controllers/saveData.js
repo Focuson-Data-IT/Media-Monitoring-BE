@@ -38,14 +38,12 @@ const saveListAkun = async (listAkun) => {
     }
 };
 
-const saveDataUser = async (kategori, platform, start_Date, end_Date) => {
+const saveDataUser = async (kategori, platform, startDate, endDate) => {
     try {
         // Ambil semua akun dari tabel listAkun
         const [accounts] = await connection.query('SELECT * FROM listAkun WHERE kategori = ? AND platform = ?', [kategori, platform]);
 
         // Tentukan rentang tanggal
-        const startDate = start_Date;
-        const endDate = end_Date;
         const dates = [];
 
         // Buat array tanggal dari startDate hingga endDate
