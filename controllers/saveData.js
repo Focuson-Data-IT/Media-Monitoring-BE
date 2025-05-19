@@ -40,20 +40,25 @@ const saveListAkun = async (listAkun) => {
 
 const saveDataUser = async (kategori, platform, startDate, endDate) => {
     try {
-        // Ambil semua akun dari tabel listAkun
-        const [accounts] = await connection.query('SELECT * FROM listAkun WHERE kategori = ? AND platform = ?', [kategori, platform]);
+        if (typeof startDate === 'string') startDate = new Date(startDate);
+        if (typeof endDate === 'string') endDate = new Date(endDate);
 
-        // Tentukan rentang tanggal
+        if (isNaN(startDate) || isNaN(endDate)) {
+            throw new Error("Invalid startDate or endDate");
+        }
+
+        const [accounts] = await connection.query(
+            'SELECT * FROM listAkun WHERE kategori = ? AND platform = ?', 
+            [kategori, platform]
+        );
+
         const dates = [];
-
-        // Buat array tanggal dari startDate hingga endDate
-        for (let dt = startDate; dt <= endDate; dt.setDate(dt.getDate() + 1)) {
+        for (let dt = new Date(startDate); dt <= endDate; dt.setDate(dt.getDate() + 1)) {
             dates.push(new Date(dt).toISOString().split('T')[0]);
         }
 
         console.log(`Processing ${accounts.length} accounts for ${dates.length} dates.`);
 
-        // Data untuk batch insert
         const batchValues = [];
         for (const account of accounts) {
             for (const date of dates) {
@@ -67,35 +72,16 @@ const saveDataUser = async (kategori, platform, startDate, endDate) => {
             }
         }
 
-        const insertSqlDaily = `
-            INSERT INTO fairScoresDaily (list_id, kategori, platform, username, date)
-            VALUES ?
-            ON DUPLICATE KEY UPDATE
-                kategori = VALUES(kategori),
-                platform = VALUES(platform),
-                username = VALUES(username),
-                date = VALUES(date);
-        `;
+        const insertSqlDaily = `INSERT INTO fairScoresDaily (...) VALUES ? ON DUPLICATE KEY UPDATE ...`;
+        const insertSqlMonthly = `INSERT INTO fairScoresMonthly (...) VALUES ? ON DUPLICATE KEY UPDATE ...`;
 
-        const insertSqlMonthly = `
-            INSERT INTO fairScoresMonthly (list_id, kategori, platform, username, date)
-            VALUES ?
-            ON DUPLICATE KEY UPDATE
-                kategori = VALUES(kategori),
-                platform = VALUES(platform),
-                username = VALUES(username),
-                date = VALUES(date);
-        `;
-
-        // Eksekusi query dengan batch insert
         const [resultDaily] = await connection.query(insertSqlDaily, [batchValues]);
         const [resultMonthly] = await connection.query(insertSqlMonthly, [batchValues]);
 
-        console.log(`All data has been saved successfully. Daily Rows affected: ${resultDaily.affectedRows}`);
-        console.log(`All data has been saved successfully. Monthly Rows affected: ${resultMonthly.affectedRows}`);
+        console.log(`Daily Rows affected: ${resultDaily.affectedRows}`);
+        console.log(`Monthly Rows affected: ${resultMonthly.affectedRows}`);
     } catch (error) {
         console.error("Error saving user data to fairScoresDaily:", error.message);
-        console.error("Error saving user data to fairScoresMonthly:", error.message);
     }
 };
 
