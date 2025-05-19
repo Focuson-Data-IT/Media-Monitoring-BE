@@ -53,6 +53,9 @@ const addDataUser = async (kategori, platform) =>
         // const startDate = "2025-01-01";
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
+
+        console.info('startDate', startDate);
+        console.info('endDate', endDate);
         
         await axios.post(`http://localhost:${port}/fair/addDataUser`, { kategori, platform, startDate, endDate });
         log(`${kategori} ${platform} - addDataUser`, port);
@@ -71,6 +74,9 @@ const processData = async (kategori, platform) =>
         // const startDate = "2025-01-01";
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
+
+        console.info('startDate', startDate);
+        console.info('endDate', endDate);
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
             kategori,
