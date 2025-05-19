@@ -62,8 +62,8 @@ const addDataUser = async (kategori, platform) =>
         log(`${kategori} ${platform} - addDataUser`, port);
 
         await axios.post(`http://localhost:${port}/api/ProsesPerformaKonten`, {
-            start_date: startDate,
-            end_date: endDate,
+            startDate,
+            endDate,
         });
         log(`${startDate} to ${endDate} - ProsesPerformaKonten`, port);
     });
