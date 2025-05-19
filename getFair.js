@@ -49,7 +49,7 @@ const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 const addDataUser = async (kategori, platform) =>
     runWithPort(async (port) => {
         const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5).toISOString().slice(0, 10);
         // const startDate = "2025-01-01";
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
@@ -67,9 +67,9 @@ const addDataUser = async (kategori, platform) =>
 const processData = async (kategori, platform) =>
     runWithPort(async (port) => {
         const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5).toISOString().slice(0, 10);
         // const startDate = "2025-01-01";
-        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
@@ -85,10 +85,18 @@ const processData = async (kategori, platform) =>
 const runKategori = async (kategori, platforms) => {
     const t0 = Date.now();
 
-    await Promise.all(platforms.map(async (platform) => {
+    // Jalankan addDataUser untuk semua platform
+    for (const platform of platforms) {
         await addDataUser(kategori, platform);
+    }
+
+    // Tambahkan delay opsional
+    await delay(2000); // tunggu 2 detik kalau perlu
+
+    // Jalankan processData untuk semua platform
+    for (const platform of platforms) {
         await processData(kategori, platform);
-    }));
+    }
 
     const t1 = Date.now();
     console.log(`✅ ${kategori} selesai (process fair) dalam ${(t1 - t0) / 1000}s`);

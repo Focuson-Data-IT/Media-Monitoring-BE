@@ -9,6 +9,9 @@ const xlsx = require('xlsx');
 router.get('/generateWordcloud/:kategori', async (req, res) => {
     const kategori = req.params.kategori;
 
+    const boost = req.query.boost ? req.query.boost.split(',').map(s => s.trim()) : [];
+    const downgrade = req.query.downgrade ? req.query.downgrade.split(',').map(s => s.trim()) : [];
+
     try {
         const [mainRows] = await db.query(
             'SELECT comment_text FROM mainComments WHERE kategori = ?', [kategori]
@@ -26,6 +29,18 @@ router.get('/generateWordcloud/:kategori', async (req, res) => {
             return res.status(404).json({ message: 'Komentar tidak ditemukan atau terlalu pendek' });
         }
 
+        // Buat timestamp yang aman untuk nama file
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[:.]/g, '-');
+
+        // Bangun nama file
+        const filenameParts = [`wordcloud`, kategori];
+        if (boost.length) filenameParts.push(`boost_${boost.join('-')}`);
+        if (downgrade.length) filenameParts.push(`downgrade_${downgrade.join('-')}`);
+        filenameParts.push(timestamp);
+
+        const filename = `${filenameParts.join('-')}.png`;
+
         const pythonPath = path.join(__dirname, '../env/bin/python3');
         const scriptPath = path.join(__dirname, '../python/generate_wordcloud.py');
 
@@ -33,18 +48,19 @@ router.get('/generateWordcloud/:kategori', async (req, res) => {
 
         py.stdin.write(JSON.stringify({
             text: allComments,
-            filename: 'wordcloud.png',
-            boost: ['presiden'],
-            downgrade: ['kang']
+            filename,
+            boost,
+            downgrade
         }));
 
         py.stdin.end();
 
         py.stdout.on('data', (data) => {
             if (data.toString().includes('done')) {
-                const imgPath = path.join(__dirname, '../wordcloud.png');
+                const imgPath = path.join(__dirname, `../${filename}`);
                 const img = fs.readFileSync(imgPath);
                 res.setHeader('Content-Type', 'image/png');
+                res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
                 res.send(img);
             }
         });
