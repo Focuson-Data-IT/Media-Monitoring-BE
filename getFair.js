@@ -47,63 +47,52 @@ const runWithPort = async (fn) => {
 
 const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
-const addDataUser = async (kategori, platform) =>
+const addDataUser = async (kategori, platform, startDate, endDate) =>
     runWithPort(async (port) => {
-        const now = DateTime.now().setZone("Asia/Jakarta");
-        const startDate = now.minus({ days: 2 }).toISODate();
-        // const startDate = "2025-01-01";
-        const endDate = now.minus({ days: 1 }).toISODate();
-        // const endDate = "2025-04-30";
-
         console.info('startDate', startDate);
         console.info('endDate', endDate);
-        
-        await axios.post(`http://localhost:${port}/fair/addDataUser`, { kategori, platform, startDate, endDate });
-        log(`${kategori} ${platform} - addDataUser`, port);
 
-        await axios.post(`http://localhost:${port}/api/ProsesPerformaKonten`, {
-            startDate,
-            endDate,
+        await axios.post(`http://localhost:${port}/fair/addDataUser`, {
+            kategori, platform, startDate, endDate
         });
-        log(`${startDate} to ${endDate} - ProsesPerformaKonten`, port);
+        log(`${kategori} ${platform} - addDataUser`, port);
     });
 
-const processData = async (kategori, platform) =>
+const processData = async (kategori, platform, startDate, endDate) =>
     runWithPort(async (port) => {
-        const now = DateTime.now().setZone("Asia/Jakarta");
-        const startDate = now.minus({ days: 2 }).toISODate();
-        // const startDate = "2025-01-01";
-        const endDate = now.minus({ days: 1 }).toISODate();
-        // const endDate = "2025-04-30";
-
         console.info('startDate', startDate);
         console.info('endDate', endDate);
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
-            kategori,
-            platform,
-            start_date: startDate,
-            end_date: endDate
+            kategori, platform, start_date: startDate, end_date: endDate
         });
-
         log(`${kategori} ${platform} - processData (${startDate} to ${endDate})`, port);
+    });
+
+const prosesPerformaKonten = async (startDate, endDate) =>
+    runWithPort(async (port) => {
+        await axios.post(`http://localhost:${port}/api/ProsesPerformaKonten`, {
+            startDate,
+            endDate
+        });
+        log(`${startDate} to ${endDate} - ProsesPerformaKonten`, port);
     });
 
 const runKategori = async (kategori, platforms) => {
     const t0 = Date.now();
 
-    // Jalankan addDataUser untuk semua platform
+    const now = DateTime.now().setZone("Asia/Jakarta");
+    const startDate = now.minus({ days: 2 }).toISODate();
+    const endDate = now.minus({ days: 1 }).toISODate();
+
     for (const platform of platforms) {
-        await addDataUser(kategori, platform);
+        await addDataUser(kategori, platform, startDate, endDate);
+        await delay(1000);
+        await processData(kategori, platform, startDate, endDate);
+        await delay(1000);
     }
 
-    // Tambahkan delay opsional
-    await delay(2000); // tunggu 2 detik kalau perlu
-
-    // Jalankan processData untuk semua platform
-    for (const platform of platforms) {
-        await processData(kategori, platform);
-    }
+    await prosesPerformaKonten(startDate, endDate);
 
     const t1 = Date.now();
     console.log(`✅ ${kategori} selesai (process fair) dalam ${(t1 - t0) / 1000}s`);
@@ -112,7 +101,7 @@ const runKategori = async (kategori, platforms) => {
 const runAll = async () => {
     const entries = Object.entries(kategoriMap);
 
-    console.log("\n🚀 Memulai semua kategori secara paralel...");
+    console.log("\n🚀 Memulai semua kategori secara paralel...\n");
 
     await Promise.all(
         entries.map(([kategori, platforms]) => runKategori(kategori, platforms))
