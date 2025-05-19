@@ -49,12 +49,12 @@ const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 const addDataUser = async (kategori, platform) =>
     runWithPort(async (port) => {
         const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5).toISOString().slice(0, 10);
+        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2).toISOString().slice(0, 10);
         // const startDate = "2025-01-01";
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
         
-        await axios.post(`http://localhost:${port}/fair/addDataUser`, { kategori, platform });
+        await axios.post(`http://localhost:${port}/fair/addDataUser`, { kategori, platform, startDate, endDate });
         log(`${kategori} ${platform} - addDataUser`, port);
 
         await axios.post(`http://localhost:${port}/api/ProsesPerformaKonten`, {
@@ -67,9 +67,9 @@ const addDataUser = async (kategori, platform) =>
 const processData = async (kategori, platform) =>
     runWithPort(async (port) => {
         const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5).toISOString().slice(0, 10);
+        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2).toISOString().slice(0, 10);
         // const startDate = "2025-01-01";
-        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString().slice(0, 10);
         // const endDate = "2025-04-30";
 
         await axios.post(`http://localhost:${port}/fair/processData`, {
