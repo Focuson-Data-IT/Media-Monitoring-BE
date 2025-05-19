@@ -351,6 +351,9 @@ GET http://localhost:7770/instagram/getDataPostByKeywords?kategori=diskom_medmon
 GET http://localhost:7771/tiktok/getDataPostByKeywords?kategori=diskom_medmon
 
 ###
+curl "http://localhost:7770/tiktok/getDataPostByKeywords?kategori=disdik_medmon"
+
+###
 GET http://localhost:7772/youtube/getDataPostByKeywords?start_date=2025-05-05&end_date=2025-05-31&kategori=diskom_medmon
 
 ###
