@@ -128,7 +128,7 @@ const getDataPost = async (kategori = null, platform = null) => {
         }
 
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 3);
+        endDate.setDate(endDate.getDate() - 2);
         const endDateObj = endDate.getTime();
 
         const batchSize = 10;
