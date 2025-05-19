@@ -48,7 +48,7 @@ const saveDataUser = async (kategori, platform, startDate, endDate) => {
         }
 
         const [accounts] = await connection.query(
-            'SELECT * FROM listAkun WHERE kategori = ? AND platform = ?', 
+            'SELECT * FROM listAkun WHERE kategori = ? AND platform = ?',
             [kategori, platform]
         );
 
@@ -72,8 +72,25 @@ const saveDataUser = async (kategori, platform, startDate, endDate) => {
             }
         }
 
-        const insertSqlDaily = `INSERT INTO fairScoresDaily (...) VALUES ? ON DUPLICATE KEY UPDATE ...`;
-        const insertSqlMonthly = `INSERT INTO fairScoresMonthly (...) VALUES ? ON DUPLICATE KEY UPDATE ...`;
+        const insertSqlDaily = `
+    INSERT INTO fairScoresDaily (list_id, kategori, platform, username, date)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE
+        kategori = VALUES(kategori),
+        platform = VALUES(platform),
+        username = VALUES(username),
+        date = VALUES(date);
+`;
+
+        const insertSqlMonthly = `
+    INSERT INTO fairScoresMonthly (list_id, kategori, platform, username, date)
+    VALUES ?
+    ON DUPLICATE KEY UPDATE
+        kategori = VALUES(kategori),
+        platform = VALUES(platform),
+        username = VALUES(username),
+        date = VALUES(date);
+`;
 
         const [resultDaily] = await connection.query(insertSqlDaily, [batchValues]);
         const [resultMonthly] = await connection.query(insertSqlMonthly, [batchValues]);
