@@ -1389,7 +1389,7 @@ router.get('/getDailyFollowers', async (req, res) => {
             client_account,
             followers AS value,
             platform,
-            CONVERT_TZ(date, '+00:00', '+07:00') AS date
+            date
         FROM fairScoresDaily
         WHERE
             FIND_IN_SET(?, kategori)
@@ -1428,7 +1428,7 @@ router.get('/getDailyLikes', async (req, res) => {
             p.client_account,
             SUM(p.likes) AS value, -- Total likes per hari
             p.platform,
-            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
+            created_at AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
@@ -1468,7 +1468,7 @@ router.get('/getDailyViews', async (req, res) => {
             p.client_account,
             SUM(p.playCount) AS value, -- Total likes per hari
             p.platform,
-            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
+            created_at AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
@@ -1507,7 +1507,7 @@ router.get('/getDailyComments', async (req, res) => {
             p.client_account,
             SUM(p.comments) AS value, -- Total likes per hari
             p.platform,
-            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
+            created_at AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
@@ -1546,7 +1546,7 @@ router.get('/getDailySaves', async (req, res) => {
             p.client_account,
             SUM(p.collectCount) AS value, -- Total likes per hari
             p.platform,
-            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
+            created_at AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
@@ -1585,7 +1585,7 @@ router.get('/getDailyShares', async (req, res) => {
             p.client_account,
             SUM(p.shareCount) AS value, -- Total likes per hari
             p.platform,
-            CONVERT_TZ(created_at, '+00:00', '+07:00') AS date
+            created_at AS date
         FROM posts p
         WHERE
             FIND_IN_SET(?, p.kategori)
