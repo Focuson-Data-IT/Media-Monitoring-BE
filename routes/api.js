@@ -1727,12 +1727,10 @@ router.get('/getGrowthData', async (req, res) => {
         });
     }
 
-    console.info(start_date, end_date);
-
     try {
         const connection = await db.getConnection();
 
-        // Followers Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
+        // Followers (from fairScoresDaily)
         const [followersResult] = await connection.query(
             `
             SELECT date, followers
@@ -1743,9 +1741,7 @@ router.get('/getGrowthData', async (req, res) => {
             [username, platform, start_date, end_date]
         );
 
-        // console.info(followersResult);
-
-        // Posts Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
+        // Posts (from fairScoresDaily)
         const [postsResult] = await connection.query(
             `
             SELECT date, activities AS posts
@@ -1756,100 +1752,47 @@ router.get('/getGrowthData', async (req, res) => {
             [username, platform, start_date, end_date]
         );
 
-        // console.info(postsResult);
-
-        // Likes Query (tetap gunakan CONVERT_TZ karena kolom bertipe DATETIME)
-        const [likesResult] = await connection.query(
+        // Engagement (from posts)
+        const [engagementResult] = await connection.query(
             `
-            SELECT date, SUM(likes) AS likes
+            SELECT 
+                DATE(created_at) AS date,
+                SUM(likes) AS likes,
+                SUM(playCount) AS views,
+                SUM(comments) AS comments,
+                SUM(collectCount) AS saves,
+                SUM(shareCount) AS shares
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
+            GROUP BY DATE(created_at)
+            ORDER BY DATE(created_at) ASC;
             `,
             [username, platform, start_date, end_date]
         );
-
-        // console.info(likesResult);
-
-        // Views Query
-        const [viewsResult] = await connection.query(
-            `
-            SELECT date, SUM(playCount) AS views
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
-            `,
-            [username, platform, start_date, end_date]
-        );
-
-        // console.info(viewsResult);
-
-        // Comments Query
-        const [commentsResult] = await connection.query(
-            `
-            SELECT date, SUM(comments) AS comments
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
-            `,
-            [username, platform, start_date, end_date]
-        );
-
-        // console.info(commentsResult);
-
-        // Views Query
-        const [savesResult] = await connection.query(
-            `
-            SELECT date, SUM(collectCount) AS saves
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
-            `,
-            [username, platform, start_date, end_date]
-        );
-
-        // console.info(savesResult);
-
-        // Comments Query
-        const [sharesResult] = await connection.query(
-            `
-            SELECT date, SUM(shareCount) AS shares
-            FROM posts
-            WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
-            GROUP BY date
-            ORDER BY date ASC;
-            `,
-            [username, platform, start_date, end_date]
-        );
-
-        // console.info(sharesResult);
 
         connection.release();
 
-        // Gabungkan data berdasarkan tanggal
+        // Gabung hasil
         const dataMap = {};
-
-        const mergeData = (result, key) => {
+        const mergeData = (result, keys) => {
             result.forEach(item => {
                 const date = item.date;
                 if (!dataMap[date]) {
                     dataMap[date] = { date, followers: 0, posts: 0, likes: 0, views: 0, comments: 0, saves: 0, shares: 0 };
                 }
-                dataMap[date][key] = item[key] ?? 0;
+                if (Array.isArray(keys)) {
+                    keys.forEach(k => {
+                        dataMap[date][k] = item[k] ?? 0;
+                    });
+                } else {
+                    dataMap[date][keys] = item[keys] ?? 0;
+                }
             });
         };
 
         mergeData(followersResult, 'followers');
         mergeData(postsResult, 'posts');
-        mergeData(likesResult, 'likes');
-        mergeData(viewsResult, 'views');
-        mergeData(commentsResult, 'comments');
-        mergeData(savesResult, 'saves');
-        mergeData(sharesResult, 'shares');
+        mergeData(engagementResult, ['likes', 'views', 'comments', 'saves', 'shares']);
 
         const combinedData = Object.values(dataMap).sort((a, b) => new Date(a.date) - new Date(b.date));
 
