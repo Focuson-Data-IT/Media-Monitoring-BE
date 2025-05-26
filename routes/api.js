@@ -1735,7 +1735,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Followers Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
         const [followersResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
+            SELECT date, followers
             FROM fairScoresDaily
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
@@ -1748,7 +1748,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Posts Query (tanpa CONVERT_TZ karena kolom bertipe DATE)
         const [postsResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, nilai_aktifitas AS posts
+            SELECT date, activities AS posts
             FROM fairScoresDaily
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
@@ -1761,7 +1761,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Likes Query (tetap gunakan CONVERT_TZ karena kolom bertipe DATETIME)
         const [likesResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(likes) AS likes
+            SELECT date, SUM(likes) AS likes
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
             GROUP BY date
@@ -1775,7 +1775,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Views Query
         const [viewsResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(playCount) AS views
+            SELECT date, SUM(playCount) AS views
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
             GROUP BY date
@@ -1789,7 +1789,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Comments Query
         const [commentsResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(comments) AS comments
+            SELECT date, SUM(comments) AS comments
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
             GROUP BY date
@@ -1803,7 +1803,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Views Query
         const [savesResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(collectCount) AS saves
+            SELECT date, SUM(collectCount) AS saves
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
             GROUP BY date
@@ -1817,7 +1817,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Comments Query
         const [sharesResult] = await connection.query(
             `
-            SELECT CONVERT_TZ(created_at, '+00:00', '+07:00') AS date, SUM(shareCount) AS shares
+            SELECT date, SUM(shareCount) AS shares
             FROM posts
             WHERE username = ? AND platform = ? AND created_at BETWEEN ? AND ?
             GROUP BY date
