@@ -1733,7 +1733,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Followers (from fairScoresDaily)
         const [followersResult] = await connection.query(
             `
-            SELECT date, followers
+            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
             FROM fairScoresDaily
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
@@ -1744,7 +1744,7 @@ router.get('/getGrowthData', async (req, res) => {
         // Posts (from fairScoresDaily)
         const [postsResult] = await connection.query(
             `
-            SELECT date, activities AS posts
+            SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, activities AS posts
             FROM fairScoresDaily
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
