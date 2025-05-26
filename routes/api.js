@@ -1734,7 +1734,7 @@ router.get('/getGrowthData', async (req, res) => {
         const [followersResult] = await connection.query(
             `
             SELECT CONVERT_TZ(date, '+00:00', '+07:00') AS date, followers
-            FROM fairScoresDaily
+            FROM fairScoresMonthly
             WHERE username = ? AND platform = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)
             ORDER BY date ASC;
             `,
