@@ -29,6 +29,7 @@ const getCategoriesFromListAkun = async () => {
     return rows.map(row => row.kategori);
 };
 
+// Proses Data Fair Perbulan Tapi Deprecated
 router.post('/processDataFair', async (req, res) => {
     try {
         let { start_date, end_date, kategori, platform } = req.body;
@@ -116,6 +117,90 @@ router.post('/processData', async (req, res) => {
         console.info(`[SUCCESS] Monthly FAIR Score for ${kategori} on ${platform} completed.`);
 
         // 2️⃣ Setelah Monthly selesai, lanjut ke Daily Data
+        const dailyTasks = [];
+        for (const cat of categories) {
+            for (const plat of platforms) {
+                dailyTasks.push(fairScoreDaily.processData(start_date, end_date, cat, plat));
+            }
+        }
+
+        console.info(`[INFO] Starting Daily FAIR Score for ${kategori} on ${platform}...`);
+        await Promise.all(dailyTasks);
+        console.info(`[SUCCESS] Daily FAIR Score for ${kategori} on ${platform} completed.`);
+
+        res.json({
+            success: true,
+            message: `Data berhasil diproses untuk kategori: ${categories.join(', ')}, platform: ${platforms.join(', ')}.`
+        });
+    } catch (error) {
+        console.error('Error processing data:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Gagal menyimpan data user ke dailyFairScores.',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint untuk memasukkan data mentah, memproses, dan menyimpan ke tabel dailyFairScores
+router.post('/processDataMonthly', async (req, res) => {
+    try {
+        let { start_date, end_date, kategori, platform } = req.body; // Ganti dari req.body ke req.query
+
+        const today = new Date().toISOString().split('T')[0];
+        start_date = start_date || today;
+        end_date = end_date || today;
+
+        console.info(`Processing data from ${start_date} to ${end_date}...`);
+
+        const categories = kategori ? [kategori] : await getCategoriesFromListAkun();
+        console.info(`Processing categories: ${categories.join(', ')}`);
+
+        const platforms = platform ? [platform] : PLATFORMS;
+        console.info(`Processing platforms: ${platforms.join(', ')}`);
+
+        const monthlyTasks = [];
+        for (const cat of categories) {
+            for (const plat of platforms) {
+                monthlyTasks.push(fairScoreMonthly.processData(start_date, end_date, cat, plat));
+            }
+        }
+
+        console.info(`[INFO] Starting Monthly FAIR Score for ${kategori} on ${platform}...`);
+        await Promise.all(monthlyTasks);
+        console.info(`[SUCCESS] Monthly FAIR Score for ${kategori} on ${platform} completed.`);
+
+        res.json({
+            success: true,
+            message: `Data berhasil diproses untuk kategori: ${categories.join(', ')}, platform: ${platforms.join(', ')}.`
+        });
+    } catch (error) {
+        console.error('Error processing data:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Gagal menyimpan data user ke dailyFairScores.',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint untuk memasukkan data mentah, memproses, dan menyimpan ke tabel dailyFairScores
+router.post('/processDataDaily', async (req, res) => {
+    try {
+        let { start_date, end_date, kategori, platform } = req.body; // Ganti dari req.body ke req.query
+
+        const today = new Date().toISOString().split('T')[0];
+        start_date = start_date || today;
+        end_date = end_date || today;
+
+        console.info(`Processing data from ${start_date} to ${end_date}...`);
+
+        const categories = kategori ? [kategori] : await getCategoriesFromListAkun();
+        console.info(`Processing categories: ${categories.join(', ')}`);
+
+        const platforms = platform ? [platform] : PLATFORMS;
+        console.info(`Processing platforms: ${platforms.join(', ')}`);
+
         const dailyTasks = [];
         for (const cat of categories) {
             for (const plat of platforms) {
