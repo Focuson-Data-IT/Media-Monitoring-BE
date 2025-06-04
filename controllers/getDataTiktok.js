@@ -140,7 +140,7 @@ const getDataPost = async (kategori = null, platform = null) => {
             return console.log('No users found.');
         }
 
-        const endDate = DateTime.now().setZone("Asia/Jakarta").minus({ days: 2 });
+        const endDate = DateTime.now().setZone("Asia/Jakarta").minus({ days: 5 });
         const endDateObj = endDate.toMillis();
 
         const batchSize = 10;

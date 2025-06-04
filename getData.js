@@ -49,7 +49,7 @@ const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
 const getPost = async (kategori, platform) =>
     runWithPort(async (port) => {
-        const res = await axios.get(`http://localhost:${port}/${platform}/getPost?kategori=${kategori}`);
+        const res = await axios.get(`http://localhost:${port}/${platform}/getPost/v2?kategori=${kategori}`);
         if (res.status === 200) {
             log(`${kategori} ${platform} - getPost`, port);
         } else {
@@ -73,7 +73,7 @@ const runKategori = async (kategori, platforms) => {
     await Promise.all(
         platforms.map(async (platform) => {
             await getPost(kategori, platform);
-            await getComment(kategori, platform);
+            // await getComment(kategori, platform);
         })
     );
 
