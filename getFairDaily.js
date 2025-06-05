@@ -92,11 +92,11 @@ const runKategori = async (kategori, platforms) => {
 const runAll = async () => {
     const entries = Object.entries(kategoriMap);
 
-    console.log("\n🚀 Memulai semua kategori secara paralel...\n");
+    console.log("\n🚀 Memulai semua kategori satu per satu...\n");
 
-    await Promise.all(
-        entries.map(([kategori, platforms]) => runKategori(kategori, platforms))
-    );
+    for (const [kategori, platforms] of entries) {
+        await runKategori(kategori, platforms);
+    }
 
     console.log("\n🎉 Semua kategori selesai (processFair)!");
 };
