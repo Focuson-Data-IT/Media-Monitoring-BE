@@ -58,6 +58,15 @@ const processData = async (kategori, platform, startDate, endDate) =>
         log(`${kategori} ${platform} - processData (${startDate} to ${endDate})`, port);
     });
 
+const prosesPerformaKonten = async (startDate, endDate) =>
+    runWithPort(async (port) => {
+        await axios.post(`http://localhost:${port}/api/ProsesPerformaKonten`, {
+            startDate,
+            endDate
+        });
+        log(`${startDate} to ${endDate} - ProsesPerformaKonten`, port);
+    });
+
 const runKategori = async (kategori, platforms) => {
     const t0 = Date.now();
 
