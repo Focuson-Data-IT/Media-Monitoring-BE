@@ -47,17 +47,6 @@ const runWithPort = async (fn) => {
 
 const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
-const addDataUser = async (kategori, platform, startDate, endDate) =>
-    runWithPort(async (port) => {
-        console.info('startDate', startDate);
-        console.info('endDate', endDate);
-
-        await axios.post(`http://localhost:${port}/fair/addDataUser`, {
-            kategori, platform, startDate, endDate
-        });
-        log(`${kategori} ${platform} - addDataUser`, port);
-    });
-
 const processData = async (kategori, platform, startDate, endDate) =>
     runWithPort(async (port) => {
         console.info('startDate', startDate);
@@ -86,8 +75,6 @@ const runKategori = async (kategori, platforms) => {
     const endDate = now.minus({ days: 1 }).toISODate();
 
     for (const platform of platforms) {
-        await addDataUser(kategori, platform, startDate, endDate);
-        await delay(1000);
         await processData(kategori, platform, startDate, endDate);
         await delay(1000);
     }
