@@ -49,7 +49,7 @@ const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
 const getPost = async (kategori, platform) =>
     runWithPort(async (port) => {
-        const res = await axios.get(`http://localhost:${port}/${platform}/getPost/v2?kategori=${kategori}`);
+        const res = await axios.get(`http://localhost:${port}/${platform}/getPost/v2?kategori=${kategori}&start_date=2025-05-01`);
         if (res.status === 200) {
             log(`${kategori} ${platform} - getPost`, port);
         } else {
