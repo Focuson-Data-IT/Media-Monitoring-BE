@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { DateTime } = require("luxon");
 
 const kategoriMap = {
     "opdbekasikab": ["instagram"],
@@ -60,8 +61,9 @@ const runAll = async () => {
     console.log("\n🚀 Memulai addDataUser untuk semua kategori dan platform satu per satu...\n");
 
     // Tanggal bisa diubah sesuai kebutuhan
-    const startDate = "2025-05-01";
-    const endDate = new Date().toISOString().split('T')[0];
+    const now = DateTime.now().setZone("Asia/Jakarta");
+    const startDate = now.minus({ days: 2 }).toISODate();
+    const endDate = now.minus({ days: 1 }).toISODate();
 
     for (const [kategori, platforms] of Object.entries(kategoriMap)) {
         for (const platform of platforms) {

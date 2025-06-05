@@ -71,7 +71,8 @@ const runKategori = async (kategori, platforms) => {
     const t0 = Date.now();
 
     const now = DateTime.now().setZone("Asia/Jakarta");
-    const startDate = "2025-05-01";
+    // const startDate = "2025-05-01";
+    const startDate = now.minus({ days: 2 }).toISODate();
     const endDate = now.minus({ days: 1 }).toISODate();
 
     for (const platform of platforms) {
