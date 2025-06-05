@@ -35,7 +35,9 @@ async function tryWithRetry(command, maxRetry = 2) {
     try {
         await tryWithRetry('node getData.js');
         await tryWithRetry('node getRes.js');
-        await tryWithRetry('node getFair.js');
+        // await tryWithRetry('node getFair.js');
+        await tryWithRetry('node getFairDaily.js');
+        await tryWithRetry('node getFairMonthly.js');
         console.log('✅ All scripts completed successfully.');
         process.exit(0);
     } catch (err) {
