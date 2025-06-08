@@ -1,13 +1,14 @@
 const axios = require("axios");
 
 const kategoriMap = {
-    "opdbekasikab": ["instagram"],
-    "prokopim_bekasikab": ["instagram"],
-    "disparbud": ["instagram", "tiktok"],
-    "disparbud_competitor2": ["instagram", "tiktok"],
-    "disparbud_ambassador": ["instagram", "tiktok"],
-    "opdbandung": ["instagram"],
-    "parfum": ["tiktok"]
+    "opdbekasikab": ["Instagram"],
+    "prokopim_bekasikab": ["Instagram"],
+    "disparbud": ["Instagram", "TikTok"],
+    "disparbud_competitor2": ["Instagram", "TikTok"],
+    "disparbud_ambassador": ["Instagram", "TikTok"],
+    "opdbandung": ["Instagram"],
+    "parfum": ["TikTok"],
+    "perbankan": ["TikTok"]
 };
 
 const portPool = [7771];

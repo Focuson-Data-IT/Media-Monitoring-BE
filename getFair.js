@@ -2,13 +2,14 @@ const axios = require("axios");
 const { DateTime } = require("luxon");
 
 const kategoriMap = {
-    "opdbekasikab": ["instagram"],
-    "prokopim_bekasikab": ["instagram"],
-    "disparbud": ["instagram", "tiktok"],
-    "disparbud_competitor2": ["instagram", "tiktok"],
-    "disparbud_ambassador": ["instagram", "tiktok"],
-    "opdbandung": ["instagram"],
-    "parfum": ["tiktok"]
+    // "opdbekasikab": ["instagram"],
+    // "prokopim_bekasikab": ["instagram"],
+    // "disparbud": ["instagram", "tiktok"],
+    // "disparbud_competitor2": ["instagram", "tiktok"],
+    // "disparbud_ambassador": ["instagram", "tiktok"],
+    // "opdbandung": ["instagram"],
+    // "parfum": ["tiktok"],
+    "perbankan": ["TikTok"]
 };
 
 const portPool = [7771];
@@ -71,7 +72,8 @@ const runKategori = async (kategori, platforms) => {
     const t0 = Date.now();
 
     const now = DateTime.now().setZone("Asia/Jakarta");
-    const startDate = now.minus({ days: 2 }).toISODate();
+    // const startDate = now.minus({ days: 2 }).toISODate();
+    const startDate = "2025-01-01";
     const endDate = now.minus({ days: 1 }).toISODate();
 
     for (const platform of platforms) {
