@@ -1,17 +1,11 @@
 const axios = require("axios");
 
 const kategoriMap = {
-    "opdbekasikab": ["instagram"],
-    "prokopim_bekasikab": ["instagram"],
-    "disparbud": ["instagram", "tiktok"],
-    "disparbud_competitor2": ["instagram", "tiktok"],
-    "disparbud_ambassador": ["instagram", "tiktok"],
-    "opdbandung": ["instagram"],
-    "parfum": ["tiktok"]
+    "perbankan": ["TikTok"]
 };
 
 // Global port pool (tidak dibagi per platform)
-const portPool = [7771];
+const portPool = [7774];
 const portStatus = Array(portPool.length).fill(false);
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -47,16 +41,6 @@ const runWithPort = async (fn) => {
 
 const log = (msg, port) => console.log(`✅ ${msg} @${port}`);
 
-const getPost = async (kategori, platform) =>
-    runWithPort(async (port) => {
-        const res = await axios.get(`http://localhost:${port}/${platform}/getPost/v2?kategori=${kategori}&start_date=2025-05-01`);
-        if (res.status === 200) {
-            log(`${kategori} ${platform} - getPost`, port);
-        } else {
-            throw new Error(`${kategori} ${platform} - getPost gagal dengan status ${res.status}`);
-        }
-    });
-
 const getComment = async (kategori, platform) =>
     runWithPort(async (port) => {
         const res = await axios.get(`http://localhost:${port}/${platform}/getComment?kategori=${kategori}`);
@@ -72,7 +56,6 @@ const runKategori = async (kategori, platforms) => {
 
     await Promise.all(
         platforms.map(async (platform) => {
-            await getPost(kategori, platform);
             await getComment(kategori, platform);
         })
     );

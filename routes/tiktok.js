@@ -105,7 +105,8 @@ const getDateRange = async () => {
 
         return {
             startDate: new Date(rows[0].startDate).toISOString().split('T')[0],
-            endDate: new Date(rows[0].endDate).toISOString().split('T')[0]
+            endDate: new Date().toISOString().split('T')[0]
+
         };
     } catch (error) {
         console.error('❌ Error fetching date range from database:', error.message);
@@ -196,7 +197,7 @@ router.get('/getDataPostByKeywords', async (req, res) => {
                 row.keyword
             );
             console.info(`Posts for keyword ${row.keyword} have been fetched and saved.`);
-        }));        
+        }));
 
         res.status(200).send(`Data TikTok getDataPostByKeywords for all users have been fetched and saved.`);
     } catch (error) {
