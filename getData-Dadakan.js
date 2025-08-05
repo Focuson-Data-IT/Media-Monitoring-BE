@@ -1,9 +1,7 @@
 const axios = require("axios");
 
 const kategoriMap = {
-    "mprdpr": ["Instagram"],
-    "bidangdpd": ["Instagram"],
-    "dpdprovinsi": ["Instagram"]
+    "dpd": ["Instagram"],
 };
 
 // Global port pool (tidak dibagi per platform)

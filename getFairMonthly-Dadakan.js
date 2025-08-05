@@ -2,9 +2,7 @@ const axios = require("axios");
 const { DateTime } = require("luxon");
 
 const kategoriMap = {
-    "mprdpr": ["Instagram"],
-    "bidangdpd": ["Instagram"],
-    "dpdprovinsi": ["Instagram"]
+    "dpd": ["Instagram"],
 };
 
 const portPool = [7774];

@@ -1,9 +1,7 @@
 const axios = require("axios");
 
 const kategoriMap = {
-    "mprdpr": ["Instagram"],
-    "bidangdpd": ["Instagram"],
-    "dpdprovinsi": ["Instagram"]
+    "dpd": ["Instagram"],
 };
 
 const portPool = [7773];
